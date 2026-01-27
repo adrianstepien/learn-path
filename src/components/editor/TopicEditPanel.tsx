@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -113,6 +113,14 @@ export const TopicEditPanel = ({
     url: '',
     estimatedMinutes: 10,
   });
+
+  // Sync title when topic changes
+  useEffect(() => {
+    setTitle(topic.title);
+    setEditingTitle(false);
+    setShowAddQuestion(false);
+    setShowAddResource(false);
+  }, [topic.id, topic.title]);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev =>
