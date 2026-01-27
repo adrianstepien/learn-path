@@ -1,120 +1,189 @@
+import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Plus, 
-  Folder, 
-  FileText,
-  ChevronRight
-} from 'lucide-react';
+import { Save, Undo, Redo } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
-import { mockCategories } from '@/data/mockData';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+import { EditorSidebar } from '@/components/editor/EditorSidebar';
+import { EditorCanvas } from '@/components/editor/EditorCanvas';
+import { TopicEditPanel } from '@/components/editor/TopicEditPanel';
+import { AddNodeDialog } from '@/components/editor/AddNodeDialog';
+import { useEditorStore } from '@/stores/editorStore';
+import { toast } from 'sonner';
 
 const EditorPage = () => {
+  const store = useEditorStore();
+  const [addNodePosition, setAddNodePosition] = useState<{ x: number; y: number } | null>(null);
+
+  const selectedTopic = store.getSelectedTopic();
+  const selectedRoadmap = store.getSelectedRoadmap();
+
+  const handleAddNode = useCallback((position: { x: number; y: number }) => {
+    setAddNodePosition(position);
+  }, []);
+
+  const handleCreateNode = useCallback((title: string) => {
+    if (addNodePosition) {
+      store.addNode(title, addNodePosition);
+      setAddNodePosition(null);
+      toast.success(`Dodano temat: ${title}`);
+    }
+  }, [addNodePosition, store]);
+
+  const handleNodeClick = useCallback((nodeId: string) => {
+    store.selectTopic(nodeId);
+  }, [store]);
+
+  const handleNodeDoubleClick = useCallback((nodeId: string) => {
+    store.selectTopic(nodeId);
+  }, [store]);
+
+  const handleConnectionEnd = useCallback((nodeId: string) => {
+    if (store.state.connectingFrom && store.state.connectingFrom !== nodeId) {
+      store.addConnection(store.state.connectingFrom, nodeId, 'suggested_order');
+      toast.success('Połączenie utworzone');
+    } else {
+      store.setConnectingFrom(null);
+    }
+  }, [store]);
+
+  const handleSave = useCallback(() => {
+    toast.success('Zmiany zapisane!');
+  }, []);
+
   return (
     <MainLayout>
-      <div className="p-8">
-        {/* Header */}
+      <div className="flex h-[calc(100vh-2rem)] flex-col">
+        {/* Top Bar */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="flex items-center justify-between border-b border-border bg-card px-4 py-3"
         >
-          <h1 className="text-3xl font-bold text-foreground">Edytor roadmap</h1>
-          <p className="mt-2 text-muted-foreground">
-            Twórz i zarządzaj swoimi roadmapami i pytaniami
-          </p>
-        </motion.div>
-
-        {/* Quick Actions */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
-        >
-          <button className="flex items-center gap-4 rounded-2xl border border-dashed border-border bg-card p-6 transition-all hover:border-primary hover:shadow-md">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-              <Plus className="h-6 w-6 text-primary" />
-            </div>
-            <div className="text-left">
-              <p className="font-medium text-foreground">Nowa kategoria</p>
-              <p className="text-sm text-muted-foreground">Utwórz grupę tematyczną</p>
-            </div>
-          </button>
-          
-          <button className="flex items-center gap-4 rounded-2xl border border-dashed border-border bg-card p-6 transition-all hover:border-accent hover:shadow-md">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10">
-              <Folder className="h-6 w-6 text-accent" />
-            </div>
-            <div className="text-left">
-              <p className="font-medium text-foreground">Nowa roadmapa</p>
-              <p className="text-sm text-muted-foreground">Zaprojektuj ścieżkę nauki</p>
-            </div>
-          </button>
-
-          <button className="flex items-center gap-4 rounded-2xl border border-dashed border-border bg-card p-6 transition-all hover:border-success hover:shadow-md">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-success/10">
-              <FileText className="h-6 w-6 text-success" />
-            </div>
-            <div className="text-left">
-              <p className="font-medium text-foreground">Nowe pytanie</p>
-              <p className="text-sm text-muted-foreground">Dodaj materiał do nauki</p>
-            </div>
-          </button>
-        </motion.div>
-
-        {/* Categories List */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="rounded-2xl border border-border bg-card shadow-md"
-        >
-          <div className="border-b border-border px-6 py-4">
-            <h2 className="text-lg font-semibold text-foreground">Twoje kategorie</h2>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">
+              {selectedRoadmap ? selectedRoadmap.title : 'Edytor Roadmap'}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {selectedRoadmap 
+                ? `${store.state.nodes.length} tematów • ${store.state.connections.length} połączeń`
+                : 'Wybierz kategorię i roadmapę z panelu bocznego'
+              }
+            </p>
           </div>
-          <div className="divide-y divide-border">
-            {mockCategories.map((category, index) => (
-              <motion.div
-                key={category.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 + index * 0.05 }}
-                className="flex items-center justify-between p-4 hover:bg-secondary/50 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-4">
-                  <span className="text-2xl">{category.icon}</span>
-                  <div>
-                    <p className="font-medium text-foreground">{category.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {category.roadmaps.length} roadmap • {category.roadmaps.reduce((acc, r) => acc + r.totalQuestions, 0)} pytań
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" disabled>
+              <Undo className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="icon" disabled>
+              <Redo className="h-4 w-4" />
+            </Button>
+            <Button onClick={handleSave} className="gap-2">
+              <Save className="h-4 w-4" />
+              Zapisz
+            </Button>
+          </div>
+        </motion.div>
+
+        {/* Main Content */}
+        <div className="flex-1 overflow-hidden">
+          <ResizablePanelGroup direction="horizontal">
+            {/* Sidebar */}
+            <ResizablePanel defaultSize={20} minSize={15} maxSize={35}>
+              <EditorSidebar
+                categories={store.state.categories}
+                selectedCategoryId={store.state.selectedCategoryId}
+                selectedRoadmapId={store.state.selectedRoadmapId}
+                onSelectCategory={store.selectCategory}
+                onSelectRoadmap={store.selectRoadmap}
+                onAddCategory={store.addCategory}
+                onUpdateCategory={store.updateCategory}
+                onDeleteCategory={store.deleteCategory}
+                onAddRoadmap={store.addRoadmap}
+                onUpdateRoadmap={store.updateRoadmap}
+                onDeleteRoadmap={store.deleteRoadmap}
+              />
+            </ResizablePanel>
+
+            <ResizableHandle withHandle />
+
+            {/* Canvas */}
+            <ResizablePanel defaultSize={80}>
+              {store.state.selectedRoadmapId ? (
+                <EditorCanvas
+                  nodes={store.state.nodes}
+                  connections={store.state.connections}
+                  zoom={store.state.zoom}
+                  pan={store.state.pan}
+                  connectingFrom={store.state.connectingFrom}
+                  selectedNodeId={store.state.selectedTopicId}
+                  onNodeClick={handleNodeClick}
+                  onNodeDoubleClick={handleNodeDoubleClick}
+                  onNodeMove={store.updateNodePosition}
+                  onNodeDelete={store.deleteNode}
+                  onConnectionStart={store.setConnectingFrom}
+                  onConnectionEnd={handleConnectionEnd}
+                  onConnectionDelete={store.deleteConnection}
+                  onAddNode={handleAddNode}
+                  onZoomChange={store.setZoom}
+                  onPanChange={store.setPan}
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center bg-secondary/30">
+                  <div className="text-center">
+                    <div className="mb-4 text-6xl">🗺️</div>
+                    <h2 className="text-xl font-semibold text-foreground">Wybierz roadmapę</h2>
+                    <p className="mt-2 text-muted-foreground">
+                      Wybierz kategorię i roadmapę z panelu bocznego,<br />
+                      aby rozpocząć edycję
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <Button variant="outline" size="sm">
-                    Edytuj
-                  </Button>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
+              )}
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </div>
 
-        {/* Info Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="mt-8 rounded-2xl gradient-primary p-6 text-primary-foreground"
-        >
-          <h3 className="text-lg font-semibold mb-2">💡 Wskazówka</h3>
-          <p className="text-primary-foreground/80">
-            Edytor roadmap pozwala na tworzenie wizualnych ścieżek nauki podobnych do roadmap.sh. 
-            Możesz przeciągać i łączyć tematy, definiować zależności oraz dodawać różnorodne typy pytań.
-          </p>
-        </motion.div>
+        {/* Topic Edit Panel */}
+        {selectedTopic && (
+          <TopicEditPanel
+            topic={selectedTopic}
+            isOpen={!!store.state.selectedTopicId}
+            onClose={() => store.selectTopic(null)}
+            onUpdateTopic={(updates) => {
+              if (store.state.selectedTopicId) {
+                store.updateNode(store.state.selectedTopicId, updates as any);
+              }
+            }}
+            onAddQuestion={(question) => {
+              if (store.state.selectedTopicId) {
+                store.addQuestion(store.state.selectedTopicId, question);
+                toast.success('Pytanie dodane');
+              }
+            }}
+            onDeleteQuestion={(questionId) => {
+              store.deleteQuestion(questionId);
+              toast.success('Pytanie usunięte');
+            }}
+            onAddResource={(resource) => {
+              if (store.state.selectedTopicId) {
+                store.addResource(store.state.selectedTopicId, resource);
+                toast.success('Materiał dodany');
+              }
+            }}
+            onDeleteResource={(resourceId) => {
+              store.deleteResource(resourceId);
+              toast.success('Materiał usunięty');
+            }}
+          />
+        )}
+
+        {/* Add Node Dialog */}
+        <AddNodeDialog
+          isOpen={addNodePosition !== null}
+          onClose={() => setAddNodePosition(null)}
+          onAdd={handleCreateNode}
+        />
       </div>
     </MainLayout>
   );
