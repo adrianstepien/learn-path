@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Link2, Trash2, GripVertical } from 'lucide-react';
 import { EditorNode } from '@/stores/editorStore';
@@ -43,40 +43,50 @@ export const CanvasNode = ({
   onConnectionStart,
   onConnectionEnd,
 }: CanvasNodeProps) => {
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const nodeRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
     if ((e.target as HTMLElement).closest('.node-action')) return;
 
     e.stopPropagation();
-    setIsDragging(true);
-    setDragOffset({
-      x: e.clientX - node.position.x,
-      y: e.clientY - node.position.y,
-    });
+    e.preventDefault();
+    
+    isDraggingRef.current = true;
+    
+    // Calculate offset at the time of mousedown
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startPosX = node.position.x;
+    const startPosY = node.position.y;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      
+      const deltaX = moveEvent.clientX - startX;
+      const deltaY = moveEvent.clientY - startY;
+      
       onMove({
-        x: moveEvent.clientX - dragOffset.x,
-        y: moveEvent.clientY - dragOffset.y,
+        x: startPosX + deltaX,
+        y: startPosY + deltaY,
       });
     };
 
     const handleMouseUp = () => {
-      setIsDragging(false);
+      isDraggingRef.current = false;
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, [node.position, onMove, dragOffset]);
+  }, [node.position.x, node.position.y, onMove]);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isDraggingRef.current) return;
+    
     if (isConnecting && !isConnectingSource) {
       onConnectionEnd();
     } else {
@@ -96,8 +106,7 @@ export const CanvasNode = ({
         'canvas-node absolute flex min-w-[160px] cursor-move select-none flex-col rounded-xl border-2 shadow-md transition-shadow',
         statusColors[node.status],
         isSelected && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
-        isConnecting && !isConnectingSource && 'ring-2 ring-accent ring-offset-1',
-        isDragging && 'shadow-lg'
+        isConnecting && !isConnectingSource && 'ring-2 ring-accent ring-offset-1'
       )}
       style={{
         left: node.position.x,
