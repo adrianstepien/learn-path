@@ -9,6 +9,7 @@ import CategoryPage from "./pages/CategoryPage";
 import RoadmapViewPage from "./pages/RoadmapViewPage";
 import StudyPage from "./pages/StudyPage";
 import EditorPage from "./pages/EditorPage";
+import QuestionBankPage from "./pages/QuestionBankPage";
 import ImportPage from "./pages/ImportPage";
 import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/learn/roadmap/:roadmapId" element={<RoadmapViewPage />} />
           <Route path="/learn/study/:topicId" element={<StudyPage />} />
           <Route path="/editor" element={<EditorPage />} />
+          <Route path="/questions" element={<QuestionBankPage />} />
           <Route path="/import" element={<ImportPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/login" element={<LoginPage />} />
