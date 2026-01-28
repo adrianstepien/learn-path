@@ -446,6 +446,24 @@ export const useEditorStore = () => {
     return newResource;
   }, []);
 
+  const updateResource = useCallback((resourceId: string, updates: Partial<Resource>) => {
+    setState(prev => ({
+      ...prev,
+      categories: prev.categories.map(c => ({
+        ...c,
+        roadmaps: c.roadmaps.map(r => ({
+          ...r,
+          topics: r.topics.map(t => ({
+            ...t,
+            resources: t.resources.map(res =>
+              res.id === resourceId ? { ...res, ...updates } : res
+            ),
+          })),
+        })),
+      })),
+    }));
+  }, []);
+
   const deleteResource = useCallback((resourceId: string) => {
     setState(prev => ({
       ...prev,
@@ -489,6 +507,7 @@ export const useEditorStore = () => {
     updateQuestion,
     deleteQuestion,
     addResource,
+    updateResource,
     deleteResource,
   };
 };

@@ -161,6 +161,10 @@ const EditorPage = () => {
                 toast.success('Pytanie dodane');
               }
             }}
+            onUpdateQuestion={(questionId, updates) => {
+              store.updateQuestion(questionId, updates);
+              toast.success('Pytanie zaktualizowane');
+            }}
             onDeleteQuestion={(questionId) => {
               store.deleteQuestion(questionId);
               toast.success('Pytanie usunięte');
@@ -170,6 +174,10 @@ const EditorPage = () => {
                 store.addResource(store.state.selectedTopicId, resource);
                 toast.success('Materiał dodany');
               }
+            }}
+            onUpdateResource={(resourceId, updates) => {
+              store.updateResource(resourceId, updates);
+              toast.success('Materiał zaktualizowany');
             }}
             onDeleteResource={(resourceId) => {
               store.deleteResource(resourceId);
