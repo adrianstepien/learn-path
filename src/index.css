@@ -166,4 +166,24 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+
+  /* TipTap editor styles */
+  .tiptap p.is-editor-empty:first-child::before {
+    color: hsl(var(--muted-foreground));
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
+
+  .tiptap:focus {
+    outline: none;
+  }
+
+  .tiptap img {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius);
+    margin: 0.5rem 0;
+  }
 }
