@@ -7,7 +7,8 @@ import {
   FileVideo, 
   BarChart3, 
   LogOut,
-  GraduationCap
+  GraduationCap,
+  HelpCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +16,7 @@ const navItems = [
   { to: '/', icon: Home, label: 'Strona główna' },
   { to: '/learn', icon: Map, label: 'Nauka' },
   { to: '/editor', icon: PlusCircle, label: 'Edytor' },
+  { to: '/questions', icon: HelpCircle, label: 'Baza pytań' },
   { to: '/import', icon: FileVideo, label: 'Import' },
   { to: '/dashboard', icon: BarChart3, label: 'Dashboard' },
 ];
