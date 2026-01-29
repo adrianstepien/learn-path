@@ -119,32 +119,48 @@ export const EditorCanvas = ({
       {/* Toolbar */}
       <div className="absolute left-4 top-4 z-20 flex flex-col gap-2">
         <Button
-          variant="outline"
-          size="icon"
-          onClick={() => onZoomChange(zoom + 0.1)}
-          className="h-10 w-10 bg-card shadow-md"
-        >
-          <ZoomIn className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => onZoomChange(zoom - 0.1)}
-          className="h-10 w-10 bg-card shadow-md"
-        >
-          <ZoomOut className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
+          variant="default"
           onClick={() => {
-            onZoomChange(1);
-            onPanChange({ x: 0, y: 0 });
+            const centerPosition = {
+              x: (window.innerWidth / 2 - pan.x) / zoom - 80,
+              y: (window.innerHeight / 2 - pan.y) / zoom - 50,
+            };
+            onAddNode(centerPosition);
           }}
-          className="h-10 w-10 bg-card shadow-md"
+          className="gap-2 shadow-md"
         >
-          <RotateCcw className="h-4 w-4" />
+          <Plus className="h-4 w-4" />
+          Dodaj temat
         </Button>
+        <div className="flex flex-col gap-2 mt-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => onZoomChange(zoom + 0.1)}
+            className="h-10 w-10 bg-card shadow-md"
+          >
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => onZoomChange(zoom - 0.1)}
+            className="h-10 w-10 bg-card shadow-md"
+          >
+            <ZoomOut className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              onZoomChange(1);
+              onPanChange({ x: 0, y: 0 });
+            }}
+            className="h-10 w-10 bg-card shadow-md"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Zoom indicator */}
@@ -157,6 +173,7 @@ export const EditorCanvas = ({
         <p>Podwójne kliknięcie = nowy węzeł</p>
         <p>Alt + przeciągnij = przesuwaj canvas</p>
         <p>Scroll = przesuwaj | Ctrl+Scroll = zoom</p>
+        <p className="text-primary">Kliknij ikonę łańcucha → drugi węzeł = połączenie</p>
       </div>
 
       {/* Canvas */}
