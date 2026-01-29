@@ -13,7 +13,8 @@ import {
   Edit3,
   BookOpen,
   ExternalLink,
-  Pencil
+  Pencil,
+  NotebookPen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -81,7 +82,7 @@ export const TopicEditPanel = ({
 }: TopicEditPanelProps) => {
   const [editingTitle, setEditingTitle] = useState(false);
   const [title, setTitle] = useState(topic.title);
-  const [expandedSections, setExpandedSections] = useState<string[]>(['questions', 'resources']);
+  const [expandedSections, setExpandedSections] = useState<string[]>(['own_materials', 'articles', 'videos', 'questions']);
   
   // Dialog states
   const [questionDialogOpen, setQuestionDialogOpen] = useState(false);
@@ -91,12 +92,18 @@ export const TopicEditPanel = ({
   const [resourceDialogOpen, setResourceDialogOpen] = useState(false);
   const [resourceDialogMode, setResourceDialogMode] = useState<'add' | 'edit'>('add');
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
+  const [resourceDialogType, setResourceDialogType] = useState<Resource['type']>('description');
 
   // Sync title when topic changes
   useEffect(() => {
     setTitle(topic.title);
     setEditingTitle(false);
   }, [topic.id, topic.title]);
+
+  // Filter resources by type
+  const ownMaterials = topic.resources.filter(r => r.type === 'description');
+  const articles = topic.resources.filter(r => r.type === 'article');
+  const videos = topic.resources.filter(r => r.type === 'video');
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev =>
@@ -135,15 +142,17 @@ export const TopicEditPanel = ({
   };
 
   // Resource handlers
-  const handleOpenAddResource = () => {
+  const handleOpenAddResource = (type: Resource['type']) => {
     setEditingResource(null);
     setResourceDialogMode('add');
+    setResourceDialogType(type);
     setResourceDialogOpen(true);
   };
 
   const handleOpenEditResource = (resource: Resource) => {
     setEditingResource(resource);
     setResourceDialogMode('edit');
+    setResourceDialogType(resource.type);
     setResourceDialogOpen(true);
   };
 
@@ -157,6 +166,55 @@ export const TopicEditPanel = ({
 
   // Strip HTML for preview
   const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '').trim();
+
+  const ResourceItem = ({ resource }: { resource: Resource }) => (
+    <div className="group flex items-center gap-3 rounded-lg border border-border p-3 hover:bg-secondary/30 transition-colors">
+      {resource.type === 'description' && <NotebookPen className="h-4 w-4 text-primary flex-shrink-0" />}
+      {resource.type === 'article' && <Link className="h-4 w-4 text-accent flex-shrink-0" />}
+      {resource.type === 'video' && <Video className="h-4 w-4 text-warning flex-shrink-0" />}
+      <div className="flex-1 min-w-0">
+        <p className="truncate font-medium">{resource.title}</p>
+        {resource.type === 'description' && resource.content && (
+          <p className="text-xs text-muted-foreground truncate">
+            {stripHtml(resource.content).substring(0, 50)}...
+          </p>
+        )}
+        {resource.url && (
+          <a 
+            href={resource.url} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-xs text-primary hover:underline flex items-center gap-1"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ExternalLink className="h-3 w-3" />
+            Otwórz link
+          </a>
+        )}
+        {resource.estimatedMinutes && (
+          <p className="text-xs text-muted-foreground">{resource.estimatedMinutes} min</p>
+        )}
+      </div>
+      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() => handleOpenEditResource(resource)}
+        >
+          <Pencil className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-destructive"
+          onClick={() => onDeleteResource(resource.id)}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -242,83 +300,101 @@ export const TopicEditPanel = ({
                       </Select>
                     </div>
 
-                    {/* Resources Section */}
+                    {/* Own Materials Section */}
                     <Collapsible
-                      open={expandedSections.includes('resources')}
-                      onOpenChange={() => toggleSection('resources')}
+                      open={expandedSections.includes('own_materials')}
+                      onOpenChange={() => toggleSection('own_materials')}
                     >
-                      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-secondary/50 p-3 hover:bg-secondary transition-colors">
+                      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-primary/10 p-3 hover:bg-primary/20 transition-colors">
                         <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">Materiały</span>
-                          <Badge variant="secondary">{topic.resources.length}</Badge>
+                          <NotebookPen className="h-4 w-4 text-primary" />
+                          <span className="font-medium">Własne materiały</span>
+                          <Badge variant="secondary">{ownMaterials.length}</Badge>
                         </div>
-                        {expandedSections.includes('resources') ? (
+                        {expandedSections.includes('own_materials') ? (
                           <ChevronUp className="h-4 w-4" />
                         ) : (
                           <ChevronDown className="h-4 w-4" />
                         )}
                       </CollapsibleTrigger>
                       <CollapsibleContent className="mt-2 space-y-2">
-                        {topic.resources.map((resource) => (
-                          <div
-                            key={resource.id}
-                            className="group flex items-center gap-3 rounded-lg border border-border p-3 hover:bg-secondary/30 transition-colors"
-                          >
-                            {resource.type === 'description' && <FileText className="h-4 w-4 text-primary flex-shrink-0" />}
-                            {resource.type === 'article' && <Link className="h-4 w-4 text-accent flex-shrink-0" />}
-                            {resource.type === 'video' && <Video className="h-4 w-4 text-warning flex-shrink-0" />}
-                            <div className="flex-1 min-w-0">
-                              <p className="truncate font-medium">{resource.title}</p>
-                              {resource.type === 'description' && resource.content && (
-                                <p className="text-xs text-muted-foreground truncate">
-                                  {stripHtml(resource.content).substring(0, 50)}...
-                                </p>
-                              )}
-                              {resource.url && (
-                                <a 
-                                  href={resource.url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="text-xs text-primary hover:underline flex items-center gap-1"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <ExternalLink className="h-3 w-3" />
-                                  Otwórz link
-                                </a>
-                              )}
-                              {resource.estimatedMinutes && (
-                                <p className="text-xs text-muted-foreground">{resource.estimatedMinutes} min</p>
-                              )}
-                            </div>
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleOpenEditResource(resource)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive"
-                                onClick={() => onDeleteResource(resource.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
+                        {ownMaterials.map((resource) => (
+                          <ResourceItem key={resource.id} resource={resource} />
                         ))}
 
                         <Button
                           variant="outline"
                           className="w-full"
-                          onClick={handleOpenAddResource}
+                          onClick={() => handleOpenAddResource('description')}
                         >
                           <Plus className="mr-2 h-4 w-4" />
-                          Dodaj materiał
+                          Dodaj własny materiał
+                        </Button>
+                      </CollapsibleContent>
+                    </Collapsible>
+
+                    {/* Articles Section */}
+                    <Collapsible
+                      open={expandedSections.includes('articles')}
+                      onOpenChange={() => toggleSection('articles')}
+                    >
+                      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-accent/10 p-3 hover:bg-accent/20 transition-colors">
+                        <div className="flex items-center gap-2">
+                          <Link className="h-4 w-4 text-accent" />
+                          <span className="font-medium">Artykuły</span>
+                          <Badge variant="secondary">{articles.length}</Badge>
+                        </div>
+                        {expandedSections.includes('articles') ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-2 space-y-2">
+                        {articles.map((resource) => (
+                          <ResourceItem key={resource.id} resource={resource} />
+                        ))}
+
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => handleOpenAddResource('article')}
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Dodaj artykuł
+                        </Button>
+                      </CollapsibleContent>
+                    </Collapsible>
+
+                    {/* Videos Section */}
+                    <Collapsible
+                      open={expandedSections.includes('videos')}
+                      onOpenChange={() => toggleSection('videos')}
+                    >
+                      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-warning/10 p-3 hover:bg-warning/20 transition-colors">
+                        <div className="flex items-center gap-2">
+                          <Video className="h-4 w-4 text-warning" />
+                          <span className="font-medium">Filmy</span>
+                          <Badge variant="secondary">{videos.length}</Badge>
+                        </div>
+                        {expandedSections.includes('videos') ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-2 space-y-2">
+                        {videos.map((resource) => (
+                          <ResourceItem key={resource.id} resource={resource} />
+                        ))}
+
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => handleOpenAddResource('video')}
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Dodaj film
                         </Button>
                       </CollapsibleContent>
                     </Collapsible>
@@ -416,6 +492,7 @@ export const TopicEditPanel = ({
         resource={editingResource}
         onSave={handleSaveResource}
         mode={resourceDialogMode}
+        defaultType={resourceDialogType}
       />
     </>
   );

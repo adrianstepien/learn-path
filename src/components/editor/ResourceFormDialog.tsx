@@ -27,6 +27,7 @@ interface ResourceFormDialogProps {
   resource?: Resource | null;
   onSave: (resource: Omit<Resource, 'id' | 'topicId' | 'createdAt' | 'isCompleted'>) => void;
   mode: 'add' | 'edit';
+  defaultType?: Resource['type'];
 }
 
 const resourceTypes: { value: Resource['type']; label: string; icon: React.ReactNode }[] = [
@@ -41,8 +42,9 @@ export const ResourceFormDialog = ({
   resource,
   onSave,
   mode,
+  defaultType = 'description',
 }: ResourceFormDialogProps) => {
-  const [type, setType] = useState<Resource['type']>('description');
+  const [type, setType] = useState<Resource['type']>(defaultType);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [url, setUrl] = useState('');
@@ -57,15 +59,15 @@ export const ResourceFormDialog = ({
         setUrl(resource.url || '');
         setEstimatedMinutes(resource.estimatedMinutes || 10);
       } else {
-        // Reset for add mode
-        setType('description');
+        // Reset for add mode with default type
+        setType(defaultType);
         setTitle('');
         setContent('');
         setUrl('');
         setEstimatedMinutes(10);
       }
     }
-  }, [isOpen, resource, mode]);
+  }, [isOpen, resource, mode, defaultType]);
 
   const handleSave = () => {
     if (!title.trim()) return;
