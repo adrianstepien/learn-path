@@ -111,7 +111,8 @@ export const EditorCanvas = ({
 
   const getNodePosition = useCallback((nodeId: string) => {
     const node = nodes.find(n => n.id === nodeId);
-    return node ? { x: node.position.x + 80, y: node.position.y + 30 } : { x: 0, y: 0 };
+    // Return center-right of the node for "from" position, center for general
+    return node ? { x: node.position.x + 80, y: node.position.y + 40 } : { x: 0, y: 0 };
   }, [nodes]);
 
   return (
@@ -206,8 +207,17 @@ export const EditorCanvas = ({
             transformOrigin: '0 0',
           }}
         >
-          {/* Connections */}
-          <svg className="pointer-events-none absolute inset-0" style={{ width: '10000px', height: '10000px', left: '-5000px', top: '-5000px', overflow: 'visible' }}>
+          {/* Connections SVG */}
+          <svg 
+            className="absolute pointer-events-none" 
+            style={{ 
+              overflow: 'visible',
+              width: '1px',
+              height: '1px',
+              left: 0,
+              top: 0,
+            }}
+          >
             {connections.map(conn => {
               const fromPos = getNodePosition(conn.from);
               const toPos = getNodePosition(conn.to);
@@ -233,7 +243,7 @@ export const EditorCanvas = ({
                 stroke="hsl(var(--primary))"
                 strokeWidth="2"
                 strokeDasharray="5,5"
-                opacity="0.6"
+                opacity="0.8"
               />
             )}
           </svg>
