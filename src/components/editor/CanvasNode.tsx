@@ -87,11 +87,14 @@ export const CanvasNode = ({
     e.stopPropagation();
     if (isDraggingRef.current) return;
     
+    // If we're connecting and this is not the source node, complete the connection
     if (isConnecting && !isConnectingSource) {
       onConnectionEnd();
-    } else {
-      onClick();
+      return; // Don't also select the node
     }
+    
+    // Otherwise, select the node
+    onClick();
   }, [isConnecting, isConnectingSource, onConnectionEnd, onClick]);
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
