@@ -1,4 +1,5 @@
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
   X, 
@@ -10,11 +11,18 @@ import {
   FileText,
   HelpCircle,
   ChevronRight,
-  ExternalLink
+  ExternalLink,
+  ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Topic } from '@/types/learning';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface TopicSlidePanelProps {
   topic: Topic;
@@ -35,8 +43,38 @@ const statusColors = {
   due_review: 'bg-warning/20 text-warning',
 };
 
+interface MaterialDialogProps {
+  material: { id: string; title: string; content?: string } | null;
+  onClose: () => void;
+}
+
+const MaterialDialog = ({ material, onClose }: MaterialDialogProps) => {
+  if (!material) return null;
+
+  return (
+    <Dialog open={!!material} onOpenChange={() => onClose()}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{material.title}</DialogTitle>
+        </DialogHeader>
+        <div 
+          className="prose prose-sm dark:prose-invert max-w-none"
+          dangerouslySetInnerHTML={{ __html: material.content || '' }}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export const TopicSlidePanel = ({ topic, onClose }: TopicSlidePanelProps) => {
   const navigate = useNavigate();
+  const [selectedMaterial, setSelectedMaterial] = useState<{ id: string; title: string; content?: string } | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    materials: true,
+    articles: true,
+    videos: true,
+    questions: true,
+  });
 
   const descriptions = topic.resources.filter(r => r.type === 'description');
   const articles = topic.resources.filter(r => r.type === 'article');
@@ -45,6 +83,38 @@ export const TopicSlidePanel = ({ topic, onClose }: TopicSlidePanelProps) => {
   const handleStartLearning = () => {
     navigate(`/learn/study/${topic.id}`);
   };
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  const SectionHeader = ({ 
+    section, 
+    icon: Icon, 
+    label, 
+    count, 
+    iconColor 
+  }: { 
+    section: string; 
+    icon: any; 
+    label: string; 
+    count: number; 
+    iconColor: string;
+  }) => (
+    <button
+      onClick={() => toggleSection(section)}
+      className="flex w-full items-center justify-between py-2 text-left"
+    >
+      <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+        <Icon className={cn('h-4 w-4', iconColor)} />
+        {label} ({count})
+      </h3>
+      <ChevronDown className={cn(
+        'h-4 w-4 text-muted-foreground transition-transform',
+        expandedSections[section] && 'rotate-180'
+      )} />
+    </button>
+  );
 
   return (
     <>
@@ -66,7 +136,7 @@ export const TopicSlidePanel = ({ topic, onClose }: TopicSlidePanelProps) => {
         className="fixed right-0 top-0 z-50 h-full w-full max-w-lg overflow-y-auto border-l border-border bg-card shadow-xl"
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 border-b border-border bg-card p-6">
+        <div className="sticky top-0 z-10 border-b border-border bg-card p-4 md:p-6">
           <div className="flex items-start justify-between">
             <div className="flex-1 pr-4">
               <span className={cn(
@@ -75,9 +145,9 @@ export const TopicSlidePanel = ({ topic, onClose }: TopicSlidePanelProps) => {
               )}>
                 {statusLabels[topic.status]}
               </span>
-              <h2 className="text-2xl font-bold text-foreground">{topic.title}</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-foreground">{topic.title}</h2>
               {topic.description && (
-                <p className="mt-2 text-muted-foreground">{topic.description}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{topic.description}</p>
               )}
             </div>
             <button
@@ -90,7 +160,7 @@ export const TopicSlidePanel = ({ topic, onClose }: TopicSlidePanelProps) => {
         </div>
 
         {/* Actions */}
-        <div className="border-b border-border p-6">
+        <div className="border-b border-border p-4 md:p-6">
           <Button onClick={handleStartLearning} className="w-full mb-3" size="lg">
             <Play className="mr-2 h-5 w-5" />
             Ucz się w ramach tematu
@@ -98,132 +168,201 @@ export const TopicSlidePanel = ({ topic, onClose }: TopicSlidePanelProps) => {
           <div className="flex gap-2">
             <Button variant="outline" className="flex-1" size="sm">
               <Clock className="mr-2 h-4 w-4" />
-              Pytania do powtórki
+              Do powtórki
             </Button>
             <Button variant="outline" className="flex-1" size="sm">
               <Shuffle className="mr-2 h-4 w-4" />
-              Losowe pytanie
+              Losowe
             </Button>
           </div>
         </div>
 
         {/* Content Sections */}
-        <div className="p-6 space-y-6">
-          {/* Descriptions */}
-          {descriptions.length > 0 && (
-            <section>
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
-                <FileText className="h-4 w-4 text-primary" />
-                Własne opisy ({descriptions.length})
-              </h3>
-              <div className="space-y-3">
-                {descriptions.map(desc => (
-                  <div key={desc.id} className="rounded-lg border border-border bg-secondary/50 p-4">
-                    <h4 className="font-medium text-foreground mb-2">{desc.title}</h4>
-                    <p className="text-sm text-muted-foreground line-clamp-3">{desc.content}</p>
-                    <button className="mt-2 text-xs text-primary hover:underline">
-                      Rozwiń pełny opis
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+        <div className="p-4 md:p-6 space-y-4">
+          {/* Own Materials */}
+          <section className="rounded-xl border border-border bg-secondary/20 p-4">
+            <SectionHeader 
+              section="materials" 
+              icon={FileText} 
+              label="Własne materiały" 
+              count={descriptions.length}
+              iconColor="text-primary"
+            />
+            <AnimatePresence>
+              {expandedSections.materials && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-3 space-y-2"
+                >
+                  {descriptions.length > 0 ? (
+                    descriptions.map(desc => (
+                      <button
+                        key={desc.id}
+                        onClick={() => setSelectedMaterial({ id: desc.id, title: desc.title, content: desc.content })}
+                        className="flex w-full items-center justify-between rounded-lg border border-border bg-card p-3 text-left transition-colors hover:bg-secondary"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground truncate">{desc.title}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">Kliknij, aby otworzyć</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      </button>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground py-2">Brak własnych materiałów</p>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </section>
 
           {/* Articles */}
-          {articles.length > 0 && (
-            <section>
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
-                <BookOpen className="h-4 w-4 text-accent" />
-                Artykuły ({articles.length})
-              </h3>
-              <div className="space-y-2">
-                {articles.map(article => (
-                  <a
-                    key={article.id}
-                    href={article.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-between rounded-lg border border-border bg-secondary/50 p-3 transition-colors hover:bg-secondary"
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">{article.title}</p>
-                      {article.estimatedMinutes && (
-                        <p className="text-xs text-muted-foreground">~{article.estimatedMinutes} min</p>
-                      )}
-                    </div>
-                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                  </a>
-                ))}
-              </div>
-            </section>
-          )}
+          <section className="rounded-xl border border-border bg-secondary/20 p-4">
+            <SectionHeader 
+              section="articles" 
+              icon={BookOpen} 
+              label="Artykuły" 
+              count={articles.length}
+              iconColor="text-accent"
+            />
+            <AnimatePresence>
+              {expandedSections.articles && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-3 space-y-2"
+                >
+                  {articles.length > 0 ? (
+                    articles.map(article => (
+                      <a
+                        key={article.id}
+                        href={article.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between rounded-lg border border-border bg-card p-3 transition-colors hover:bg-secondary"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground truncate">{article.title}</p>
+                          {article.estimatedMinutes && (
+                            <p className="text-xs text-muted-foreground">~{article.estimatedMinutes} min</p>
+                          )}
+                        </div>
+                        <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      </a>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground py-2">Brak artykułów</p>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </section>
 
           {/* Videos */}
-          {videos.length > 0 && (
-            <section>
-              <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
-                <Video className="h-4 w-4 text-warning" />
-                Video ({videos.length})
-              </h3>
-              <div className="space-y-2">
-                {videos.map(video => (
-                  <a
-                    key={video.id}
-                    href={video.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 rounded-lg border border-border bg-secondary/50 p-3 transition-colors hover:bg-secondary"
-                  >
-                    <div className="h-16 w-24 flex-shrink-0 rounded-md bg-muted overflow-hidden">
-                      {video.thumbnail && (
-                        <img src={video.thumbnail} alt="" className="h-full w-full object-cover" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground truncate">{video.title}</p>
-                      {video.estimatedMinutes && (
-                        <p className="text-xs text-muted-foreground">{video.estimatedMinutes} min</p>
-                      )}
-                    </div>
-                  </a>
-                ))}
-              </div>
-            </section>
-          )}
+          <section className="rounded-xl border border-border bg-secondary/20 p-4">
+            <SectionHeader 
+              section="videos" 
+              icon={Video} 
+              label="Filmy" 
+              count={videos.length}
+              iconColor="text-warning"
+            />
+            <AnimatePresence>
+              {expandedSections.videos && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-3 space-y-2"
+                >
+                  {videos.length > 0 ? (
+                    videos.map(video => (
+                      <a
+                        key={video.id}
+                        href={video.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 transition-colors hover:bg-secondary"
+                      >
+                        <div className="h-12 w-20 flex-shrink-0 rounded-md bg-muted overflow-hidden">
+                          {video.thumbnail ? (
+                            <img src={video.thumbnail} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center">
+                              <Video className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground truncate">{video.title}</p>
+                          {video.estimatedMinutes && (
+                            <p className="text-xs text-muted-foreground">{video.estimatedMinutes} min</p>
+                          )}
+                        </div>
+                        <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      </a>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground py-2">Brak filmów</p>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </section>
 
           {/* Questions */}
-          <section>
-            <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
-              <HelpCircle className="h-4 w-4 text-destructive" />
-              Pytania ({topic.questions.length})
-            </h3>
-            {topic.questions.length > 0 ? (
-              <div className="space-y-2">
-                {topic.questions.map(question => (
-                  <button
-                    key={question.id}
-                    onClick={() => navigate(`/learn/study/${topic.id}?question=${question.id}`)}
-                    className="flex w-full items-center justify-between rounded-lg border border-border bg-secondary/50 p-3 text-left transition-colors hover:bg-secondary"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground line-clamp-2">{question.content}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-muted-foreground capitalize">{question.difficulty}</span>
-                        <span className="h-1 w-1 rounded-full bg-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">{question.type.replace('_', ' ')}</span>
-                      </div>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Brak pytań w tym temacie</p>
-            )}
+          <section className="rounded-xl border border-border bg-secondary/20 p-4">
+            <SectionHeader 
+              section="questions" 
+              icon={HelpCircle} 
+              label="Pytania" 
+              count={topic.questions.length}
+              iconColor="text-destructive"
+            />
+            <AnimatePresence>
+              {expandedSections.questions && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-3 space-y-2"
+                >
+                  {topic.questions.length > 0 ? (
+                    topic.questions.map(question => (
+                      <button
+                        key={question.id}
+                        onClick={() => navigate(`/learn/study/${topic.id}?question=${question.id}`)}
+                        className="flex w-full items-center justify-between rounded-lg border border-border bg-card p-3 text-left transition-colors hover:bg-secondary"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground line-clamp-2 text-sm">{question.content}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-muted-foreground capitalize">{question.difficulty}</span>
+                            <span className="h-1 w-1 rounded-full bg-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">{question.type.replace('_', ' ')}</span>
+                          </div>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-2" />
+                      </button>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground py-2">Brak pytań w tym temacie</p>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </section>
         </div>
       </motion.div>
+
+      {/* Material Dialog */}
+      <MaterialDialog 
+        material={selectedMaterial} 
+        onClose={() => setSelectedMaterial(null)} 
+      />
     </>
   );
 };
