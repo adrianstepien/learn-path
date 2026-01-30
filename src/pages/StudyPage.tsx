@@ -1,23 +1,24 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { 
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
   CheckCircle,
   Mic,
-  Send,
   Bot,
   Lightbulb,
   Clock,
-  Star
+  Star,
+  BookOpen
 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { getTopicById } from '@/data/mockData';
+import { getTopicById, getCategoryById, getRoadmapById, mockCategories } from '@/data/mockData';
 import { cn } from '@/lib/utils';
+import { Question } from '@/types/learning';
 
 const difficultyColors = {
   beginner: 'bg-success/20 text-success',
@@ -28,7 +29,12 @@ const difficultyColors = {
 
 const StudyPage = () => {
   const { topicId } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  
+  const categoryId = searchParams.get('category');
+  const roadmapId = searchParams.get('roadmap');
+  
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
   const [showAnswer, setShowAnswer] = useState(false);
@@ -36,26 +42,72 @@ const StudyPage = () => {
   const [llmFeedback, setLlmFeedback] = useState<string | null>(null);
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
 
-  const topic = getTopicById(topicId || '');
+  // Collect all questions based on mode
+  const { questions, title } = useMemo(() => {
+    let collectedQuestions: Question[] = [];
+    let studyTitle = '';
 
-  if (!topic || topic.questions.length === 0) {
+    if (topicId) {
+      // Study specific topic
+      const topic = getTopicById(topicId);
+      if (topic) {
+        collectedQuestions = topic.questions;
+        studyTitle = topic.title;
+      }
+    } else if (roadmapId) {
+      // Study entire roadmap
+      const roadmap = getRoadmapById(roadmapId);
+      if (roadmap) {
+        collectedQuestions = roadmap.topics.flatMap(t => t.questions);
+        studyTitle = roadmap.title;
+      }
+    } else if (categoryId) {
+      // Study entire category
+      const category = getCategoryById(categoryId);
+      if (category) {
+        collectedQuestions = category.roadmaps.flatMap(r => 
+          r.topics.flatMap(t => t.questions)
+        );
+        studyTitle = category.name;
+      }
+    }
+
+    return { questions: collectedQuestions, title: studyTitle };
+  }, [topicId, categoryId, roadmapId]);
+
+  if (questions.length === 0) {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center p-8">
-          <div className="text-center">
-            <p className="text-muted-foreground mb-4">Brak pytań do nauki w tym temacie</p>
-            <Button onClick={() => navigate(-1)} variant="outline">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center max-w-md"
+          >
+            <div className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-secondary">
+              <BookOpen className="h-10 w-10 text-muted-foreground" />
+            </div>
+            <h2 className="text-xl font-semibold text-foreground mb-2">Brak pytań do nauki</h2>
+            <p className="text-muted-foreground mb-6">
+              {categoryId 
+                ? 'W tej kategorii nie ma jeszcze pytań. Dodaj pytania do tematów, aby rozpocząć naukę.'
+                : roadmapId 
+                  ? 'W tej roadmapie nie ma jeszcze pytań.'
+                  : 'W tym temacie nie ma jeszcze pytań.'
+              }
+            </p>
+            <Button onClick={() => navigate(-1)} variant="outline" size="lg">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Powrót
             </Button>
-          </div>
+          </motion.div>
         </div>
       </MainLayout>
     );
   }
 
-  const question = topic.questions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / topic.questions.length) * 100;
+  const question = questions[currentQuestionIndex];
+  const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
 
   const handlePrevious = () => {
     if (currentQuestionIndex > 0) {
@@ -65,7 +117,7 @@ const StudyPage = () => {
   };
 
   const handleNext = () => {
-    if (currentQuestionIndex < topic.questions.length - 1) {
+    if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
       resetQuestionState();
     }
@@ -103,37 +155,37 @@ const StudyPage = () => {
     <MainLayout>
       <div className="flex h-screen flex-col">
         {/* Header */}
-        <div className="border-b border-border bg-card px-6 py-4">
+        <div className="border-b border-border bg-card/80 backdrop-blur-sm px-4 md:px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 md:gap-4 min-w-0">
               <button
                 onClick={() => navigate(-1)}
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors shrink-0"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Powrót
+                <span className="hidden sm:inline">Powrót</span>
               </button>
-              <div className="h-6 w-px bg-border" />
-              <span className="text-sm text-muted-foreground">{topic.title}</span>
+              <div className="h-6 w-px bg-border hidden sm:block" />
+              <span className="text-sm text-foreground font-medium truncate">{title}</span>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3 md:gap-4 shrink-0">
+              <div className="hidden sm:flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">00:00</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-foreground font-medium">
-                  {currentQuestionIndex + 1}/{topic.questions.length}
+                <span className="text-foreground font-semibold">
+                  {currentQuestionIndex + 1}/{questions.length}
                 </span>
               </div>
             </div>
           </div>
 
           {/* Progress bar */}
-          <div className="mt-4 h-1.5 w-full rounded-full bg-secondary">
+          <div className="mt-4 h-2 w-full rounded-full bg-secondary overflow-hidden">
             <motion.div
-              className="h-1.5 rounded-full gradient-primary"
+              className="h-full rounded-full gradient-primary"
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.3 }}
@@ -143,35 +195,35 @@ const StudyPage = () => {
 
         {/* Main Content */}
         <div className="flex-1 overflow-auto">
-          <div className="mx-auto max-w-3xl p-8">
+          <div className="mx-auto max-w-3xl p-4 md:p-8">
             {/* Question Card */}
             <motion.div
               key={question.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl border border-border bg-card p-8 shadow-lg mb-6"
+              className="rounded-2xl border border-border bg-card p-6 md:p-8 shadow-lg mb-6"
             >
               {/* Question Meta */}
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex flex-wrap items-center gap-2 mb-4">
                 <span className={cn(
                   'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
                   difficultyColors[question.difficulty]
                 )}>
                   {question.difficulty}
                 </span>
-                <span className="text-xs text-muted-foreground capitalize">
+                <span className="text-xs text-muted-foreground capitalize px-2.5 py-0.5 rounded-full bg-secondary">
                   {question.type.replace('_', ' ')}
                 </span>
               </div>
 
               {/* Question Content */}
-              <h2 className="text-xl font-semibold text-foreground mb-6">
+              <h2 className="text-lg md:text-xl font-semibold text-foreground mb-6 leading-relaxed">
                 {question.content}
               </h2>
 
               {/* Hint */}
               {question.hint && (
-                <div className="flex items-start gap-3 rounded-lg bg-warning/10 p-4 mb-6">
+                <div className="flex items-start gap-3 rounded-xl bg-warning/10 border border-warning/20 p-4 mb-6">
                   <Lightbulb className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-foreground">{question.hint}</p>
                 </div>
@@ -184,26 +236,27 @@ const StudyPage = () => {
                     placeholder="Wpisz swoją odpowiedź..."
                     value={userAnswer}
                     onChange={(e) => setUserAnswer(e.target.value)}
-                    className="min-h-[120px] pr-12"
+                    className="min-h-[120px] pr-12 resize-none"
                   />
                   <button
                     onClick={toggleRecording}
                     className={cn(
-                      'absolute right-3 top-3 rounded-full p-2 transition-colors',
+                      'absolute right-3 top-3 rounded-full p-2 transition-all',
                       isRecording 
-                        ? 'bg-destructive text-destructive-foreground animate-pulse' 
-                        : 'bg-secondary text-muted-foreground hover:text-foreground'
+                        ? 'bg-destructive text-destructive-foreground animate-pulse shadow-lg' 
+                        : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                     )}
                   >
                     <Mic className="h-4 w-4" />
                   </button>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <Button 
                     onClick={handleVerifyWithLLM}
                     disabled={!userAnswer.trim() || isLoadingFeedback}
                     className="flex-1"
+                    size="lg"
                   >
                     {isLoadingFeedback ? (
                       <>
@@ -220,6 +273,7 @@ const StudyPage = () => {
                   <Button 
                     variant="outline"
                     onClick={() => setShowAnswer(!showAnswer)}
+                    size="lg"
                   >
                     {showAnswer ? 'Ukryj odpowiedź' : 'Pokaż odpowiedź'}
                   </Button>
@@ -231,10 +285,10 @@ const StudyPage = () => {
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
-                  className="mt-6 rounded-lg border border-success/30 bg-success/10 p-4"
+                  className="mt-6 rounded-xl border border-success/30 bg-success/10 p-4"
                 >
                   <h4 className="font-medium text-foreground mb-2">Wzorcowa odpowiedź:</h4>
-                  <p className="text-sm text-foreground">{question.answer}</p>
+                  <p className="text-sm text-foreground leading-relaxed">{question.answer}</p>
                 </motion.div>
               )}
 
@@ -243,7 +297,7 @@ const StudyPage = () => {
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
-                  className="mt-6 rounded-lg border border-primary/30 bg-primary/10 p-4"
+                  className="mt-6 rounded-xl border border-primary/30 bg-primary/10 p-4"
                 >
                   <div className="flex items-center gap-2 mb-3">
                     <Bot className="h-5 w-5 text-primary" />
@@ -267,18 +321,18 @@ const StudyPage = () => {
                 className="rounded-2xl border border-border bg-card p-6"
               >
                 <h3 className="font-medium text-foreground mb-4">Jak dobrze znasz to zagadnienie?</h3>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-5 gap-2">
                   {[1, 2, 3, 4, 5].map(rating => (
                     <button
                       key={rating}
-                      className="flex-1 rounded-lg border border-border p-3 text-center transition-all hover:border-primary hover:bg-primary/10"
+                      className="rounded-xl border border-border p-2 md:p-3 text-center transition-all hover:border-primary hover:bg-primary/10 hover:scale-105"
                     >
                       <div className="flex justify-center mb-1">
                         {[...Array(rating)].map((_, i) => (
-                          <Star key={i} className="h-4 w-4 fill-warning text-warning" />
+                          <Star key={i} className="h-3 w-3 md:h-4 md:w-4 fill-warning text-warning" />
                         ))}
                       </div>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-[10px] md:text-xs text-muted-foreground hidden sm:block">
                         {rating === 1 && 'Nie znam'}
                         {rating === 2 && 'Słabo'}
                         {rating === 3 && 'Średnio'}
@@ -288,7 +342,7 @@ const StudyPage = () => {
                     </button>
                   ))}
                 </div>
-                <Button className="w-full mt-4" variant="outline">
+                <Button className="w-full mt-4" variant="outline" size="lg">
                   <CheckCircle className="mr-2 h-4 w-4" />
                   Oznacz jako przerobione
                 </Button>
@@ -298,22 +352,24 @@ const StudyPage = () => {
         </div>
 
         {/* Footer Navigation */}
-        <div className="border-t border-border bg-card px-6 py-4">
-          <div className="flex items-center justify-between">
+        <div className="border-t border-border bg-card/80 backdrop-blur-sm px-4 md:px-6 py-4">
+          <div className="flex items-center justify-between max-w-3xl mx-auto">
             <Button
               variant="outline"
               onClick={handlePrevious}
               disabled={currentQuestionIndex === 0}
+              size="lg"
             >
-              <ChevronLeft className="mr-2 h-4 w-4" />
-              Poprzednie
+              <ChevronLeft className="mr-1 md:mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Poprzednie</span>
             </Button>
             <Button
               onClick={handleNext}
-              disabled={currentQuestionIndex === topic.questions.length - 1}
+              disabled={currentQuestionIndex === questions.length - 1}
+              size="lg"
             >
-              Następne
-              <ChevronRight className="ml-2 h-4 w-4" />
+              <span className="hidden sm:inline">Następne</span>
+              <ChevronRight className="ml-1 md:ml-2 h-4 w-4" />
             </Button>
           </div>
         </div>
