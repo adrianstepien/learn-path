@@ -36,10 +36,7 @@ const RoadmapMiniCard = ({ roadmap }: { roadmap: Roadmap }) => {
           className="h-8 px-3"
           onClick={(e) => {
             e.stopPropagation();
-            // Navigate to study mode for first topic or random
-            if (roadmap.topics.length > 0) {
-              navigate(`/learn/study/${roadmap.topics[0].id}`);
-            }
+            navigate(`/learn/study?roadmap=${roadmap.id}`);
           }}
         >
           <Play className="h-3 w-3 mr-1" />
@@ -61,54 +58,52 @@ const CategoryCard = ({ category, delay }: { category: Category; delay: number }
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay }}
-      className="group rounded-2xl border border-border bg-card shadow-md transition-all hover:shadow-lg overflow-hidden"
+      whileHover={{ y: -4 }}
+      className="group rounded-2xl border border-border bg-card shadow-card transition-all hover:shadow-lg hover:border-primary/20 overflow-hidden"
     >
       {/* Header - clickable to navigate */}
       <div 
         onClick={() => navigate(`/learn/category/${category.id}`)}
-        className="cursor-pointer p-6 pb-4 transition-colors hover:bg-secondary/30"
+        className="cursor-pointer p-6 pb-4 transition-all hover:bg-gradient-to-br hover:from-secondary/50 hover:to-transparent"
       >
         <div className="mb-4 flex items-center justify-between">
-          <span className="text-4xl">{category.icon}</span>
+          <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
+            <span className="text-3xl">{category.icon}</span>
+          </div>
           <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
         </div>
-        <h3 className="mb-2 text-lg font-semibold text-foreground">{category.name}</h3>
+        <h3 className="mb-2 text-lg font-bold text-foreground">{category.name}</h3>
         <p className="mb-4 text-sm text-muted-foreground line-clamp-2">{category.description}</p>
         
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
             {category.roadmaps.length} roadmap{category.roadmaps.length !== 1 ? 'y' : 'a'} • {totalTopics} tematów
           </span>
           <div className="flex items-center gap-2">
-            <div className="h-2 w-16 rounded-full bg-secondary">
+            <div className="h-2 w-20 rounded-full bg-secondary overflow-hidden">
               <div 
                 className="h-2 rounded-full gradient-primary transition-all duration-500"
                 style={{ width: `${category.progress}%` }}
               />
             </div>
-            <span className="text-xs font-medium text-muted-foreground">{category.progress}%</span>
+            <span className="text-xs font-bold text-foreground">{category.progress}%</span>
           </div>
         </div>
       </div>
 
       {/* Study Button */}
-      <div className="border-t border-border/50 px-6 py-4 bg-secondary/20">
+      <div className="border-t border-border/50 px-6 py-4 bg-gradient-to-b from-secondary/30 to-secondary/10">
         <div className="flex items-center gap-2">
-          <Button 
-            className="flex-1"
-            onClick={(e) => {
-              e.stopPropagation();
-              // Navigate to study mode for a random topic from this category
-              const allTopics = category.roadmaps.flatMap(r => r.topics);
-              if (allTopics.length > 0) {
-                const randomTopic = allTopics[Math.floor(Math.random() * allTopics.length)];
-                navigate(`/learn/study/${randomTopic.id}`);
-              }
-            }}
-          >
-            <Play className="h-4 w-4 mr-2" />
-            Ucz się w kategorii
-          </Button>
+        <Button 
+          className="flex-1"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/learn/study?category=${category.id}`);
+          }}
+        >
+          <Play className="h-4 w-4 mr-2" />
+          Ucz się w kategorii
+        </Button>
           {category.roadmaps.length > 0 && (
             <Button
               variant="outline"
