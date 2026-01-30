@@ -90,7 +90,7 @@ const CategoryPage = () => {
 
   return (
     <MainLayout>
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         {/* Back button */}
         <motion.button
           initial={{ opacity: 0, x: -20 }}
@@ -109,8 +109,8 @@ const CategoryPage = () => {
           className="mb-8"
         >
           <div className="flex items-center gap-4 mb-2">
-            <span className="text-4xl">{category.icon}</span>
-            <h1 className="text-3xl font-bold text-foreground">{category.name}</h1>
+            <span className="text-3xl md:text-4xl">{category.icon}</span>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">{category.name}</h1>
           </div>
           <p className="text-muted-foreground">{category.description}</p>
         </motion.div>

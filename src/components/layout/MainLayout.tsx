@@ -1,15 +1,18 @@
 import { ReactNode } from 'react';
 import { Sidebar } from './Sidebar';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface MainLayoutProps {
   children: ReactNode;
 }
 
 export const MainLayout = ({ children }: MainLayoutProps) => {
+  const isMobile = useIsMobile();
+
   return (
     <div className="min-h-screen bg-background">
       <Sidebar />
-      <main className="pl-64">
+      <main className={isMobile ? 'pt-16' : 'pl-64'}>
         <div className="min-h-screen">
           {children}
         </div>
