@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { Save, Undo, Redo, Settings2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Save, Undo, Redo, Settings2, PanelLeftClose, PanelLeft } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { EditorSidebar } from '@/components/editor/EditorSidebar';
@@ -8,12 +8,14 @@ import { EditorCanvas } from '@/components/editor/EditorCanvas';
 import { TopicEditPanel } from '@/components/editor/TopicEditPanel';
 import { AddNodeDialog } from '@/components/editor/AddNodeDialog';
 import { useEditorStore } from '@/stores/editorStore';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 
 const EditorPage = () => {
   const store = useEditorStore();
+  const isMobile = useIsMobile();
   const [addNodePosition, setAddNodePosition] = useState<{ x: number; y: number } | null>(null);
-  const [sidebarWidth, setSidebarWidth] = useState(320);
+  const [showSidebar, setShowSidebar] = useState(!isMobile);
 
   const selectedTopic = store.getSelectedTopic();
   const selectedRoadmap = store.getSelectedRoadmap();
@@ -51,71 +53,109 @@ const EditorPage = () => {
     toast.success('Zmiany zapisane!');
   }, []);
 
+  const handleSelectRoadmap = useCallback((id: string | null) => {
+    store.selectRoadmap(id);
+    if (isMobile && id) {
+      setShowSidebar(false);
+    }
+  }, [store, isMobile]);
+
   return (
     <MainLayout>
-      <div className="flex h-[calc(100vh-2rem)] flex-col">
-        {/* Top Bar - Modernized */}
+      <div className="flex h-[calc(100vh-4rem)] md:h-[calc(100vh-2rem)] flex-col">
+        {/* Top Bar - Mobile optimized */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between border-b border-border bg-card/80 backdrop-blur-sm px-6 py-4"
+          className="flex items-center justify-between border-b border-border bg-card/80 backdrop-blur-sm px-3 md:px-6 py-3 md:py-4"
         >
-          <div>
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                <Settings2 className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-foreground">
-                  {selectedRoadmap ? selectedRoadmap.title : 'Edytor Roadmap'}
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  {selectedRoadmap 
-                    ? `${store.state.nodes.length} tematów • ${store.state.connections.length} połączeń`
-                    : 'Wybierz kategorię i roadmapę z panelu bocznego'
-                  }
-                </p>
-              </div>
+          <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+            {/* Mobile sidebar toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              onClick={() => setShowSidebar(!showSidebar)}
+            >
+              {showSidebar ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeft className="h-5 w-5" />}
+            </Button>
+            
+            <div className="hidden md:flex h-10 w-10 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 items-center justify-center shrink-0">
+              <Settings2 className="h-5 w-5 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-base md:text-xl font-bold text-foreground truncate">
+                {selectedRoadmap ? selectedRoadmap.title : 'Edytor Roadmap'}
+              </h1>
+              <p className="text-xs md:text-sm text-muted-foreground hidden sm:block">
+                {selectedRoadmap 
+                  ? `${store.state.nodes.length} tematów • ${store.state.connections.length} połączeń`
+                  : 'Wybierz kategorię i roadmapę'
+                }
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" disabled className="h-9 w-9">
+          <div className="flex items-center gap-1 md:gap-2 shrink-0">
+            <Button variant="outline" size="icon" disabled className="h-8 w-8 md:h-9 md:w-9 hidden sm:flex">
               <Undo className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="icon" disabled className="h-9 w-9">
+            <Button variant="outline" size="icon" disabled className="h-8 w-8 md:h-9 md:w-9 hidden sm:flex">
               <Redo className="h-4 w-4" />
             </Button>
-            <Button onClick={handleSave} className="gap-2 ml-2">
+            <Button onClick={handleSave} size="sm" className="gap-1 md:gap-2 h-8 md:h-9 px-2 md:px-4">
               <Save className="h-4 w-4" />
-              Zapisz
+              <span className="hidden sm:inline">Zapisz</span>
             </Button>
           </div>
         </motion.div>
 
-        {/* Main Content - Side by side layout */}
-        <div className="flex flex-1 overflow-hidden">
-          {/* Sidebar */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="h-full border-r border-border"
-            style={{ width: sidebarWidth, minWidth: 280, maxWidth: 400 }}
-          >
-            <EditorSidebar
-              categories={store.state.categories}
-              selectedCategoryId={store.state.selectedCategoryId}
-              selectedRoadmapId={store.state.selectedRoadmapId}
-              onSelectCategory={store.selectCategory}
-              onSelectRoadmap={store.selectRoadmap}
-              onAddCategory={store.addCategory}
-              onUpdateCategory={store.updateCategory}
-              onDeleteCategory={store.deleteCategory}
-              onAddRoadmap={store.addRoadmap}
-              onUpdateRoadmap={store.updateRoadmap}
-              onDeleteRoadmap={store.deleteRoadmap}
-            />
-          </motion.div>
+        {/* Main Content */}
+        <div className="flex flex-1 overflow-hidden relative">
+          {/* Sidebar - Mobile overlay, desktop inline */}
+          <AnimatePresence>
+            {showSidebar && (
+              <>
+                {/* Mobile backdrop */}
+                {isMobile && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setShowSidebar(false)}
+                    className="fixed inset-0 z-30 bg-background/80 backdrop-blur-sm md:hidden"
+                  />
+                )}
+                
+                <motion.div
+                  initial={isMobile ? { x: '-100%' } : { opacity: 0 }}
+                  animate={isMobile ? { x: 0 } : { opacity: 1 }}
+                  exit={isMobile ? { x: '-100%' } : { opacity: 0 }}
+                  transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                  className={`
+                    ${isMobile 
+                      ? 'fixed left-0 top-0 z-40 h-full w-[85%] max-w-sm pt-16' 
+                      : 'relative h-full w-80 shrink-0'
+                    }
+                    border-r border-border bg-card
+                  `}
+                >
+                  <EditorSidebar
+                    categories={store.state.categories}
+                    selectedCategoryId={store.state.selectedCategoryId}
+                    selectedRoadmapId={store.state.selectedRoadmapId}
+                    onSelectCategory={store.selectCategory}
+                    onSelectRoadmap={handleSelectRoadmap}
+                    onAddCategory={store.addCategory}
+                    onUpdateCategory={store.updateCategory}
+                    onDeleteCategory={store.deleteCategory}
+                    onAddRoadmap={store.addRoadmap}
+                    onUpdateRoadmap={store.updateRoadmap}
+                    onDeleteRoadmap={store.deleteRoadmap}
+                  />
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
 
           {/* Canvas */}
           <div className="flex-1 overflow-hidden">
@@ -139,20 +179,31 @@ const EditorPage = () => {
                 onPanChange={store.setPan}
               />
             ) : (
-              <div className="flex h-full items-center justify-center bg-gradient-to-br from-secondary/30 to-background">
+              <div className="flex h-full items-center justify-center bg-gradient-to-br from-secondary/30 to-background p-4">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   className="text-center"
                 >
-                  <div className="mb-6 mx-auto h-20 w-20 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
-                    <span className="text-5xl">🗺️</span>
+                  <div className="mb-4 md:mb-6 mx-auto h-16 w-16 md:h-20 md:w-20 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
+                    <span className="text-4xl md:text-5xl">🗺️</span>
                   </div>
-                  <h2 className="text-2xl font-bold text-foreground">Wybierz roadmapę</h2>
-                  <p className="mt-3 text-muted-foreground max-w-sm mx-auto">
-                    Wybierz kategorię i roadmapę z panelu bocznego,
-                    aby rozpocząć edycję
+                  <h2 className="text-xl md:text-2xl font-bold text-foreground">Wybierz roadmapę</h2>
+                  <p className="mt-2 md:mt-3 text-sm md:text-base text-muted-foreground max-w-sm mx-auto">
+                    {isMobile 
+                      ? 'Kliknij ikonę menu, aby wybrać kategorię i roadmapę'
+                      : 'Wybierz kategorię i roadmapę z panelu bocznego, aby rozpocząć edycję'
+                    }
                   </p>
+                  {isMobile && !showSidebar && (
+                    <Button 
+                      className="mt-4" 
+                      onClick={() => setShowSidebar(true)}
+                    >
+                      <PanelLeft className="h-4 w-4 mr-2" />
+                      Otwórz menu
+                    </Button>
+                  )}
                 </motion.div>
               </div>
             )}

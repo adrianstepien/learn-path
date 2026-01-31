@@ -133,7 +133,7 @@ export const TopicSlidePanel = ({ topic, onClose }: TopicSlidePanelProps) => {
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="fixed right-0 top-0 z-50 h-full w-full max-w-lg overflow-y-auto border-l border-border bg-card shadow-xl"
+        className="fixed right-0 top-0 z-50 h-full w-full md:max-w-lg overflow-y-auto border-l border-border bg-card shadow-xl"
       >
         {/* Header */}
         <div className="sticky top-0 z-10 border-b border-border bg-card p-4 md:p-6">

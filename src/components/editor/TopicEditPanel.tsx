@@ -236,7 +236,7 @@ export const TopicEditPanel = ({
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed right-0 top-0 z-50 h-full w-full max-w-xl bg-card shadow-xl"
+              className="fixed right-0 top-0 z-50 h-full w-full md:max-w-xl bg-card shadow-xl"
             >
               <div className="flex h-full flex-col">
                 {/* Header */}
