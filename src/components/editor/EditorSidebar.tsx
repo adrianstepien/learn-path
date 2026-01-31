@@ -8,7 +8,7 @@ import {
   Pencil,
   Trash2,
   MoreVertical,
-  FolderOpen
+  Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,12 +56,16 @@ export const EditorSidebar = ({
   onUpdateRoadmap,
   onDeleteRoadmap,
 }: EditorSidebarProps) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [dialogType, setDialogType] = useState<'add-category' | 'edit-category' | 'add-roadmap' | 'edit-roadmap' | null>(null);
   const [editingItem, setEditingItem] = useState<Category | Roadmap | null>(null);
   const [formData, setFormData] = useState({ name: '', icon: '📚', description: '' });
+  const [searchQuery, setSearchQuery] = useState('');
 
   const selectedCategory = categories.find(c => c.id === selectedCategoryId);
+
+  const filteredCategories = categories.filter(cat =>
+    cat.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleOpenDialog = (type: typeof dialogType, item?: Category | Roadmap) => {
     setDialogType(type);
@@ -95,77 +99,88 @@ export const EditorSidebar = ({
 
   return (
     <>
-      <motion.div
-        className={cn(
-          'flex h-full flex-col border-r border-border bg-card/50 backdrop-blur-sm',
-          isCollapsed ? 'w-16' : 'w-full'
-        )}
-        animate={{ width: isCollapsed ? 64 : '100%' }}
-        transition={{ duration: 0.2 }}
-      >
+      <div className="flex h-full flex-col bg-card/50 backdrop-blur-sm">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border p-4">
-          {!isCollapsed && (
-            <div className="flex items-center gap-2">
-              {selectedCategory && (
-                <span className="text-xl">{selectedCategory.icon}</span>
-              )}
-              <h2 className="font-semibold text-foreground truncate">
-                {selectedCategory ? selectedCategory.name : 'Kategorie'}
-              </h2>
+        <div className="border-b border-border p-4">
+          <div className="flex items-center gap-3 mb-4">
+            {selectedCategory ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={() => onSelectCategory(null)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
+                  <span className="text-xl">{selectedCategory.icon}</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="font-bold text-foreground truncate">{selectedCategory.name}</h2>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedCategory.roadmaps.length} roadmap{selectedCategory.roadmaps.length !== 1 ? 'y' : 'a'}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div>
+                <h2 className="font-bold text-foreground text-lg">Kategorie</h2>
+                <p className="text-xs text-muted-foreground">Wybierz kategorię do edycji</p>
+              </div>
+            )}
+          </div>
+          
+          {/* Search */}
+          {!selectedCategoryId && (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Szukaj kategorii..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-9"
+              />
             </div>
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="ml-auto shrink-0"
-          >
-            {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-          </Button>
         </div>
 
         {/* Content */}
-        <ScrollArea className="flex-1 p-3">
-          <AnimatePresence mode="wait">
-            {!selectedCategoryId ? (
-              // Categories Grid - matching LearnPage style
-              <motion.div
-                key="categories"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-3"
-              >
-                {categories.map((category) => (
-                  <motion.div
-                    key={category.id}
-                    whileHover={{ scale: 1.02 }}
-                    className={cn(
-                      'group rounded-xl border border-border bg-card p-4 transition-all cursor-pointer',
-                      'hover:shadow-md hover:border-primary/30'
-                    )}
-                    onClick={() => onSelectCategory(category.id)}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="text-2xl">{category.icon}</span>
-                        {!isCollapsed && (
-                          <div className="min-w-0">
-                            <p className="truncate font-semibold text-foreground">{category.name}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {category.roadmaps.length} roadmap{category.roadmaps.length !== 1 ? 'y' : 'a'}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                      {!isCollapsed && (
+        <ScrollArea className="flex-1">
+          <div className="p-4">
+            <AnimatePresence mode="wait">
+              {!selectedCategoryId ? (
+                // Categories Grid - matching LearnPage style
+                <motion.div
+                  key="categories"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-3"
+                >
+                  {filteredCategories.map((category, index) => (
+                    <motion.div
+                      key={category.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      whileHover={{ y: -2 }}
+                      className={cn(
+                        'group rounded-2xl border border-border bg-card p-4 transition-all cursor-pointer',
+                        'hover:shadow-lg hover:border-primary/20'
+                      )}
+                      onClick={() => onSelectCategory(category.id)}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
+                          <span className="text-2xl">{category.icon}</span>
+                        </div>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 opacity-0 group-hover:opacity-100 shrink-0"
+                              className="h-8 w-8 opacity-0 group-hover:opacity-100"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <MoreVertical className="h-4 w-4" />
@@ -185,102 +200,82 @@ export const EditorSidebar = ({
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      )}
-                    </div>
-                    
-                    {/* Progress bar - matching LearnPage */}
-                    {!isCollapsed && (
-                      <div className="mt-3">
-                        <div className="flex items-center justify-between text-xs mb-1">
-                          <span className="text-muted-foreground">Postęp</span>
-                          <span className="font-medium text-muted-foreground">{category.progress}%</span>
-                        </div>
-                        <div className="h-1.5 w-full rounded-full bg-secondary">
+                      </div>
+                      
+                      <h3 className="font-bold text-foreground mb-1">{category.name}</h3>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        {category.roadmaps.length} roadmap{category.roadmaps.length !== 1 ? 'y' : 'a'} • {
+                          category.roadmaps.reduce((sum, r) => sum + r.topics.length, 0)
+                        } tematów
+                      </p>
+                      
+                      {/* Progress bar - matching LearnPage */}
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 flex-1 rounded-full bg-secondary overflow-hidden">
                           <div 
-                            className="h-1.5 rounded-full gradient-primary transition-all duration-500"
+                            className="h-2 rounded-full gradient-primary transition-all duration-500"
                             style={{ width: `${category.progress}%` }}
                           />
                         </div>
+                        <span className="text-xs font-bold text-foreground">{category.progress}%</span>
                       </div>
-                    )}
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  ))}
 
-                {/* Add category button */}
-                {!isCollapsed && (
+                  {/* Add category button */}
                   <motion.button
                     whileHover={{ scale: 1.02 }}
-                    className="w-full rounded-xl border-2 border-dashed border-border p-4 text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors flex items-center justify-center gap-2"
+                    className="w-full rounded-2xl border-2 border-dashed border-border p-6 text-muted-foreground hover:border-primary/50 hover:text-primary transition-all flex flex-col items-center justify-center gap-2"
                     onClick={() => handleOpenDialog('add-category')}
                   >
-                    <Plus className="h-5 w-5" />
-                    Dodaj kategorię
+                    <div className="h-12 w-12 rounded-xl bg-secondary/50 flex items-center justify-center">
+                      <Plus className="h-6 w-6" />
+                    </div>
+                    <span className="font-medium">Dodaj kategorię</span>
                   </motion.button>
-                )}
-              </motion.div>
-            ) : (
-              // Roadmaps list - matching LearnPage style
-              <motion.div
-                key="roadmaps"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                className="space-y-3"
-              >
-                {/* Back button */}
-                <Button
-                  variant="ghost"
-                  className="mb-2 w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
-                  onClick={() => onSelectCategory(null)}
+                </motion.div>
+              ) : (
+                // Roadmaps list - matching LearnPage style
+                <motion.div
+                  key="roadmaps"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="space-y-3"
                 >
-                  <ChevronLeft className="h-4 w-4" />
-                  {!isCollapsed && 'Powrót do kategorii'}
-                </Button>
-
-                {selectedCategory?.roadmaps.map((roadmap) => (
-                  <motion.div
-                    key={roadmap.id}
-                    whileHover={{ scale: 1.02 }}
-                    className={cn(
-                      'group rounded-xl border bg-card p-4 transition-all cursor-pointer',
-                      roadmap.id === selectedRoadmapId 
-                        ? 'border-primary bg-primary/5 shadow-md' 
-                        : 'border-border hover:shadow-md hover:border-primary/30'
-                    )}
-                    onClick={() => onSelectRoadmap(roadmap.id)}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3 min-w-0">
+                  {selectedCategory?.roadmaps.map((roadmap, index) => (
+                    <motion.div
+                      key={roadmap.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      whileHover={{ y: -2 }}
+                      className={cn(
+                        'group rounded-2xl border bg-card p-4 transition-all cursor-pointer',
+                        roadmap.id === selectedRoadmapId 
+                          ? 'border-primary bg-primary/5 shadow-lg ring-2 ring-primary/20' 
+                          : 'border-border hover:shadow-lg hover:border-primary/20'
+                      )}
+                      onClick={() => onSelectRoadmap(roadmap.id)}
+                    >
+                      <div className="flex items-start justify-between mb-3">
                         <div className={cn(
-                          'h-10 w-10 rounded-lg flex items-center justify-center shrink-0',
-                          roadmap.id === selectedRoadmapId ? 'bg-primary/20' : 'bg-secondary'
+                          'h-12 w-12 rounded-xl flex items-center justify-center',
+                          roadmap.id === selectedRoadmapId 
+                            ? 'bg-primary/20' 
+                            : 'bg-gradient-to-br from-primary/10 to-accent/10'
                         )}>
                           <Map className={cn(
-                            'h-5 w-5',
+                            'h-6 w-6',
                             roadmap.id === selectedRoadmapId ? 'text-primary' : 'text-muted-foreground'
                           )} />
                         </div>
-                        {!isCollapsed && (
-                          <div className="min-w-0">
-                            <p className={cn(
-                              'truncate font-semibold',
-                              roadmap.id === selectedRoadmapId ? 'text-primary' : 'text-foreground'
-                            )}>
-                              {roadmap.title}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {roadmap.topics.length} tematów • {roadmap.totalQuestions} pytań
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                      {!isCollapsed && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 opacity-0 group-hover:opacity-100 shrink-0"
+                              className="h-8 w-8 opacity-0 group-hover:opacity-100"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <MoreVertical className="h-4 w-4" />
@@ -300,43 +295,48 @@ export const EditorSidebar = ({
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      )}
-                    </div>
+                      </div>
 
-                    {/* Progress bar */}
-                    {!isCollapsed && (
-                      <div className="mt-3">
-                        <div className="flex items-center justify-between text-xs mb-1">
-                          <span className="text-muted-foreground">Postęp</span>
-                          <span className="font-medium text-muted-foreground">{roadmap.progress}%</span>
-                        </div>
-                        <div className="h-1.5 w-full rounded-full bg-secondary">
+                      <h3 className={cn(
+                        'font-bold mb-1',
+                        roadmap.id === selectedRoadmapId ? 'text-primary' : 'text-foreground'
+                      )}>
+                        {roadmap.title}
+                      </h3>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        {roadmap.topics.length} tematów • {roadmap.totalQuestions} pytań
+                      </p>
+
+                      {/* Progress bar */}
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 flex-1 rounded-full bg-secondary overflow-hidden">
                           <div 
-                            className="h-1.5 rounded-full gradient-primary transition-all duration-500"
+                            className="h-2 rounded-full gradient-primary transition-all duration-500"
                             style={{ width: `${roadmap.progress}%` }}
                           />
                         </div>
+                        <span className="text-xs font-bold text-foreground">{roadmap.progress}%</span>
                       </div>
-                    )}
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  ))}
 
-                {/* Add roadmap button */}
-                {!isCollapsed && (
+                  {/* Add roadmap button */}
                   <motion.button
                     whileHover={{ scale: 1.02 }}
-                    className="w-full rounded-xl border-2 border-dashed border-border p-4 text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors flex items-center justify-center gap-2"
+                    className="w-full rounded-2xl border-2 border-dashed border-border p-6 text-muted-foreground hover:border-primary/50 hover:text-primary transition-all flex flex-col items-center justify-center gap-2"
                     onClick={() => handleOpenDialog('add-roadmap')}
                   >
-                    <Plus className="h-5 w-5" />
-                    Dodaj roadmapę
+                    <div className="h-12 w-12 rounded-xl bg-secondary/50 flex items-center justify-center">
+                      <Plus className="h-6 w-6" />
+                    </div>
+                    <span className="font-medium">Dodaj roadmapę</span>
                   </motion.button>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </ScrollArea>
-      </motion.div>
+      </div>
 
       {/* Dialog for add/edit */}
       <Dialog open={dialogType !== null} onOpenChange={() => setDialogType(null)}>
