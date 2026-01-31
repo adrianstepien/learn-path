@@ -12,7 +12,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
   return (
     <div className="min-h-screen bg-background">
       <Sidebar />
-      <main className={isMobile ? 'pt-16' : 'pl-64'}>
+      <main className={isMobile ? 'pt-14' : 'pl-64'}>
         <div className="min-h-screen">
           {children}
         </div>

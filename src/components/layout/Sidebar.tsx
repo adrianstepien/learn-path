@@ -111,7 +111,7 @@ export const Sidebar = () => {
         {/* Mobile Menu Button */}
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed left-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-xl bg-card border border-border shadow-md"
+          className="fixed left-3 top-3 z-50 flex h-9 w-9 items-center justify-center rounded-xl bg-card border border-border shadow-md"
         >
           <Menu className="h-5 w-5" />
         </button>

@@ -117,8 +117,8 @@ export const EditorCanvas = ({
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-secondary/30">
-      {/* Toolbar */}
-      <div className="absolute left-4 top-4 z-20 flex flex-col gap-2">
+      {/* Toolbar - Mobile optimized */}
+      <div className="absolute left-2 md:left-4 top-2 md:top-4 z-20 flex flex-col gap-2">
         <Button
           variant="default"
           onClick={() => {
@@ -128,17 +128,18 @@ export const EditorCanvas = ({
             };
             onAddNode(centerPosition);
           }}
-          className="gap-2 shadow-md"
+          className="gap-2 shadow-md h-9 md:h-10 px-3 md:px-4 text-sm"
         >
           <Plus className="h-4 w-4" />
-          Dodaj temat
+          <span className="hidden sm:inline">Dodaj temat</span>
+          <span className="sm:hidden">Dodaj</span>
         </Button>
-        <div className="flex flex-col gap-2 mt-2">
+        <div className="flex flex-col gap-1 md:gap-2 mt-2">
           <Button
             variant="outline"
             size="icon"
             onClick={() => onZoomChange(zoom + 0.1)}
-            className="h-10 w-10 bg-card shadow-md"
+            className="h-8 w-8 md:h-10 md:w-10 bg-card shadow-md"
           >
             <ZoomIn className="h-4 w-4" />
           </Button>
@@ -146,7 +147,7 @@ export const EditorCanvas = ({
             variant="outline"
             size="icon"
             onClick={() => onZoomChange(zoom - 0.1)}
-            className="h-10 w-10 bg-card shadow-md"
+            className="h-8 w-8 md:h-10 md:w-10 bg-card shadow-md"
           >
             <ZoomOut className="h-4 w-4" />
           </Button>
@@ -157,7 +158,7 @@ export const EditorCanvas = ({
               onZoomChange(1);
               onPanChange({ x: 0, y: 0 });
             }}
-            className="h-10 w-10 bg-card shadow-md"
+            className="h-8 w-8 md:h-10 md:w-10 bg-card shadow-md"
           >
             <RotateCcw className="h-4 w-4" />
           </Button>
@@ -165,16 +166,21 @@ export const EditorCanvas = ({
       </div>
 
       {/* Zoom indicator */}
-      <div className="absolute bottom-4 left-4 z-20 rounded-lg bg-card px-3 py-1.5 text-sm text-muted-foreground shadow-md">
+      <div className="absolute bottom-2 md:bottom-4 left-2 md:left-4 z-20 rounded-lg bg-card px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm text-muted-foreground shadow-md">
         {Math.round(zoom * 100)}%
       </div>
 
-      {/* Instructions */}
-      <div className="absolute bottom-4 right-4 z-20 rounded-lg bg-card px-4 py-2 text-sm text-muted-foreground shadow-md">
+      {/* Instructions - Hidden on mobile */}
+      <div className="absolute bottom-2 md:bottom-4 right-2 md:right-4 z-20 rounded-lg bg-card px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm text-muted-foreground shadow-md hidden md:block">
         <p>Podwójne kliknięcie = nowy węzeł</p>
         <p>Alt + przeciągnij = przesuwaj canvas</p>
         <p>Scroll = przesuwaj | Ctrl+Scroll = zoom</p>
         <p className="text-primary">Kliknij ikonę łańcucha → drugi węzeł = połączenie</p>
+      </div>
+
+      {/* Mobile touch hint */}
+      <div className="absolute bottom-2 right-2 z-20 rounded-lg bg-card px-3 py-1.5 text-xs text-muted-foreground shadow-md md:hidden">
+        <p>Podwójne dotknięcie = nowy węzeł</p>
       </div>
 
       {/* Canvas */}
