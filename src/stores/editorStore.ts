@@ -1,6 +1,28 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Category, Roadmap, Topic, Question, Resource, TopicConnection } from '@/types/learning';
 import { mockCategories as initialCategories } from '@/data/mockData';
+
+// Storage key for persisting positions
+const STORAGE_KEY = 'learnflow-editor-positions';
+
+// Helper to load saved positions from localStorage
+const loadSavedPositions = (): Record<string, { x: number; y: number }> => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch {
+    return {};
+  }
+};
+
+// Helper to save positions to localStorage
+const savePositions = (positions: Record<string, { x: number; y: number }>) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(positions));
+  } catch {
+    // Ignore storage errors
+  }
+};
 
 // Editor state management using React hooks pattern
 export interface EditorNode {
@@ -30,6 +52,7 @@ export interface EditorState {
   connectingFrom: string | null;
   zoom: number;
   pan: { x: number; y: number };
+  savedPositions: Record<string, { x: number; y: number }>;
 }
 
 export const createInitialState = (): EditorState => ({
@@ -44,10 +67,18 @@ export const createInitialState = (): EditorState => ({
   connectingFrom: null,
   zoom: 1,
   pan: { x: 0, y: 0 },
+  savedPositions: loadSavedPositions(),
 });
 
 export const useEditorStore = () => {
   const [state, setState] = useState<EditorState>(createInitialState);
+
+  // Save positions whenever they change
+  useEffect(() => {
+    if (Object.keys(state.savedPositions).length > 0) {
+      savePositions(state.savedPositions);
+    }
+  }, [state.savedPositions]);
 
   const selectCategory = useCallback((categoryId: string | null) => {
     setState(prev => ({
@@ -75,10 +106,11 @@ export const useEditorStore = () => {
 
       if (!foundRoadmap) return prev;
 
+      // Use saved positions if available, otherwise use topic's default position
       const nodes: EditorNode[] = foundRoadmap.topics.map(t => ({
         id: t.id,
         topicId: t.id,
-        position: t.position,
+        position: prev.savedPositions[t.id] || t.position,
         title: t.title,
         status: t.status,
       }));
@@ -216,10 +248,17 @@ export const useEditorStore = () => {
         }),
       }));
 
+      // Save position immediately
+      const newSavedPositions = {
+        ...prev.savedPositions,
+        [newNode.id]: position,
+      };
+
       return {
         ...prev,
         categories: updatedCategories,
         nodes: [...prev.nodes, newNode],
+        savedPositions: newSavedPositions,
       };
     });
 
@@ -241,6 +280,11 @@ export const useEditorStore = () => {
           ),
         })),
       })),
+      // Save position to persist across refreshes
+      savedPositions: {
+        ...prev.savedPositions,
+        [nodeId]: position,
+      },
     }));
   }, []);
 
@@ -263,20 +307,26 @@ export const useEditorStore = () => {
   }, []);
 
   const deleteNode = useCallback((nodeId: string) => {
-    setState(prev => ({
-      ...prev,
-      nodes: prev.nodes.filter(n => n.id !== nodeId),
-      connections: prev.connections.filter(c => c.from !== nodeId && c.to !== nodeId),
-      selectedTopicId: prev.selectedTopicId === nodeId ? null : prev.selectedTopicId,
-      categories: prev.categories.map(c => ({
-        ...c,
-        roadmaps: c.roadmaps.map(r => ({
-          ...r,
-          topics: r.topics.filter(t => t.id !== nodeId),
-          connections: r.connections.filter(conn => conn.fromTopicId !== nodeId && conn.toTopicId !== nodeId),
+    setState(prev => {
+      // Remove position from saved positions
+      const { [nodeId]: _, ...remainingPositions } = prev.savedPositions;
+      
+      return {
+        ...prev,
+        nodes: prev.nodes.filter(n => n.id !== nodeId),
+        connections: prev.connections.filter(c => c.from !== nodeId && c.to !== nodeId),
+        selectedTopicId: prev.selectedTopicId === nodeId ? null : prev.selectedTopicId,
+        categories: prev.categories.map(c => ({
+          ...c,
+          roadmaps: c.roadmaps.map(r => ({
+            ...r,
+            topics: r.topics.filter(t => t.id !== nodeId),
+            connections: r.connections.filter(conn => conn.fromTopicId !== nodeId && conn.toTopicId !== nodeId),
+          })),
         })),
-      })),
-    }));
+        savedPositions: remainingPositions,
+      };
+    });
   }, []);
 
   const addConnection = useCallback((fromId: string, toId: string, type: TopicConnection['type'] = 'suggested_order') => {

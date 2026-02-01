@@ -30,6 +30,13 @@ const statusLabels: Record<ProgressStatus, string> = {
   due_review: 'Do powtórki',
 };
 
+// Calculate topic progress based on questions
+const getTopicProgress = (topic: Topic): number => {
+  if (topic.questions.length === 0) return 0;
+  const masteredQuestions = topic.questions.filter(q => q.repetitions > 0).length;
+  return Math.round((masteredQuestions / topic.questions.length) * 100);
+};
+
 const TopicNode = ({ 
   topic, 
   onClick,
@@ -41,6 +48,7 @@ const TopicNode = ({
 }) => {
   const questionsCount = topic.questions.length;
   const resourcesCount = topic.resources.length;
+  const progress = getTopicProgress(topic);
 
   return (
     <motion.div
@@ -60,7 +68,21 @@ const TopicNode = ({
       )}
     >
       <h4 className="font-semibold text-foreground mb-1 truncate">{topic.title}</h4>
-      <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{topic.description}</p>
+      <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{topic.description}</p>
+      
+      {/* Progress bar */}
+      <div className="mb-2">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-xs text-muted-foreground">Postęp</span>
+          <span className="text-xs font-medium text-foreground">{progress}%</span>
+        </div>
+        <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+          <div 
+            className="h-full rounded-full gradient-primary transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
       
       <div className="flex items-center justify-between">
         <div className="flex gap-2">
@@ -179,11 +201,7 @@ const RoadmapViewPage = () => {
               <Filter className="h-4 w-4 mr-2" />
               Filtruj
             </Button>
-            <Button size="sm" onClick={() => {
-              if (roadmap.topics.length > 0) {
-                navigate(`/learn/study/${roadmap.topics[0].id}`);
-              }
-            }}>
+            <Button size="sm" onClick={() => navigate(`/learn/study?roadmap=${roadmap.id}`)}>
               <Play className="h-4 w-4 mr-2" />
               <span className="hidden md:inline">Tryb nauki</span>
               <span className="md:hidden">Ucz się</span>
@@ -192,7 +210,7 @@ const RoadmapViewPage = () => {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-6 border-b border-border bg-card/50 px-6 py-2">
+        <div className="flex flex-wrap items-center gap-3 md:gap-6 border-b border-border bg-card/50 px-4 md:px-6 py-2">
           {Object.entries(statusLabels).map(([status, label]) => (
             <div key={status} className="flex items-center gap-2">
               <div className={cn(

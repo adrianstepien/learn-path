@@ -66,9 +66,49 @@ const MaterialDialog = ({ material, onClose }: MaterialDialogProps) => {
   );
 };
 
+interface DescriptionDialogProps {
+  topic: Topic | null;
+  onClose: () => void;
+}
+
+const DescriptionDialog = ({ topic, onClose }: DescriptionDialogProps) => {
+  if (!topic) return null;
+
+  // Get the main description from resources if available
+  const descriptionResource = topic.resources.find(r => r.type === 'description');
+  const hasContent = topic.description || descriptionResource?.content;
+
+  return (
+    <Dialog open={!!topic} onOpenChange={() => onClose()}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{topic.title}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          {topic.description && (
+            <p className="text-muted-foreground">{topic.description}</p>
+          )}
+          {descriptionResource?.content && (
+            <div 
+              className="prose prose-sm dark:prose-invert max-w-none"
+              dangerouslySetInnerHTML={{ __html: descriptionResource.content }}
+            />
+          )}
+          {!hasContent && (
+            <p className="text-muted-foreground text-center py-8">
+              Ten temat nie ma jeszcze opisu.
+            </p>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export const TopicSlidePanel = ({ topic, onClose }: TopicSlidePanelProps) => {
   const navigate = useNavigate();
   const [selectedMaterial, setSelectedMaterial] = useState<{ id: string; title: string; content?: string } | null>(null);
+  const [showDescriptionDialog, setShowDescriptionDialog] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     materials: true,
     articles: true,
@@ -147,7 +187,13 @@ export const TopicSlidePanel = ({ topic, onClose }: TopicSlidePanelProps) => {
               </span>
               <h2 className="text-xl md:text-2xl font-bold text-foreground">{topic.title}</h2>
               {topic.description && (
-                <p className="mt-2 text-sm text-muted-foreground">{topic.description}</p>
+                <button
+                  onClick={() => setShowDescriptionDialog(true)}
+                  className="mt-2 text-sm text-primary hover:underline flex items-center gap-1"
+                >
+                  Zobacz pełny opis
+                  <ChevronRight className="h-3 w-3" />
+                </button>
               )}
             </div>
             <button
@@ -362,6 +408,12 @@ export const TopicSlidePanel = ({ topic, onClose }: TopicSlidePanelProps) => {
       <MaterialDialog 
         material={selectedMaterial} 
         onClose={() => setSelectedMaterial(null)} 
+      />
+
+      {/* Description Dialog */}
+      <DescriptionDialog
+        topic={showDescriptionDialog ? topic : null}
+        onClose={() => setShowDescriptionDialog(false)}
       />
     </>
   );
