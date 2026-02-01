@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   ChevronLeft, 
-  ChevronRight, 
   Map, 
   Plus,
   Pencil,
   Trash2,
   MoreVertical,
-  Search
+  Search,
+  Play
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,6 +57,7 @@ export const EditorSidebar = ({
   onUpdateRoadmap,
   onDeleteRoadmap,
 }: EditorSidebarProps) => {
+  const navigate = useNavigate();
   const [dialogType, setDialogType] = useState<'add-category' | 'edit-category' | 'add-roadmap' | 'edit-roadmap' | null>(null);
   const [editingItem, setEditingItem] = useState<Category | Roadmap | null>(null);
   const [formData, setFormData] = useState({ name: '', icon: '📚', description: '' });
@@ -97,12 +99,17 @@ export const EditorSidebar = ({
     setFormData({ name: '', icon: '📚', description: '' });
   };
 
+  const handleStudyRoadmap = (roadmapId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/learn/study?roadmap=${roadmapId}`);
+  };
+
   return (
     <>
       <div className="flex h-full flex-col bg-card/50 backdrop-blur-sm">
         {/* Header */}
-        <div className="border-b border-border p-4">
-          <div className="flex items-center gap-3 mb-4">
+        <div className="border-b border-border p-3 md:p-4">
+          <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
             {selectedCategory ? (
               <>
                 <Button
@@ -113,11 +120,11 @@ export const EditorSidebar = ({
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
-                  <span className="text-xl">{selectedCategory.icon}</span>
+                <div className="h-9 w-9 md:h-10 md:w-10 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
+                  <span className="text-lg md:text-xl">{selectedCategory.icon}</span>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h2 className="font-bold text-foreground truncate">{selectedCategory.name}</h2>
+                  <h2 className="font-bold text-foreground truncate text-sm md:text-base">{selectedCategory.name}</h2>
                   <p className="text-xs text-muted-foreground">
                     {selectedCategory.roadmaps.length} roadmap{selectedCategory.roadmaps.length !== 1 ? 'y' : 'a'}
                   </p>
@@ -125,7 +132,7 @@ export const EditorSidebar = ({
               </>
             ) : (
               <div>
-                <h2 className="font-bold text-foreground text-lg">Kategorie</h2>
+                <h2 className="font-bold text-foreground text-base md:text-lg">Kategorie</h2>
                 <p className="text-xs text-muted-foreground">Wybierz kategorię do edycji</p>
               </div>
             )}
@@ -139,7 +146,7 @@ export const EditorSidebar = ({
                 placeholder="Szukaj kategorii..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-9"
+                className="pl-9 h-9 text-sm"
               />
             </div>
           )}
@@ -147,7 +154,7 @@ export const EditorSidebar = ({
 
         {/* Content */}
         <ScrollArea className="flex-1">
-          <div className="p-4">
+          <div className="p-3 md:p-4">
             <AnimatePresence mode="wait">
               {!selectedCategoryId ? (
                 // Categories Grid - matching LearnPage style
@@ -156,7 +163,7 @@ export const EditorSidebar = ({
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="space-y-3"
+                  className="space-y-2 md:space-y-3"
                 >
                   {filteredCategories.map((category, index) => (
                     <motion.div
@@ -166,21 +173,21 @@ export const EditorSidebar = ({
                       transition={{ delay: index * 0.05 }}
                       whileHover={{ y: -2 }}
                       className={cn(
-                        'group rounded-2xl border border-border bg-card p-4 transition-all cursor-pointer',
+                        'group rounded-xl md:rounded-2xl border border-border bg-card p-3 md:p-4 transition-all cursor-pointer',
                         'hover:shadow-lg hover:border-primary/20'
                       )}
                       onClick={() => onSelectCategory(category.id)}
                     >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
-                          <span className="text-2xl">{category.icon}</span>
+                      <div className="flex items-start justify-between mb-2 md:mb-3">
+                        <div className="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
+                          <span className="text-xl md:text-2xl">{category.icon}</span>
                         </div>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                              className="h-7 w-7 md:h-8 md:w-8 opacity-0 group-hover:opacity-100"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <MoreVertical className="h-4 w-4" />
@@ -202,8 +209,8 @@ export const EditorSidebar = ({
                         </DropdownMenu>
                       </div>
                       
-                      <h3 className="font-bold text-foreground mb-1">{category.name}</h3>
-                      <p className="text-xs text-muted-foreground mb-3">
+                      <h3 className="font-bold text-foreground mb-1 text-sm md:text-base">{category.name}</h3>
+                      <p className="text-xs text-muted-foreground mb-2 md:mb-3">
                         {category.roadmaps.length} roadmap{category.roadmaps.length !== 1 ? 'y' : 'a'} • {
                           category.roadmaps.reduce((sum, r) => sum + r.topics.length, 0)
                         } tematów
@@ -211,9 +218,9 @@ export const EditorSidebar = ({
                       
                       {/* Progress bar - matching LearnPage */}
                       <div className="flex items-center gap-2">
-                        <div className="h-2 flex-1 rounded-full bg-secondary overflow-hidden">
+                        <div className="h-1.5 md:h-2 flex-1 rounded-full bg-secondary overflow-hidden">
                           <div 
-                            className="h-2 rounded-full gradient-primary transition-all duration-500"
+                            className="h-full rounded-full gradient-primary transition-all duration-500"
                             style={{ width: `${category.progress}%` }}
                           />
                         </div>
@@ -225,13 +232,13 @@ export const EditorSidebar = ({
                   {/* Add category button */}
                   <motion.button
                     whileHover={{ scale: 1.02 }}
-                    className="w-full rounded-2xl border-2 border-dashed border-border p-6 text-muted-foreground hover:border-primary/50 hover:text-primary transition-all flex flex-col items-center justify-center gap-2"
+                    className="w-full rounded-xl md:rounded-2xl border-2 border-dashed border-border p-4 md:p-6 text-muted-foreground hover:border-primary/50 hover:text-primary transition-all flex flex-col items-center justify-center gap-2"
                     onClick={() => handleOpenDialog('add-category')}
                   >
-                    <div className="h-12 w-12 rounded-xl bg-secondary/50 flex items-center justify-center">
-                      <Plus className="h-6 w-6" />
+                    <div className="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-secondary/50 flex items-center justify-center">
+                      <Plus className="h-5 w-5 md:h-6 md:w-6" />
                     </div>
-                    <span className="font-medium">Dodaj kategorię</span>
+                    <span className="font-medium text-sm md:text-base">Dodaj kategorię</span>
                   </motion.button>
                 </motion.div>
               ) : (
@@ -241,7 +248,7 @@ export const EditorSidebar = ({
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
-                  className="space-y-3"
+                  className="space-y-2 md:space-y-3"
                 >
                   {selectedCategory?.roadmaps.map((roadmap, index) => (
                     <motion.div
@@ -251,22 +258,22 @@ export const EditorSidebar = ({
                       transition={{ delay: index * 0.05 }}
                       whileHover={{ y: -2 }}
                       className={cn(
-                        'group rounded-2xl border bg-card p-4 transition-all cursor-pointer',
+                        'group rounded-xl md:rounded-2xl border bg-card p-3 md:p-4 transition-all cursor-pointer',
                         roadmap.id === selectedRoadmapId 
                           ? 'border-primary bg-primary/5 shadow-lg ring-2 ring-primary/20' 
                           : 'border-border hover:shadow-lg hover:border-primary/20'
                       )}
                       onClick={() => onSelectRoadmap(roadmap.id)}
                     >
-                      <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-start justify-between mb-2 md:mb-3">
                         <div className={cn(
-                          'h-12 w-12 rounded-xl flex items-center justify-center',
+                          'h-10 w-10 md:h-12 md:w-12 rounded-xl flex items-center justify-center',
                           roadmap.id === selectedRoadmapId 
                             ? 'bg-primary/20' 
                             : 'bg-gradient-to-br from-primary/10 to-accent/10'
                         )}>
                           <Map className={cn(
-                            'h-6 w-6',
+                            'h-5 w-5 md:h-6 md:w-6',
                             roadmap.id === selectedRoadmapId ? 'text-primary' : 'text-muted-foreground'
                           )} />
                         </div>
@@ -275,7 +282,7 @@ export const EditorSidebar = ({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                              className="h-7 w-7 md:h-8 md:w-8 opacity-0 group-hover:opacity-100"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <MoreVertical className="h-4 w-4" />
@@ -298,38 +305,49 @@ export const EditorSidebar = ({
                       </div>
 
                       <h3 className={cn(
-                        'font-bold mb-1',
+                        'font-bold mb-1 text-sm md:text-base',
                         roadmap.id === selectedRoadmapId ? 'text-primary' : 'text-foreground'
                       )}>
                         {roadmap.title}
                       </h3>
-                      <p className="text-xs text-muted-foreground mb-3">
+                      <p className="text-xs text-muted-foreground mb-2 md:mb-3">
                         {roadmap.topics.length} tematów • {roadmap.totalQuestions} pytań
                       </p>
 
                       {/* Progress bar */}
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 flex-1 rounded-full bg-secondary overflow-hidden">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="h-1.5 md:h-2 flex-1 rounded-full bg-secondary overflow-hidden">
                           <div 
-                            className="h-2 rounded-full gradient-primary transition-all duration-500"
+                            className="h-full rounded-full gradient-primary transition-all duration-500"
                             style={{ width: `${roadmap.progress}%` }}
                           />
                         </div>
                         <span className="text-xs font-bold text-foreground">{roadmap.progress}%</span>
                       </div>
+
+                      {/* Study button */}
+                      <Button
+                        size="sm"
+                        variant={roadmap.id === selectedRoadmapId ? 'default' : 'outline'}
+                        className="w-full h-8 text-xs md:text-sm"
+                        onClick={(e) => handleStudyRoadmap(roadmap.id, e)}
+                      >
+                        <Play className="h-3 w-3 mr-1.5" />
+                        Ucz się
+                      </Button>
                     </motion.div>
                   ))}
 
                   {/* Add roadmap button */}
                   <motion.button
                     whileHover={{ scale: 1.02 }}
-                    className="w-full rounded-2xl border-2 border-dashed border-border p-6 text-muted-foreground hover:border-primary/50 hover:text-primary transition-all flex flex-col items-center justify-center gap-2"
+                    className="w-full rounded-xl md:rounded-2xl border-2 border-dashed border-border p-4 md:p-6 text-muted-foreground hover:border-primary/50 hover:text-primary transition-all flex flex-col items-center justify-center gap-2"
                     onClick={() => handleOpenDialog('add-roadmap')}
                   >
-                    <div className="h-12 w-12 rounded-xl bg-secondary/50 flex items-center justify-center">
-                      <Plus className="h-6 w-6" />
+                    <div className="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-secondary/50 flex items-center justify-center">
+                      <Plus className="h-5 w-5 md:h-6 md:w-6" />
                     </div>
-                    <span className="font-medium">Dodaj roadmapę</span>
+                    <span className="font-medium text-sm md:text-base">Dodaj roadmapę</span>
                   </motion.button>
                 </motion.div>
               )}

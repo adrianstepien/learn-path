@@ -19,6 +19,7 @@ const EditorPage = () => {
 
   const selectedTopic = store.getSelectedTopic();
   const selectedRoadmap = store.getSelectedRoadmap();
+  const selectedCategory = store.getSelectedCategory();
 
   const handleAddNode = useCallback((position: { x: number; y: number }) => {
     setAddNodePosition(position);
@@ -60,6 +61,31 @@ const EditorPage = () => {
     }
   }, [store, isMobile]);
 
+  // Determine the empty state message based on selection
+  const getEmptyStateContent = () => {
+    if (!store.state.selectedCategoryId) {
+      return {
+        emoji: '📂',
+        title: 'Wybierz kategorię',
+        description: isMobile 
+          ? 'Kliknij ikonę menu, aby wybrać kategorię'
+          : 'Wybierz kategorię z panelu bocznego, aby zobaczyć dostępne roadmapy'
+      };
+    }
+    if (!store.state.selectedRoadmapId) {
+      return {
+        emoji: '🗺️',
+        title: 'Wybierz roadmapę',
+        description: isMobile 
+          ? 'Kliknij ikonę menu, aby wybrać roadmapę'
+          : 'Wybierz roadmapę z panelu bocznego, aby rozpocząć edycję'
+      };
+    }
+    return null;
+  };
+
+  const emptyState = getEmptyStateContent();
+
   return (
     <MainLayout>
       <div className="flex h-[calc(100vh-4rem)] md:h-[calc(100vh-2rem)] flex-col">
@@ -85,12 +111,18 @@ const EditorPage = () => {
             </div>
             <div className="min-w-0">
               <h1 className="text-base md:text-xl font-bold text-foreground truncate">
-                {selectedRoadmap ? selectedRoadmap.title : 'Edytor Roadmap'}
+                {selectedRoadmap 
+                  ? selectedRoadmap.title 
+                  : selectedCategory 
+                    ? selectedCategory.name 
+                    : 'Edytor Roadmap'}
               </h1>
               <p className="text-xs md:text-sm text-muted-foreground hidden sm:block">
                 {selectedRoadmap 
                   ? `${store.state.nodes.length} tematów • ${store.state.connections.length} połączeń`
-                  : 'Wybierz kategorię i roadmapę'
+                  : selectedCategory
+                    ? `${selectedCategory.roadmaps.length} roadmap`
+                    : 'Wybierz kategorię'
                 }
               </p>
             </div>
@@ -157,7 +189,7 @@ const EditorPage = () => {
             )}
           </AnimatePresence>
 
-          {/* Canvas */}
+          {/* Canvas or Empty State */}
           <div className="flex-1 overflow-hidden">
             {store.state.selectedRoadmapId ? (
               <EditorCanvas
@@ -178,7 +210,7 @@ const EditorPage = () => {
                 onZoomChange={store.setZoom}
                 onPanChange={store.setPan}
               />
-            ) : (
+            ) : emptyState && (
               <div className="flex h-full items-center justify-center bg-gradient-to-br from-secondary/30 to-background p-4">
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -186,14 +218,11 @@ const EditorPage = () => {
                   className="text-center"
                 >
                   <div className="mb-4 md:mb-6 mx-auto h-16 w-16 md:h-20 md:w-20 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
-                    <span className="text-4xl md:text-5xl">🗺️</span>
+                    <span className="text-4xl md:text-5xl">{emptyState.emoji}</span>
                   </div>
-                  <h2 className="text-xl md:text-2xl font-bold text-foreground">Wybierz roadmapę</h2>
+                  <h2 className="text-xl md:text-2xl font-bold text-foreground">{emptyState.title}</h2>
                   <p className="mt-2 md:mt-3 text-sm md:text-base text-muted-foreground max-w-sm mx-auto">
-                    {isMobile 
-                      ? 'Kliknij ikonę menu, aby wybrać kategorię i roadmapę'
-                      : 'Wybierz kategorię i roadmapę z panelu bocznego, aby rozpocząć edycję'
-                    }
+                    {emptyState.description}
                   </p>
                   {isMobile && !showSidebar && (
                     <Button 
