@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
@@ -15,6 +15,19 @@ import { getRoadmapById } from '@/data/mockData';
 import { Topic, ProgressStatus } from '@/types/learning';
 import { TopicSlidePanel } from '@/components/learn/TopicSlidePanel';
 import { cn } from '@/lib/utils';
+
+// Storage key for persisting positions (same as editor)
+const STORAGE_KEY = 'learnflow-editor-positions';
+
+// Helper to load saved positions from localStorage
+const loadSavedPositions = (): Record<string, { x: number; y: number }> => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch {
+    return {};
+  }
+};
 
 const statusColors: Record<ProgressStatus, string> = {
   not_started: 'bg-secondary border-border',
@@ -37,15 +50,19 @@ const getTopicProgress = (topic: Topic): number => {
   return Math.round((masteredQuestions / topic.questions.length) * 100);
 };
 
-const TopicNode = ({ 
-  topic, 
-  onClick,
-  isSelected
-}: { 
-  topic: Topic; 
+interface TopicNodeProps {
+  topic: Topic;
+  position: { x: number; y: number };
   onClick: () => void;
   isSelected: boolean;
-}) => {
+}
+
+const TopicNode = ({ 
+  topic, 
+  position,
+  onClick,
+  isSelected
+}: TopicNodeProps) => {
   const questionsCount = topic.questions.length;
   const resourcesCount = topic.resources.length;
   const progress = getTopicProgress(topic);
@@ -58,8 +75,8 @@ const TopicNode = ({
       onClick={onClick}
       style={{ 
         position: 'absolute',
-        left: topic.position.x,
-        top: topic.position.y,
+        left: position.x,
+        top: position.y,
       }}
       className={cn(
         'w-48 cursor-pointer rounded-xl border-2 bg-card p-4 shadow-md transition-all',
@@ -150,6 +167,12 @@ const RoadmapViewPage = () => {
   const navigate = useNavigate();
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [savedPositions, setSavedPositions] = useState<Record<string, { x: number; y: number }>>({});
+
+  // Load saved positions on mount
+  useEffect(() => {
+    setSavedPositions(loadSavedPositions());
+  }, []);
 
   const roadmap = getRoadmapById(roadmapId || '');
 
@@ -160,6 +183,11 @@ const RoadmapViewPage = () => {
   const handleZoomOut = useCallback(() => {
     setZoom(prev => Math.max(prev - 0.1, 0.5));
   }, []);
+
+  // Get position for a topic - use saved position if available, otherwise use default
+  const getTopicPosition = (topic: Topic) => {
+    return savedPositions[topic.id] || topic.position;
+  };
 
   if (!roadmap) {
     return (
@@ -228,7 +256,7 @@ const RoadmapViewPage = () => {
             className="relative min-h-[600px] min-w-[1000px] p-8"
             style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}
           >
-            {/* Connections */}
+            {/* Connections - use saved positions */}
             {roadmap.connections.map(conn => {
               const fromTopic = roadmap.topics.find(t => t.id === conn.fromTopicId);
               const toTopic = roadmap.topics.find(t => t.id === conn.toTopicId);
@@ -236,17 +264,18 @@ const RoadmapViewPage = () => {
               return (
                 <ConnectionLine
                   key={conn.id}
-                  from={fromTopic.position}
-                  to={toTopic.position}
+                  from={getTopicPosition(fromTopic)}
+                  to={getTopicPosition(toTopic)}
                 />
               );
             })}
 
-            {/* Nodes */}
+            {/* Nodes - use saved positions */}
             {roadmap.topics.map(topic => (
               <TopicNode
                 key={topic.id}
                 topic={topic}
+                position={getTopicPosition(topic)}
                 onClick={() => setSelectedTopic(topic)}
                 isSelected={selectedTopic?.id === topic.id}
               />
