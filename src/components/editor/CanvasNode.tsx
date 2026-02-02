@@ -49,12 +49,15 @@ export const CanvasNode = ({
   const [hasDragged, setHasDragged] = useState(false);
   const startPosRef = useRef<{ x: number; y: number } | null>(null);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return;
     if ((e.target as HTMLElement).closest('.node-action')) return;
 
     e.stopPropagation();
     e.preventDefault();
+    
+    // Capture pointer for touch devices
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
     
     setHasDragged(false);
     startPosRef.current = { x: e.clientX, y: e.clientY };
@@ -65,7 +68,7 @@ export const CanvasNode = ({
     const startPosY = node.position.y;
     let dragStarted = false;
 
-    const handleMouseMove = (moveEvent: MouseEvent) => {
+    const handlePointerMove = (moveEvent: PointerEvent) => {
       const deltaX = moveEvent.clientX - startX;
       const deltaY = moveEvent.clientY - startY;
       
@@ -83,14 +86,15 @@ export const CanvasNode = ({
       }
     };
 
-    const handleMouseUp = () => {
+    const handlePointerUp = (upEvent: PointerEvent) => {
       startPosRef.current = null;
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      (upEvent.target as HTMLElement).releasePointerCapture?.(upEvent.pointerId);
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('pointerup', handlePointerUp);
   }, [node.position.x, node.position.y, onMove]);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
@@ -127,15 +131,16 @@ export const CanvasNode = ({
         isSelected && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
         isConnecting && !isConnectingSource && 'ring-2 ring-accent ring-offset-1 cursor-crosshair'
       )}
+      initial={{ scale: 0.8, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      onPointerDown={handlePointerDown}
+      onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
       style={{
         left: node.position.x,
         top: node.position.y,
+        touchAction: 'none', // Prevent scroll while dragging on touch
       }}
-      initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      onMouseDown={handleMouseDown}
-      onClick={handleClick}
-      onDoubleClick={handleDoubleClick}
     >
       {/* Header with drag handle */}
       <div className="flex items-center gap-2 rounded-t-xl bg-secondary/50 px-3 py-2.5">

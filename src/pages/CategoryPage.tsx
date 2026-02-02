@@ -16,57 +16,52 @@ const RoadmapCard = ({ roadmap, delay }: { roadmap: Roadmap; delay: number }) =>
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay }}
-      whileHover={{ scale: 1.02, y: -4 }}
-      className="group cursor-pointer rounded-2xl border border-border bg-card p-6 shadow-card transition-all hover:shadow-lg hover:border-primary/20"
+      whileHover={{ y: -4 }}
+      className="group rounded-2xl border border-border bg-card shadow-card transition-all hover:shadow-lg hover:border-primary/20 overflow-hidden"
     >
-      <div className="mb-4 flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
-            <Play className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">
-              {roadmap.title}
-            </h3>
-            <p className="mt-0.5 text-sm text-muted-foreground line-clamp-1">{roadmap.description}</p>
-          </div>
-        </div>
-        <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary shrink-0" />
-      </div>
-
-      <div className="mb-4 flex flex-wrap gap-2">
-        <span className="inline-flex items-center rounded-full bg-gradient-to-r from-secondary to-secondary/50 px-3 py-1.5 text-xs font-semibold text-foreground">
-          {roadmap.topics.length} tematów
-        </span>
-        <span className="inline-flex items-center rounded-full bg-gradient-to-r from-secondary to-secondary/50 px-3 py-1.5 text-xs font-semibold text-foreground">
-          {roadmap.totalQuestions} pytań
-        </span>
-      </div>
-
-      <div className="mb-5">
-        <div className="flex items-center justify-between text-sm mb-2">
-          <span className="text-muted-foreground font-medium">Postęp</span>
-          <span className="font-bold text-foreground">{roadmap.progress}%</span>
-        </div>
-        <div className="h-2.5 w-full rounded-full bg-secondary overflow-hidden">
-          <div 
-            className="h-2.5 rounded-full gradient-primary transition-all duration-500"
-            style={{ width: `${roadmap.progress}%` }}
-          />
-        </div>
-      </div>
-
-      <Button
-        onClick={(e) => {
-          e.stopPropagation();
-          navigate(`/learn/roadmap/${roadmap.id}`);
-        }}
-        className="w-full shadow-md hover:shadow-glow"
-        size="lg"
+      {/* Header - clickable to navigate to roadmap view */}
+      <div 
+        onClick={() => navigate(`/learn/roadmap/${roadmap.id}`)}
+        className="cursor-pointer p-6 pb-4 transition-all hover:bg-gradient-to-br hover:from-secondary/50 hover:to-transparent"
       >
-        <Play className="mr-2 h-4 w-4" />
-        Otwórz roadmapę
-      </Button>
+        <div className="mb-4 flex items-center justify-between">
+          <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
+            <Play className="h-6 w-6 text-primary" />
+          </div>
+          <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+        </div>
+        <h3 className="mb-2 text-lg font-bold text-foreground">{roadmap.title}</h3>
+        <p className="mb-4 text-sm text-muted-foreground line-clamp-2">{roadmap.description}</p>
+        
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
+            {roadmap.topics.length} tematów • {roadmap.totalQuestions} pytań
+          </span>
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-20 rounded-full bg-secondary overflow-hidden">
+              <div 
+                className="h-2 rounded-full gradient-primary transition-all duration-500"
+                style={{ width: `${roadmap.progress}%` }}
+              />
+            </div>
+            <span className="text-xs font-bold text-foreground">{roadmap.progress}%</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Study Button */}
+      <div className="border-t border-border/50 px-6 py-4 bg-gradient-to-b from-secondary/30 to-secondary/10">
+        <Button 
+          className="w-full"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/learn/study?roadmap=${roadmap.id}`);
+          }}
+        >
+          <Play className="h-4 w-4 mr-2" />
+          Ucz się w roadmapie
+        </Button>
+      </div>
     </motion.div>
   );
 };
