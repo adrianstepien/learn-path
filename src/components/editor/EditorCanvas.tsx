@@ -61,6 +61,10 @@ export const EditorCanvas = ({
     }
   }, [zoom, pan, onZoomChange, onPanChange]);
 
+  // Touch panning state
+  const [isTouchPanning, setIsTouchPanning] = useState(false);
+  const touchStartRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
+
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button === 1 || (e.button === 0 && e.altKey)) {
       setIsPanning(true);
@@ -87,6 +91,38 @@ export const EditorCanvas = ({
 
   const handleMouseUp = useCallback(() => {
     setIsPanning(false);
+  }, []);
+
+  // Touch handlers for mobile panning
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      // Two finger touch - prepare for panning
+      const touch = e.touches[0];
+      setIsTouchPanning(true);
+      touchStartRef.current = {
+        x: touch.clientX,
+        y: touch.clientY,
+        panX: pan.x,
+        panY: pan.y,
+      };
+    }
+  }, [pan]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (isTouchPanning && e.touches.length === 2 && touchStartRef.current) {
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - touchStartRef.current.x;
+      const deltaY = touch.clientY - touchStartRef.current.y;
+      onPanChange({
+        x: touchStartRef.current.panX + deltaX,
+        y: touchStartRef.current.panY + deltaY,
+      });
+    }
+  }, [isTouchPanning, onPanChange]);
+
+  const handleTouchEnd = useCallback(() => {
+    setIsTouchPanning(false);
+    touchStartRef.current = null;
   }, []);
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
@@ -186,7 +222,7 @@ export const EditorCanvas = ({
       {/* Canvas */}
       <div
         ref={containerRef}
-        className="h-full w-full cursor-grab active:cursor-grabbing"
+        className="h-full w-full cursor-grab active:cursor-grabbing touch-none"
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -194,6 +230,9 @@ export const EditorCanvas = ({
         onMouseLeave={handleMouseUp}
         onDoubleClick={handleDoubleClick}
         onClick={handleCanvasClick}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         {/* Grid pattern */}
         <svg className="absolute inset-0 h-full w-full" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: '0 0' }}>
