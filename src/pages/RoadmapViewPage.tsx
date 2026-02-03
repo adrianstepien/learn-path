@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
@@ -7,7 +7,8 @@ import {
   ZoomOut, 
   Play,
   Filter,
-  Eye
+  Eye,
+  RotateCcw
 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
@@ -79,7 +80,7 @@ const TopicNode = ({
         top: position.y,
       }}
       className={cn(
-        'w-48 cursor-pointer rounded-xl border-2 bg-card p-4 shadow-md transition-all',
+        'topic-node w-48 cursor-pointer rounded-xl border-2 bg-card p-4 shadow-md transition-all',
         statusColors[topic.status],
         isSelected && 'ring-2 ring-primary ring-offset-2 ring-offset-background'
       )}
@@ -167,7 +168,14 @@ const RoadmapViewPage = () => {
   const navigate = useNavigate();
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
   const [savedPositions, setSavedPositions] = useState<Record<string, { x: number; y: number }>>({});
+  
+  // Touch gesture state
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isTouchPanning, setIsTouchPanning] = useState(false);
+  const touchStartRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
+  const pinchStartRef = useRef<{ distance: number; zoom: number } | null>(null);
 
   // Load saved positions on mount
   useEffect(() => {
@@ -177,12 +185,102 @@ const RoadmapViewPage = () => {
   const roadmap = getRoadmapById(roadmapId || '');
 
   const handleZoomIn = useCallback(() => {
-    setZoom(prev => Math.min(prev + 0.1, 1.5));
+    setZoom(prev => Math.min(prev + 0.1, 2));
   }, []);
 
   const handleZoomOut = useCallback(() => {
-    setZoom(prev => Math.max(prev - 0.1, 0.5));
+    setZoom(prev => Math.max(prev - 0.1, 0.25));
   }, []);
+
+  const handleResetView = useCallback(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
+  // Helper to calculate distance between two touch points
+  const getTouchDistance = useCallback((touches: React.TouchList) => {
+    if (touches.length < 2) return 0;
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }, []);
+
+  // Touch handlers for mobile panning and pinch-to-zoom
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    // Check if touch is on a topic node - if so, let it handle click
+    if ((e.target as HTMLElement).closest('.topic-node')) return;
+    
+    if (e.touches.length === 2) {
+      // Two fingers - pinch to zoom
+      e.preventDefault();
+      const distance = getTouchDistance(e.touches);
+      pinchStartRef.current = { distance, zoom };
+      
+      // Also track pan position for combined pan+zoom
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      touchStartRef.current = {
+        x: midX,
+        y: midY,
+        panX: pan.x,
+        panY: pan.y,
+      };
+      setIsTouchPanning(true);
+    } else if (e.touches.length === 1) {
+      // Single finger - pan only
+      e.preventDefault();
+      const touch = e.touches[0];
+      setIsTouchPanning(true);
+      touchStartRef.current = {
+        x: touch.clientX,
+        y: touch.clientY,
+        panX: pan.x,
+        panY: pan.y,
+      };
+      pinchStartRef.current = null;
+    }
+  }, [pan, zoom, getTouchDistance]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    e.preventDefault();
+
+    if (e.touches.length === 2 && pinchStartRef.current) {
+      // Pinch to zoom
+      const currentDistance = getTouchDistance(e.touches);
+      const scale = currentDistance / pinchStartRef.current.distance;
+      const newZoom = Math.min(Math.max(pinchStartRef.current.zoom * scale, 0.25), 2);
+      setZoom(newZoom);
+
+      // Pan with two fingers
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      const deltaX = midX - touchStartRef.current.x;
+      const deltaY = midY - touchStartRef.current.y;
+      setPan({
+        x: touchStartRef.current.panX + deltaX,
+        y: touchStartRef.current.panY + deltaY,
+      });
+    } else if (e.touches.length === 1 && isTouchPanning) {
+      // Single finger pan
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - touchStartRef.current.x;
+      const deltaY = touch.clientY - touchStartRef.current.y;
+      setPan({
+        x: touchStartRef.current.panX + deltaX,
+        y: touchStartRef.current.panY + deltaY,
+      });
+    }
+  }, [isTouchPanning, getTouchDistance]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (isTouchPanning) {
+      e.preventDefault();
+    }
+    setIsTouchPanning(false);
+    touchStartRef.current = null;
+    pinchStartRef.current = null;
+  }, [isTouchPanning]);
 
   // Get position for a topic - use saved position if available, otherwise use default
   const getTopicPosition = (topic: Topic) => {
@@ -224,6 +322,9 @@ const RoadmapViewPage = () => {
             <Button variant="outline" size="sm" onClick={handleZoomIn}>
               <ZoomIn className="h-4 w-4" />
             </Button>
+            <Button variant="outline" size="sm" onClick={handleResetView}>
+              <RotateCcw className="h-4 w-4" />
+            </Button>
             <div className="h-6 w-px bg-border mx-2 hidden md:block" />
             <Button variant="outline" size="sm" className="hidden md:flex">
               <Filter className="h-4 w-4 mr-2" />
@@ -250,11 +351,20 @@ const RoadmapViewPage = () => {
           ))}
         </div>
 
-        {/* Canvas */}
-        <div className="flex-1 overflow-auto bg-secondary/30">
+        {/* Canvas with touch support */}
+        <div 
+          ref={containerRef}
+          className="flex-1 overflow-hidden bg-secondary/30 touch-none"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           <div 
             className="relative min-h-[600px] min-w-[1000px] p-8"
-            style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}
+            style={{ 
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, 
+              transformOrigin: 'top left' 
+            }}
           >
             {/* Connections - use saved positions */}
             {roadmap.connections.map(conn => {
