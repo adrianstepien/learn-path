@@ -93,10 +93,13 @@ export const EditorCanvas = ({
     setIsPanning(false);
   }, []);
 
-  // Touch handlers for mobile panning
+  // Touch handlers for mobile panning - single finger panning
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      // Two finger touch - prepare for panning
+    // Check if touch is on a node - if so, let node handle it
+    if ((e.target as HTMLElement).closest('.canvas-node')) return;
+    
+    if (e.touches.length >= 1) {
+      e.preventDefault();
       const touch = e.touches[0];
       setIsTouchPanning(true);
       touchStartRef.current = {
@@ -109,7 +112,8 @@ export const EditorCanvas = ({
   }, [pan]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (isTouchPanning && e.touches.length === 2 && touchStartRef.current) {
+    if (isTouchPanning && touchStartRef.current) {
+      e.preventDefault();
       const touch = e.touches[0];
       const deltaX = touch.clientX - touchStartRef.current.x;
       const deltaY = touch.clientY - touchStartRef.current.y;
@@ -120,10 +124,13 @@ export const EditorCanvas = ({
     }
   }, [isTouchPanning, onPanChange]);
 
-  const handleTouchEnd = useCallback(() => {
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (isTouchPanning) {
+      e.preventDefault();
+    }
     setIsTouchPanning(false);
     touchStartRef.current = null;
-  }, []);
+  }, [isTouchPanning]);
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.canvas-node')) return;
