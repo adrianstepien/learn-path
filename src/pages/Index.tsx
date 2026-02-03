@@ -31,16 +31,22 @@ const Index = () => {
   return (
     <MainLayout>
       <div className="p-4 md:p-8">
+        {/* Background gradient glow */}
+        <div className="pointer-events-none fixed inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full gradient-glow opacity-50 blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-accent/10 blur-3xl" />
+        </div>
+
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="relative mb-10"
         >
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+          <h1 className="text-3xl md:text-4xl font-bold font-display text-foreground">
             Witaj ponownie! 👋
           </h1>
-          <p className="mt-2 text-muted-foreground">
+          <p className="mt-3 text-lg text-muted-foreground">
             Kontynuuj naukę i rozwijaj swoje umiejętności
           </p>
         </motion.div>
@@ -90,7 +96,7 @@ const Index = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.2 }}
-              className="rounded-2xl border border-border bg-card p-6 shadow-md"
+              className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-6 shadow-card"
             >
               <h3 className="mb-6 text-lg font-semibold text-foreground">Postęp ogólny</h3>
               <div className="flex flex-wrap items-center justify-around gap-8">
@@ -138,21 +144,21 @@ const Index = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.4 }}
-              className="rounded-2xl border border-border bg-card p-6 shadow-md"
+              className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-6 shadow-card"
             >
-              <h3 className="mb-4 text-lg font-semibold text-foreground">Rekomendowane</h3>
+              <h3 className="mb-5 text-lg font-semibold font-display text-foreground">Rekomendowane</h3>
               <div className="space-y-3">
-                <button className="w-full rounded-lg bg-secondary p-4 text-left transition-all hover:bg-secondary/80 hover:shadow-md">
-                  <p className="font-medium text-foreground">Docker - Kontynuuj naukę</p>
-                  <p className="text-sm text-muted-foreground">3 pytania pozostały</p>
+                <button className="w-full rounded-xl bg-secondary/60 p-4 text-left transition-all hover:bg-secondary hover:shadow-md hover:-translate-y-0.5 group border border-transparent hover:border-primary/20">
+                  <p className="font-medium text-foreground group-hover:text-primary transition-colors">Docker - Kontynuuj naukę</p>
+                  <p className="text-sm text-muted-foreground mt-1">3 pytania pozostały</p>
                 </button>
-                <button className="w-full rounded-lg bg-secondary p-4 text-left transition-all hover:bg-secondary/80 hover:shadow-md">
-                  <p className="font-medium text-foreground">REST API - Powtórka</p>
-                  <p className="text-sm text-muted-foreground">5 pytań do przypomnienia</p>
+                <button className="w-full rounded-xl bg-secondary/60 p-4 text-left transition-all hover:bg-secondary hover:shadow-md hover:-translate-y-0.5 group border border-transparent hover:border-primary/20">
+                  <p className="font-medium text-foreground group-hover:text-primary transition-colors">REST API - Powtórka</p>
+                  <p className="text-sm text-muted-foreground mt-1">5 pytań do przypomnienia</p>
                 </button>
-                <button className="w-full rounded-lg bg-secondary p-4 text-left transition-all hover:bg-secondary/80 hover:shadow-md">
-                  <p className="font-medium text-foreground">Kubernetes - Nowy temat</p>
-                  <p className="text-sm text-muted-foreground">Rozpocznij naukę</p>
+                <button className="w-full rounded-xl bg-secondary/60 p-4 text-left transition-all hover:bg-secondary hover:shadow-md hover:-translate-y-0.5 group border border-transparent hover:border-primary/20">
+                  <p className="font-medium text-foreground group-hover:text-primary transition-colors">Kubernetes - Nowy temat</p>
+                  <p className="text-sm text-muted-foreground mt-1">Rozpocznij naukę</p>
                 </button>
               </div>
             </motion.div>
