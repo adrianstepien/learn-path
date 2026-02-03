@@ -61,9 +61,10 @@ export const EditorCanvas = ({
     }
   }, [zoom, pan, onZoomChange, onPanChange]);
 
-  // Touch panning state
+  // Touch panning and pinch-to-zoom state
   const [isTouchPanning, setIsTouchPanning] = useState(false);
   const touchStartRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
+  const pinchStartRef = useRef<{ distance: number; zoom: number } | null>(null);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button === 1 || (e.button === 0 && e.altKey)) {
@@ -93,12 +94,37 @@ export const EditorCanvas = ({
     setIsPanning(false);
   }, []);
 
-  // Touch handlers for mobile panning - single finger panning
+  // Helper to calculate distance between two touch points
+  const getTouchDistance = useCallback((touches: React.TouchList) => {
+    if (touches.length < 2) return 0;
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }, []);
+
+  // Touch handlers for mobile panning and pinch-to-zoom
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     // Check if touch is on a node - if so, let node handle it
     if ((e.target as HTMLElement).closest('.canvas-node')) return;
     
-    if (e.touches.length >= 1) {
+    if (e.touches.length === 2) {
+      // Two fingers - pinch to zoom
+      e.preventDefault();
+      const distance = getTouchDistance(e.touches);
+      pinchStartRef.current = { distance, zoom };
+      
+      // Also track pan position for combined pan+zoom
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      touchStartRef.current = {
+        x: midX,
+        y: midY,
+        panX: pan.x,
+        panY: pan.y,
+      };
+      setIsTouchPanning(true);
+    } else if (e.touches.length === 1) {
+      // Single finger - pan only
       e.preventDefault();
       const touch = e.touches[0];
       setIsTouchPanning(true);
@@ -108,12 +134,32 @@ export const EditorCanvas = ({
         panX: pan.x,
         panY: pan.y,
       };
+      pinchStartRef.current = null;
     }
-  }, [pan]);
+  }, [pan, zoom, getTouchDistance]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (isTouchPanning && touchStartRef.current) {
-      e.preventDefault();
+    if (!touchStartRef.current) return;
+    e.preventDefault();
+
+    if (e.touches.length === 2 && pinchStartRef.current) {
+      // Pinch to zoom
+      const currentDistance = getTouchDistance(e.touches);
+      const scale = currentDistance / pinchStartRef.current.distance;
+      const newZoom = Math.min(Math.max(pinchStartRef.current.zoom * scale, 0.25), 2);
+      onZoomChange(newZoom);
+
+      // Pan with two fingers
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      const deltaX = midX - touchStartRef.current.x;
+      const deltaY = midY - touchStartRef.current.y;
+      onPanChange({
+        x: touchStartRef.current.panX + deltaX,
+        y: touchStartRef.current.panY + deltaY,
+      });
+    } else if (e.touches.length === 1 && isTouchPanning) {
+      // Single finger pan
       const touch = e.touches[0];
       const deltaX = touch.clientX - touchStartRef.current.x;
       const deltaY = touch.clientY - touchStartRef.current.y;
@@ -122,7 +168,7 @@ export const EditorCanvas = ({
         y: touchStartRef.current.panY + deltaY,
       });
     }
-  }, [isTouchPanning, onPanChange]);
+  }, [isTouchPanning, onPanChange, onZoomChange, getTouchDistance]);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
     if (isTouchPanning) {
@@ -130,6 +176,7 @@ export const EditorCanvas = ({
     }
     setIsTouchPanning(false);
     touchStartRef.current = null;
+    pinchStartRef.current = null;
   }, [isTouchPanning]);
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
