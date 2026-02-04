@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
-  GraduationCap, 
+  BookOpen,
+  Flame,
   Mail, 
   Lock, 
   Eye, 
@@ -35,10 +36,11 @@ const LoginPage = () => {
         >
           {/* Logo */}
           <div className="flex items-center gap-3 mb-8">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl gradient-primary">
-              <GraduationCap className="h-6 w-6 text-primary-foreground" />
+            <div className="relative flex h-12 w-12 items-center justify-center rounded-xl gradient-primary">
+              <BookOpen className="h-6 w-6 text-primary-foreground absolute bottom-2" />
+              <Flame className="h-5 w-5 text-amber-300 absolute top-1.5" />
             </div>
-            <span className="text-2xl font-bold text-gradient">LearnFlow</span>
+            <span className="text-2xl font-bold text-gradient">Learn Lantern</span>
           </div>
 
           {/* Header */}
@@ -156,12 +158,13 @@ const LoginPage = () => {
           className="text-center text-primary-foreground"
         >
           <div className="mb-8">
-            <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-3xl bg-white/20 backdrop-blur-sm">
-              <GraduationCap className="h-12 w-12" />
+            <div className="relative mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-3xl bg-white/20 backdrop-blur-sm">
+              <BookOpen className="h-12 w-12 absolute bottom-4" />
+              <Flame className="h-10 w-10 text-amber-300 absolute top-2" />
             </div>
             <h2 className="text-3xl font-bold mb-4">Ucz się efektywniej</h2>
             <p className="text-primary-foreground/80 max-w-md">
-              LearnFlow wykorzystuje system SRS (Spaced Repetition System) i AI, 
+              Learn Lantern wykorzystuje system SRS (Spaced Repetition System) i AI, 
               aby pomóc Ci zapamiętać więcej w krótszym czasie.
             </p>
           </div>
