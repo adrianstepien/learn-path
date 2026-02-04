@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
@@ -12,23 +12,10 @@ import {
 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
-import { getRoadmapById } from '@/data/mockData';
-import { Topic, ProgressStatus } from '@/types/learning';
+import { useEditorStore } from '@/stores/editorStore';
+import { Topic, ProgressStatus, Roadmap } from '@/types/learning';
 import { TopicSlidePanel } from '@/components/learn/TopicSlidePanel';
 import { cn } from '@/lib/utils';
-
-// Storage key for persisting positions (same as editor)
-const STORAGE_KEY = 'learnflow-editor-positions';
-
-// Helper to load saved positions from localStorage
-const loadSavedPositions = (): Record<string, { x: number; y: number }> => {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : {};
-  } catch {
-    return {};
-  }
-};
 
 const statusColors: Record<ProgressStatus, string> = {
   not_started: 'bg-secondary border-border',
@@ -166,10 +153,10 @@ const ConnectionLine = ({
 const RoadmapViewPage = () => {
   const { roadmapId } = useParams();
   const navigate = useNavigate();
+  const { state } = useEditorStore();
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [savedPositions, setSavedPositions] = useState<Record<string, { x: number; y: number }>>({});
   
   // Touch gesture state
   const containerRef = useRef<HTMLDivElement>(null);
@@ -177,12 +164,14 @@ const RoadmapViewPage = () => {
   const touchStartRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
   const pinchStartRef = useRef<{ distance: number; zoom: number } | null>(null);
 
-  // Load saved positions on mount
-  useEffect(() => {
-    setSavedPositions(loadSavedPositions());
-  }, []);
-
-  const roadmap = getRoadmapById(roadmapId || '');
+  // Find roadmap from global store
+  const roadmap: Roadmap | undefined = (() => {
+    for (const cat of state.categories) {
+      const found = cat.roadmaps.find(r => r.id === roadmapId);
+      if (found) return found;
+    }
+    return undefined;
+  })();
 
   const handleZoomIn = useCallback(() => {
     setZoom(prev => Math.min(prev + 0.1, 2));
@@ -284,7 +273,7 @@ const RoadmapViewPage = () => {
 
   // Get position for a topic - use saved position if available, otherwise use default
   const getTopicPosition = (topic: Topic) => {
-    return savedPositions[topic.id] || topic.position;
+    return state.savedPositions[topic.id] || topic.position;
   };
 
   if (!roadmap) {

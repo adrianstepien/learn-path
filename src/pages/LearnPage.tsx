@@ -5,7 +5,7 @@ import { Search, ChevronRight, Play, BookOpen } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { mockCategories } from '@/data/mockData';
+import { useEditorStore } from '@/stores/editorStore';
 import { Category, Roadmap } from '@/types/learning';
 
 const RoadmapMiniCard = ({ roadmap }: { roadmap: Roadmap }) => {
@@ -139,8 +139,9 @@ const CategoryCard = ({ category, delay }: { category: Category; delay: number }
 
 const LearnPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const { state } = useEditorStore();
 
-  const filteredCategories = mockCategories.filter(cat =>
+  const filteredCategories = state.categories.filter(cat =>
     cat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     cat.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );

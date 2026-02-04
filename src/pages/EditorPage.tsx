@@ -87,8 +87,9 @@ const EditorPage = () => {
   }, [store]);
 
   const handleSave = useCallback(() => {
+    store.saveAllData();
     toast.success('Zmiany zapisane!');
-  }, []);
+  }, [store]);
 
   const handleOpenDialog = (type: typeof dialogType, item?: Category | Roadmap) => {
     setDialogType(type);
