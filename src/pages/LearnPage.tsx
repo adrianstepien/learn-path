@@ -57,58 +57,53 @@ const CategoryCard = ({ category, delay }: { category: Category; delay: number }
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay }}
-      whileHover={{ y: -6 }}
-      className="group rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-card transition-all hover:shadow-xl hover:border-primary/30 overflow-hidden"
+      transition={{ duration: 0.3, delay }}
+      whileHover={{ y: -4 }}
+      className="group rounded-2xl border border-border bg-card shadow-card transition-all hover:shadow-lg hover:border-primary/20 overflow-hidden"
     >
       {/* Header - clickable to navigate */}
       <div 
         onClick={() => navigate(`/learn/category/${category.id}`)}
-        className="cursor-pointer p-6 pb-4 transition-all relative overflow-hidden"
+        className="cursor-pointer p-4 md:p-6 pb-4 transition-all hover:bg-gradient-to-br hover:from-secondary/50 hover:to-transparent"
       >
-        {/* Subtle gradient overlay on hover */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        
-        <div className="relative z-10">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="h-14 w-14 rounded-xl gradient-primary flex items-center justify-center shadow-md group-hover:shadow-glow transition-shadow">
-              <span className="text-2xl">{category.icon}</span>
-            </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground transition-all group-hover:translate-x-1 group-hover:text-primary" />
+        <div className="mb-3 md:mb-4 flex items-center justify-between">
+          <div className="h-12 w-12 md:h-14 md:w-14 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
+            <span className="text-2xl md:text-3xl">{category.icon}</span>
           </div>
-          <h3 className="mb-2 text-lg font-bold font-display text-foreground group-hover:text-primary transition-colors">{category.name}</h3>
-          <p className="mb-4 text-sm text-muted-foreground line-clamp-2">{category.description}</p>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground bg-secondary/80 px-3 py-1.5 rounded-full">
-              {category.roadmaps.length} roadmap{category.roadmaps.length !== 1 ? 'y' : 'a'} • {totalTopics} tematów
-            </span>
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-20 rounded-full bg-secondary/80 overflow-hidden">
-                <div 
-                  className="h-2 rounded-full gradient-primary transition-all duration-500"
-                  style={{ width: `${category.progress}%` }}
-                />
-              </div>
-              <span className="text-xs font-bold text-foreground">{category.progress}%</span>
+          <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+        </div>
+        <h3 className="mb-2 text-base md:text-lg font-bold text-foreground">{category.name}</h3>
+        <p className="mb-3 md:mb-4 text-xs md:text-sm text-muted-foreground line-clamp-2">{category.description}</p>
+        
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
+            {category.roadmaps.length} roadmap{category.roadmaps.length !== 1 ? 'y' : 'a'} • {totalTopics} tematów
+          </span>
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-16 md:w-20 rounded-full bg-secondary overflow-hidden">
+              <div 
+                className="h-2 rounded-full gradient-primary transition-all duration-500"
+                style={{ width: `${category.progress}%` }}
+              />
             </div>
+            <span className="text-xs font-bold text-foreground">{category.progress}%</span>
           </div>
         </div>
       </div>
 
       {/* Study Button */}
-      <div className="border-t border-border/50 px-6 py-4 bg-gradient-to-b from-secondary/30 to-secondary/10">
+      <div className="border-t border-border px-4 md:px-6 py-4 bg-secondary/30">
         <div className="flex items-center gap-2">
-        <Button 
-          className="flex-1"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/learn/study?category=${category.id}`);
-          }}
-        >
-          <Play className="h-4 w-4 mr-2" />
-          Ucz się w kategorii
-        </Button>
+          <Button 
+            className="flex-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/learn/study?category=${category.id}`);
+            }}
+          >
+            <Play className="h-4 w-4 mr-2" />
+            Ucz się w kategorii
+          </Button>
           {category.roadmaps.length > 0 && (
             <Button
               variant="outline"
@@ -152,22 +147,24 @@ const LearnPage = () => {
 
   return (
     <MainLayout>
-      <div className="p-4 md:p-8 relative">
-        {/* Background gradient glow */}
-        <div className="pointer-events-none fixed inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full gradient-glow opacity-50 blur-3xl" />
-        </div>
-
+      <div className="p-4 md:p-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-10 relative"
+          className="mb-6 md:mb-8"
         >
-          <h1 className="text-3xl md:text-4xl font-bold font-display text-foreground">Nauka</h1>
-          <p className="mt-3 text-lg text-muted-foreground">
-            Wybierz kategorię, aby rozpocząć naukę
-          </p>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+              <BookOpen className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold text-foreground">Nauka</h1>
+              <p className="text-sm text-muted-foreground">
+                Wybierz kategorię, aby rozpocząć naukę
+              </p>
+            </div>
+          </div>
         </motion.div>
 
         {/* Search */}
@@ -175,23 +172,23 @@ const LearnPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mb-10 relative"
+          className="mb-6 md:mb-8"
         >
           <div className="relative max-w-md">
-            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Szukaj kategorii lub roadmapy..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-11 h-12 rounded-xl border-border/50 bg-card/60 backdrop-blur-sm shadow-sm focus:shadow-md transition-shadow"
+              className="pl-10"
             />
           </div>
         </motion.div>
 
         {/* Categories Grid */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredCategories.map((category, index) => (
-            <CategoryCard key={category.id} category={category} delay={0.1 + index * 0.05} />
+            <CategoryCard key={category.id} category={category} delay={index * 0.05} />
           ))}
         </div>
 
