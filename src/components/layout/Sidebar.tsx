@@ -7,7 +7,8 @@ import {
   FileVideo, 
   BarChart3, 
   LogOut,
-  GraduationCap,
+  BookOpen,
+  Flame,
   HelpCircle,
   Menu,
   X
@@ -37,10 +38,11 @@ export const Sidebar = () => {
       <div className="flex h-16 items-center justify-between gap-3 border-b border-border/50 px-4 md:px-6">
         <div className="flex items-center gap-3">
           <div className="relative flex h-10 w-10 items-center justify-center rounded-xl gradient-primary shadow-md">
-            <GraduationCap className="h-5 w-5 text-primary-foreground" />
+            <BookOpen className="h-5 w-5 text-primary-foreground absolute bottom-1.5" />
+            <Flame className="h-4 w-4 text-amber-300 absolute top-1" />
             <div className="absolute inset-0 rounded-xl gradient-primary opacity-50 blur-lg" />
           </div>
-          <span className="text-xl font-bold font-display text-gradient">LearnFlow</span>
+          <span className="text-xl font-bold font-display text-gradient">Learn Lantern</span>
         </div>
         {isMobile && (
           <button 
