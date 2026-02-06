@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Search, ChevronRight, Play, BookOpen } from 'lucide-react';
+import { Search, ChevronRight, Play, BookOpen, Loader2 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useEditorStore } from '@/stores/editorStore';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useLearnData } from '@/hooks/useLearnData';
 import { Category, Roadmap } from '@/types/learning';
 
 const RoadmapMiniCard = ({ roadmap }: { roadmap: Roadmap }) => {
@@ -47,11 +48,25 @@ const RoadmapMiniCard = ({ roadmap }: { roadmap: Roadmap }) => {
   );
 };
 
-const CategoryCard = ({ category, delay }: { category: Category; delay: number }) => {
+const CategoryCard = ({ 
+  category, 
+  delay, 
+  onExpand,
+  isExpanded,
+  roadmaps,
+  isLoadingRoadmaps,
+}: { 
+  category: Category; 
+  delay: number;
+  onExpand: () => void;
+  isExpanded: boolean;
+  roadmaps: Roadmap[];
+  isLoadingRoadmaps: boolean;
+}) => {
   const navigate = useNavigate();
-  const [isExpanded, setIsExpanded] = useState(false);
 
-  const totalTopics = category.roadmaps.reduce((sum, r) => sum + r.topics.length, 0);
+  const totalTopics = roadmaps.reduce((sum, r) => sum + r.topics.length, 0);
+  const displayRoadmapCount = isExpanded ? roadmaps.length : category.roadmaps.length;
 
   return (
     <motion.div
@@ -77,7 +92,7 @@ const CategoryCard = ({ category, delay }: { category: Category; delay: number }
         
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
-            {category.roadmaps.length} roadmap{category.roadmaps.length !== 1 ? 'y' : 'a'} • {totalTopics} tematów
+            {displayRoadmapCount} roadmap{displayRoadmapCount !== 1 ? 'y' : 'a'} {isExpanded && `• ${totalTopics} tematów`}
           </span>
           <div className="flex items-center gap-2">
             <div className="h-2 w-16 md:w-20 rounded-full bg-secondary overflow-hidden">
@@ -104,32 +119,45 @@ const CategoryCard = ({ category, delay }: { category: Category; delay: number }
             <Play className="h-4 w-4 mr-2" />
             Ucz się w kategorii
           </Button>
-          {category.roadmaps.length > 0 && (
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsExpanded(!isExpanded);
-              }}
-              className="shrink-0"
-            >
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              onExpand();
+            }}
+            className="shrink-0"
+          >
+            {isLoadingRoadmaps ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
               <ChevronRight className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-            </Button>
-          )}
+            )}
+          </Button>
         </div>
 
         {/* Expandable roadmaps list */}
-        {isExpanded && category.roadmaps.length > 0 && (
+        {isExpanded && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             className="mt-4 space-y-2"
           >
-            {category.roadmaps.map(roadmap => (
-              <RoadmapMiniCard key={roadmap.id} roadmap={roadmap} />
-            ))}
+            {isLoadingRoadmaps ? (
+              <div className="space-y-2">
+                <Skeleton className="h-14 w-full" />
+                <Skeleton className="h-14 w-full" />
+              </div>
+            ) : roadmaps.length > 0 ? (
+              roadmaps.map(roadmap => (
+                <RoadmapMiniCard key={roadmap.id} roadmap={roadmap} />
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Brak roadmap w tej kategorii
+              </p>
+            )}
           </motion.div>
         )}
       </div>
@@ -137,11 +165,56 @@ const CategoryCard = ({ category, delay }: { category: Category; delay: number }
   );
 };
 
+const CategorySkeleton = () => (
+  <div className="rounded-2xl border border-border bg-card p-4 md:p-6">
+    <div className="flex items-center justify-between mb-4">
+      <Skeleton className="h-12 w-12 md:h-14 md:w-14 rounded-xl" />
+      <Skeleton className="h-5 w-5" />
+    </div>
+    <Skeleton className="h-6 w-3/4 mb-2" />
+    <Skeleton className="h-4 w-full mb-4" />
+    <div className="flex items-center justify-between">
+      <Skeleton className="h-6 w-24" />
+      <Skeleton className="h-2 w-20" />
+    </div>
+  </div>
+);
+
 const LearnPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { state } = useEditorStore();
+  const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null);
+  const [categoryRoadmaps, setCategoryRoadmaps] = useState<Record<string, Roadmap[]>>({});
+  const [loadingRoadmapsFor, setLoadingRoadmapsFor] = useState<string | null>(null);
+  
+  const { categories, isLoading, loadRoadmaps, roadmaps } = useLearnData();
 
-  const filteredCategories = state.categories.filter(cat =>
+  const handleExpandCategory = async (categoryId: string) => {
+    if (expandedCategoryId === categoryId) {
+      setExpandedCategoryId(null);
+      return;
+    }
+
+    setExpandedCategoryId(categoryId);
+    
+    // Check if we already loaded roadmaps for this category
+    if (!categoryRoadmaps[categoryId]) {
+      setLoadingRoadmapsFor(categoryId);
+      await loadRoadmaps(categoryId);
+    }
+  };
+
+  // Update category roadmaps when roadmaps change
+  useEffect(() => {
+    if (expandedCategoryId && roadmaps.length > 0) {
+      setCategoryRoadmaps(prev => ({
+        ...prev,
+        [expandedCategoryId]: roadmaps,
+      }));
+      setLoadingRoadmapsFor(null);
+    }
+  }, [roadmaps, expandedCategoryId]);
+
+  const filteredCategories = categories.filter(cat =>
     cat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     cat.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -187,13 +260,29 @@ const LearnPage = () => {
         </motion.div>
 
         {/* Categories Grid */}
-        <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredCategories.map((category, index) => (
-            <CategoryCard key={category.id} category={category} delay={index * 0.05} />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[1, 2, 3, 4].map(i => (
+              <CategorySkeleton key={i} />
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filteredCategories.map((category, index) => (
+              <CategoryCard 
+                key={category.id} 
+                category={category} 
+                delay={index * 0.05}
+                isExpanded={expandedCategoryId === category.id}
+                onExpand={() => handleExpandCategory(category.id)}
+                roadmaps={categoryRoadmaps[category.id] || category.roadmaps}
+                isLoadingRoadmaps={loadingRoadmapsFor === category.id}
+              />
+            ))}
+          </div>
+        )}
 
-        {filteredCategories.length === 0 && (
+        {!isLoading && filteredCategories.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
