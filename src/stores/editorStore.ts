@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useSyncExternalStore } from 'react';
 import { Category, Roadmap, Topic, Question, Resource, TopicConnection } from '@/types/learning';
 import { mockCategories as initialCategories } from '@/data/mockData';
 import * as api from '@/lib/api';
+import { isApiAvailable } from '@/lib/api/config';
 import { 
   CategoryDto, 
   RoadmapDto, 
@@ -235,6 +236,19 @@ const loadCategories = async () => {
   setState(prev => ({ ...prev, isLoading: true, error: null }));
   
   try {
+    const available = await isApiAvailable();
+    
+    if (!available) {
+      // Fallback to mock data
+      console.log('API unavailable, using mock data for editor');
+      setState(prev => ({ 
+        ...prev, 
+        categories: initialCategories,
+        isLoading: false 
+      }));
+      return;
+    }
+
     const categoryDtos = await api.getCategories();
     
     // For each category, load its roadmaps
@@ -276,8 +290,10 @@ const loadCategories = async () => {
     }));
   } catch (err) {
     console.error('Failed to load categories:', err);
+    // Fallback to mock data on error
     setState(prev => ({ 
       ...prev, 
+      categories: initialCategories,
       isLoading: false, 
       error: err instanceof Error ? err.message : 'Failed to load data' 
     }));
@@ -303,7 +319,52 @@ const selectRoadmap = async (roadmapId: string | null) => {
 
   setState(prev => ({ ...prev, isLoading: true }));
 
+  // Helper to load from local state
+  const loadFromLocalState = () => {
+    setState(prev => {
+      let foundRoadmap: Roadmap | undefined;
+      for (const cat of prev.categories) {
+        foundRoadmap = cat.roadmaps.find(r => r.id === roadmapId);
+        if (foundRoadmap) break;
+      }
+
+      if (!foundRoadmap) return { ...prev, isLoading: false };
+
+      const nodes: EditorNode[] = foundRoadmap.topics.map(t => ({
+        id: t.id,
+        topicId: t.id,
+        position: prev.savedPositions[t.id] || t.position,
+        title: t.title,
+        status: t.status,
+      }));
+
+      const connections: EditorConnection[] = foundRoadmap.connections.map(c => ({
+        id: c.id,
+        from: c.fromTopicId,
+        to: c.toTopicId,
+        type: c.type,
+      }));
+
+      return {
+        ...prev,
+        selectedRoadmapId: roadmapId,
+        selectedTopicId: null,
+        nodes,
+        connections,
+        isLoading: false,
+      };
+    });
+  };
+
   try {
+    const available = await isApiAvailable();
+    
+    if (!available) {
+      // Fallback to local state
+      loadFromLocalState();
+      return;
+    }
+
     // Get roadmap ID as number
     const numericRoadmapId = parseInt(roadmapId.replace(/\D/g, ''));
     
@@ -342,41 +403,7 @@ const selectRoadmap = async (roadmapId: string | null) => {
     });
   } catch (err) {
     console.error('Failed to load roadmap topics:', err);
-    
-    // Fallback to local state
-    setState(prev => {
-      let foundRoadmap: Roadmap | undefined;
-      for (const cat of prev.categories) {
-        foundRoadmap = cat.roadmaps.find(r => r.id === roadmapId);
-        if (foundRoadmap) break;
-      }
-
-      if (!foundRoadmap) return { ...prev, isLoading: false };
-
-      const nodes: EditorNode[] = foundRoadmap.topics.map(t => ({
-        id: t.id,
-        topicId: t.id,
-        position: prev.savedPositions[t.id] || t.position,
-        title: t.title,
-        status: t.status,
-      }));
-
-      const connections: EditorConnection[] = foundRoadmap.connections.map(c => ({
-        id: c.id,
-        from: c.fromTopicId,
-        to: c.toTopicId,
-        type: c.type,
-      }));
-
-      return {
-        ...prev,
-        selectedRoadmapId: roadmapId,
-        selectedTopicId: null,
-        nodes,
-        connections,
-        isLoading: false,
-      };
-    });
+    loadFromLocalState();
   }
 };
 
