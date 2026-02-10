@@ -5,9 +5,9 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useEditorStore } from '@/stores/editorStore';
-import { useEditorCanvasService } from '@/pages/editor/services/editorCanvasService';
-import { useEditorCategoryService } from '@/pages/editor/services/editorCategoryService';
-import { useEditorDialogService } from '@/pages/editor/services/editorDialogService';
+import { useEditorCanvasService } from '@/pages/editor/hooks/editorCanvasService';
+import { useEditorCategoryService } from '@/pages/editor/hooks/editorCategoryService';
+import { useEditorDialogService } from '@/pages/editor/hooks/editorDialogService';
 import {
   Dialog,
   DialogContent,
