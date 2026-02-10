@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { 
@@ -17,6 +17,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { getTopicById, getCategoryById, getRoadmapById, mockCategories } from '@/data/mockData';
+import { getCardsToRepeatByCategory } from '@/lib/api/cards';
 import { cn } from '@/lib/utils';
 import { Question } from '@/types/learning';
 
@@ -41,10 +42,14 @@ const StudyPage = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [llmFeedback, setLlmFeedback] = useState<string | null>(null);
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [title, setTitle] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
   // Collect all questions based on mode
-  const { questions, title } = useMemo(() => {
-    let collectedQuestions: Question[] = [];
+  useEffect(() => {
+    const fetchData = async () => {
+      let collectedQuestions: any[] = [];
     let studyTitle = '';
 
     if (topicId) {
@@ -63,16 +68,27 @@ const StudyPage = () => {
       }
     } else if (categoryId) {
       // Study entire category
-      const category = getCategoryById(categoryId);
-      if (category) {
-        collectedQuestions = category.roadmaps.flatMap(r => 
-          r.topics.flatMap(t => t.questions)
-        );
-        studyTitle = category.name;
+        const data = await getCardsToRepeatByCategory(categoryId);
+        if (data) {
+          collectedQuestions = data;
+          studyTitle = "Powtórka kategorii";
       }
     }
 
-    return { questions: collectedQuestions, title: studyTitle };
+      // Normalizacja danych: obsługa id oraz parsowanie treści pytania, jeśli jest w formacie JSON
+      const finalQuestions = collectedQuestions.map(q => ({
+        ...q,
+        id: q.cardId?.toString() || q.id,
+        question: typeof q.question === 'string' && q.question.startsWith('{')
+                  ? JSON.parse(q.question).text
+                  : q.question
+      }));
+
+      setQuestions(finalQuestions);
+      setTitle(studyTitle);
+    };
+
+    fetchData();
   }, [topicId, categoryId, roadmapId]);
 
   if (questions.length === 0) {
@@ -207,18 +223,18 @@ const StudyPage = () => {
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 <span className={cn(
                   'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
-                  difficultyColors[question.difficulty]
+                  difficultyColors['beginner']
                 )}>
-                  {question.difficulty}
+                  {'beginner'}
                 </span>
                 <span className="text-xs text-muted-foreground capitalize px-2.5 py-0.5 rounded-full bg-secondary">
-                  {question.type.replace('_', ' ')}
+                  {'open_ended'}
                 </span>
               </div>
 
               {/* Question Content */}
               <h2 className="text-lg md:text-xl font-semibold text-foreground mb-6 leading-relaxed">
-                {question.content}
+                {question.question}
               </h2>
 
               {/* Hint */}

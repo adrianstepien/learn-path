@@ -9,7 +9,7 @@ import LearnPage from "./pages/LearnPage";
 import CategoryPage from "./pages/CategoryPage";
 import RoadmapViewPage from "./pages/RoadmapViewPage";
 import StudyPage from "./pages/StudyPage";
-import EditorPage from "./pages/EditorPage";
+import EditorPage from "./pages/editor/EditorPage";
 import QuestionBankPage from "./pages/QuestionBankPage";
 import ImportPage from "./pages/ImportPage";
 import DashboardPage from "./pages/DashboardPage";

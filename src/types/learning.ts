@@ -17,7 +17,7 @@ export interface Question {
   id: string;
   topicId: string;
   type: QuestionType;
-  content: string;           // The question text (can include markdown/code)
+  question: string;           // The question text (can include markdown/code)
   answer: string;            // Expected answer or pattern
   hint?: string;
   explanation?: string;      // Detailed explanation after answering
