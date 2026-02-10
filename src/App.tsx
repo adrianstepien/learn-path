@@ -7,7 +7,7 @@ import { ThemeProvider } from "@/hooks/useTheme";
 import Index from "./pages/Index";
 import LearnPage from "./pages/learn/LearnPage";
 import CategoryPage from "./pages/CategoryPage";
-import RoadmapViewPage from "./pages/RoadmapViewPage";
+import RoadmapViewPage from "./pages/learn/roadmap/RoadmapViewPage";
 import StudyPage from "./pages/StudyPage";
 import EditorPage from "./pages/editor/EditorPage";
 import QuestionBankPage from "./pages/QuestionBankPage";
