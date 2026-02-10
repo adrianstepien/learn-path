@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/useTheme";
 import Index from "./pages/Index";
-import LearnPage from "./pages/LearnPage";
+import LearnPage from "./pages/learn/LearnPage";
 import CategoryPage from "./pages/CategoryPage";
 import RoadmapViewPage from "./pages/RoadmapViewPage";
 import StudyPage from "./pages/StudyPage";
