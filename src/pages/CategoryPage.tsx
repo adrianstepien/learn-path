@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Search, ChevronRight, Play } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { getCategoryById } from '@/data/mockData';
 import { Roadmap } from '@/types/learning';
+import * as api from '@/lib/api';
 
 const RoadmapCard = ({ roadmap, delay }: { roadmap: Roadmap; delay: number }) => {
   const navigate = useNavigate();
@@ -35,7 +36,7 @@ const RoadmapCard = ({ roadmap, delay }: { roadmap: Roadmap; delay: number }) =>
         
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
-            {roadmap.topics.length} tematów • {roadmap.totalQuestions} pytań
+            {(roadmap.topics?.length || 0)} tematów • {(roadmap.totalQuestions || 0)} pytań
           </span>
           <div className="flex items-center gap-2">
             <div className="h-2 w-20 rounded-full bg-secondary overflow-hidden">
@@ -68,22 +69,27 @@ const RoadmapCard = ({ roadmap, delay }: { roadmap: Roadmap; delay: number }) =>
 
 const CategoryPage = () => {
   const { categoryId } = useParams();
+  const { state } = useLocation();
   const navigate = useNavigate();
+
   const [searchQuery, setSearchQuery] = useState('');
+  const [roadmaps, setRoadmaps] = useState<Roadmap[]>([]);
 
-  const category = getCategoryById(categoryId || '');
+  useEffect(() => {
+      const fetchData = async () => {
+        try {
+          const data = await api.getRoadmaps(categoryId);
+          setRoadmaps(data);
+        } catch (error) {
+          console.error("Błąd pobierania:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchData();
+    }, [categoryId]);
 
-  if (!category) {
-    return (
-      <MainLayout>
-        <div className="flex h-full items-center justify-center p-8">
-          <p className="text-muted-foreground">Kategoria nie została znaleziona</p>
-        </div>
-      </MainLayout>
-    );
-  }
-
-  const filteredRoadmaps = category.roadmaps.filter(roadmap =>
+  const filteredRoadmaps = roadmaps.filter(roadmap =>
     roadmap.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     roadmap.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -109,10 +115,10 @@ const CategoryPage = () => {
           className="mb-8"
         >
           <div className="flex items-center gap-4 mb-2">
-            <span className="text-3xl md:text-4xl">{category.icon}</span>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">{category.name}</h1>
+            <span className="text-3xl md:text-4xl">{state.icon}</span>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">{state.name}</h1>
           </div>
-          <p className="text-muted-foreground">{category.description}</p>
+          <p className="text-muted-foreground">{state.description}</p>
         </motion.div>
 
         {/* Search */}
