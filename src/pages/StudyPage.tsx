@@ -17,7 +17,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { getTopicById, getCategoryById, getRoadmapById, mockCategories } from '@/data/mockData';
-import { getCardsToRepeatByCategory } from '@/lib/api/cards';
+import { getCardsToRepeatByCategory, getCardsToRepeatByRoadmap, getCardsToRepeatByTopic } from '@/lib/api/cards';
 import { cn } from '@/lib/utils';
 import { Question } from '@/types/learning';
 
@@ -53,24 +53,27 @@ const StudyPage = () => {
     let studyTitle = '';
 
     if (topicId) {
-      // Study specific topic
-      const topic = getTopicById(topicId);
-      if (topic) {
-        collectedQuestions = topic.questions;
-        studyTitle = topic.title;
-      }
+        // Study specific topic
+        const data = await getCardsToRepeatByTopic(topicId);
+        if (data) {
+            collectedQuestions = data;
+            //TODO: do zmiany
+            studyTitle = "Powtórka kategorii";
+        }
     } else if (roadmapId) {
-      // Study entire roadmap
-      const roadmap = getRoadmapById(roadmapId);
-      if (roadmap) {
-        collectedQuestions = roadmap.topics.flatMap(t => t.questions);
-        studyTitle = roadmap.title;
-      }
+        // Study entire roadmap
+        const data = await getCardsToRepeatByRoadmap(roadmapId);
+        if (data) {
+            collectedQuestions = data;
+            //TODO: do zmiany
+            studyTitle = "Powtórka kategorii";
+        }
     } else if (categoryId) {
-      // Study entire category
+        // Study entire category
         const data = await getCardsToRepeatByCategory(categoryId);
         if (data) {
           collectedQuestions = data;
+          //TODO: do zmiany
           studyTitle = "Powtórka kategorii";
       }
     }
