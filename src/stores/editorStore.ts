@@ -693,7 +693,6 @@ const addNode = async (title: string, position: { x: number; y: number }) => {
 
 const updateNodePosition = async (nodeId: string, position: { x: number; y: number }) => {
   // Update local state immediately for responsiveness
-  console.log('updaa')
   setState(prev => {
     const newSavedPositions = { ...prev.savedPositions, [nodeId]: position };
     savePositions(newSavedPositions);
@@ -880,35 +879,9 @@ const addConnection = (fromId: string, toId: string, type: TopicConnection['type
     // Find current topics from globalState to compute correct related ids
     const allTopics = globalState.categories.flatMap(c => c.roadmaps.flatMap(r => r.topics));
     const sourceTopic = allTopics.find(t => t.id === fromId);
-    const targetTopic = allTopics.find(t => t.id === toId);
-
-    const sourceRelated = new Set<number>();
-    if (sourceTopic && Array.isArray((sourceTopic as any).relatedTopicIds)) {
-      for (const rid of (sourceTopic as any).relatedTopicIds) {
-        const parsed = parseNumericId(String(rid));
-        if (parsed) sourceRelated.add(parsed);
-      }
-    }
-    sourceRelated.add(numericToId);
-
-    const targetRelated = new Set<number>();
-    if (targetTopic && Array.isArray((targetTopic as any).relatedTopicIds)) {
-      for (const rid of (targetTopic as any).relatedTopicIds) {
-        const parsed = parseNumericId(String(rid));
-        if (parsed) targetRelated.add(parsed);
-      }
-    }
-    targetRelated.add(numericFromId);
 
     // Call API to update both topics (fire-and-forget)
-    const updateFromDto: UpdateTopicDto = {
-        id: numericFromId,
-        title: sourceTopic.title,
-        description: sourceTopic.description,
-        canvasPositionX: sourceTopic.canvasPositionX,
-        canvasPositionY: sourceTopic.canvasPositionY,
-        roadmapId: sourceTopic.roadmapId,
-        relatedTopicIds: Array.from(sourceRelated) };
+    const updateFromDto = mapTopicToUpdateDto(sourceTopic);
     api.updateTopic(numericFromId, updateFromDto).catch(console.error);
   } catch (error) {
     console.error('Error while updating relatedTopicIds for topics:', error);
@@ -973,32 +946,8 @@ const deleteConnection = (connectionIdOrFrom: string, toId?: string) => {
 
     const allTopics = globalState.categories.flatMap(c => c.roadmaps.flatMap(r => r.topics));
     const sourceTopic = allTopics.find(t => t.id === fromId);
-    const targetTopic = allTopics.find(t => t.id === targetId);
 
-    const sourceRelated: number[] = [];
-    if (sourceTopic && Array.isArray((sourceTopic as any).relatedTopicIds)) {
-      for (const rid of (sourceTopic as any).relatedTopicIds) {
-        const parsed = parseNumericId(String(rid));
-        if (parsed && parsed !== numericToId) sourceRelated.push(parsed);
-      }
-    }
-
-    const targetRelatedIds: number[] = [];
-    if (targetTopic && Array.isArray((targetTopic as any).relatedTopicIds)) {
-      for (const rid of (targetTopic as any).relatedTopicIds) {
-        const parsed = parseNumericId(String(rid));
-        if (parsed && parsed !== numericFromId) targetRelatedIds.push(parsed);
-      }
-    }
-
-    const updateFromDto: UpdateTopicDto = {
-        id: numericFromId,
-        title: sourceTopic.title,
-        description: sourceTopic.description,
-        canvasPositionX: sourceTopic.canvasPositionX,
-        canvasPositionY: sourceTopic.canvasPositionY,
-        roadmapId: sourceTopic.roadmapId,
-        relatedTopicIds: Array.from(sourceRelated) };
+    const updateFromDto = mapTopicToUpdateDto(sourceTopic);
     api.updateTopic(numericFromId, updateFromDto).catch(console.error);
   } catch (error) {
     console.error('Error while removing relatedTopicIds for topics:', error);
@@ -1317,7 +1266,6 @@ const saveAllData = async () => {
 
   for (const node of globalState.nodes) {
     const numericId = parseNumericId(node.id);
-    console.log(node)
     if (numericId) {
       topicsToUpdate.push({
         id: numericId,

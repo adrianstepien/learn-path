@@ -74,7 +74,10 @@ export const EditorRoadmapGrid = ({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="bg-popover">
-                    <DropdownMenuItem onClick={() => onEditRoadmap(roadmap)}>
+                    <DropdownMenuItem onClick={(e) => {
+                        e.stopPropagation();
+                        onEditRoadmap(roadmap);
+                        }}>
                       <Pencil className="mr-2 h-4 w-4" />
                       Edytuj
                     </DropdownMenuItem>

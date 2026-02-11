@@ -73,7 +73,10 @@ export const EditorCategoryGrid = ({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="bg-popover">
-                      <DropdownMenuItem onClick={() => onEditCategory(category)}>
+                      <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          onEditCategory(category);
+                          }}>
                         <Pencil className="mr-2 h-4 w-4" />
                         Edytuj
                       </DropdownMenuItem>
