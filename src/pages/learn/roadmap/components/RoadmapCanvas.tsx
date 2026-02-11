@@ -10,6 +10,9 @@ interface RoadmapCanvasProps {
   selectedTopic: Topic | null;
   onTopicClick: (topic: Topic) => void;
   getTopicPosition: (topic: Topic) => { x: number; y: number };
+  onMouseDown?: (e: React.MouseEvent) => void;
+  onMouseMove?: (e: React.MouseEvent) => void;
+  onMouseUp?: (e: React.MouseEvent) => void;
   onTouchStart?: (e: React.TouchEvent) => void;
   onTouchMove?: (e: React.TouchEvent) => void;
   onTouchEnd?: (e: React.TouchEvent) => void;
@@ -27,6 +30,9 @@ export const RoadmapCanvas = ({
   selectedTopic,
   onTopicClick,
   getTopicPosition,
+  onMouseDown,
+  onMouseMove,
+  onMouseUp,
   onTouchStart,
   onTouchMove,
   onTouchEnd,
@@ -36,6 +42,10 @@ export const RoadmapCanvas = ({
     <div
       ref={containerRef}
       className="flex-1 overflow-hidden bg-secondary/30 touch-none"
+      onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
+      onMouseLeave={onMouseUp}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}

@@ -7,6 +7,7 @@ import { Topic } from '@/types/learning';
 import { useZoomPan } from '@/pages/learn/roadmap/hooks/useZoomPan';
 import { useTouchGestures } from '@/pages/learn/roadmap/hooks/useTouchGestures';
 import { useRoadmapData } from '@/pages/learn/roadmap/hooks/useRoadmapData';
+import { roadmapMouseCanvas } from '@/pages/learn/roadmap/hooks/roadmapMouseCanvas';
 import {
   RoadmapToolbar,
   StatusLegend,
@@ -43,6 +44,28 @@ const RoadmapViewPage = () => {
 
   // Roadmap data
   const { roadmap, getTopicPosition } = useRoadmapData(roadmapId);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setStartPos({
+      x: e.clientX - pan.x,
+      y: e.clientY - pan.y
+    });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    setPan({
+      x: e.clientX - startPos.x,
+      y: e.clientY - startPos.y
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
 
   // Handle roadmap not found
   if (!roadmap) {
@@ -76,9 +99,13 @@ const RoadmapViewPage = () => {
           roadmap={roadmap}
           zoom={zoom}
           pan={pan}
+          onPanChange={setPan}
           selectedTopic={selectedTopic}
           onTopicClick={setSelectedTopic}
           getTopicPosition={getTopicPosition}
+           onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
