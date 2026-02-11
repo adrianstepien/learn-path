@@ -261,17 +261,6 @@ const loadCategories = async () => {
   try {
     const available = await isApiAvailable();
 
-    if (!available) {
-      // Fallback to mock data
-      console.log('API unavailable, using mock data for editor');
-      setState(prev => ({
-        ...prev,
-        categories: initialCategories,
-        isLoading: false
-      }));
-      return;
-    }
-
     const categoryDtos = await api.getCategories();
 
     // For each category, load its roadmaps
