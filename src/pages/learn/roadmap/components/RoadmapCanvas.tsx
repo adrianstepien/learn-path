@@ -1,7 +1,7 @@
-import { Roadmap, Topic } from '@/types/learning';
+import { Roadmap, Topic, EditorConnection } from '@/types/learning';
 import { Eye } from 'lucide-react';
 import { TopicNode } from './TopicNode';
-import { ConnectionLine } from './ConnectionLine';
+import { CanvasConnection } from '@/components/editor/CanvasConnection';
 
 interface RoadmapCanvasProps {
   roadmap: Roadmap;
@@ -59,19 +59,41 @@ export const RoadmapCanvas = ({
           transformOrigin: 'top left'
         }}
       >
-        {/* Connections */}
-        {connections.map(conn => {
-          const fromTopic = roadmap.topics.find(t => t.id === conn.fromTopicId);
-          const toTopic = roadmap.topics.find(t => t.id === conn.toTopicId);
-          if (!fromTopic || !toTopic) return null;
-          return (
-            <ConnectionLine
-              key={conn.id}
-              from={getTopicPosition(fromTopic)}
-              to={getTopicPosition(toTopic)}
-            />
-          );
-        })}
+        <svg
+          className="absolute pointer-events-none"
+          style={{
+            overflow: 'visible',
+            width: '1px',
+            height: '1px',
+            left: 0,
+            top: 0,
+          }}
+        >
+          {connections.map((conn) => {
+            const fromTopic = roadmap.topics.find((t) => t.id === conn.from);
+            const toTopic = roadmap.topics.find((t) => t.id === conn.to);
+            if (!fromTopic || !toTopic) return null;
+
+            const fromBase = getTopicPosition(fromTopic);
+            const toBase = getTopicPosition(toTopic);
+
+            // Match connection anchor points with editor canvas
+            const fromPos = { x: fromBase.x + 80, y: fromBase.y + 40 };
+            const toPos = { x: toBase.x + 80, y: toBase.y + 40 };
+
+            return (
+              <CanvasConnection
+                key={conn.id}
+                id={conn.id}
+                from={fromPos}
+                to={toPos}
+                type={conn.type}
+                // View-only roadmap: disable deletion interaction
+                onDelete={() => {}}
+              />
+            );
+          })}
+        </svg>
 
         {/* Topic Nodes */}
         {roadmap.topics.map(topic => (

@@ -4,7 +4,6 @@
  */
 
 export { TopicNode } from './TopicNode';
-export { ConnectionLine } from './ConnectionLine';
 export { RoadmapCanvas } from './RoadmapCanvas';
 export { RoadmapToolbar } from './RoadmapToolbar';
 export { StatusLegend } from './StatusLegend';
