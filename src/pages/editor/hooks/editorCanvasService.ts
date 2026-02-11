@@ -159,7 +159,7 @@ export function useEditorCanvasService(store: EditorStore) {
 
     // pass-through state for canvas
     nodes: store.state.nodes,
-    connections: store.state.connections,
+    connections: store.getDerivedConnections(),
     zoom: store.state.zoom,
     pan: store.state.pan,
     connectingFrom: store.state.connectingFrom,

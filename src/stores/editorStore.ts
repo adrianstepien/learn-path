@@ -55,7 +55,7 @@ const mapRoadmapDtoToRoadmap = (dto: RoadmapDto, topics: Topic[] = []): Roadmap 
   title: dto.title,
   description: dto.description,
   topics,
-  connections: [],
+  connections: [], // Kept for compatibility but not used as source of truth
   progress: 0,
   totalQuestions: topics.reduce((acc, t) => acc + t.questions.length, 0),
   masteredQuestions: 0,
@@ -73,8 +73,10 @@ const mapTopicDtoToTopic = (dto: TopicDto, roadmapId: string): Topic => ({
   questions: [],
   resources: [],
   childTopicIds: [],
-  // map relatedTopicIds from DTO if present
-  relatedTopicIds: Array.isArray((dto as any).relatedTopicIds) ? (dto as any).relatedTopicIds.map((id: number) => String(id)) : [],
+  // Map relatedTopicIds from DTO if present (convert numeric to string)
+  relatedTopicIds: Array.isArray((dto as any).relatedTopicIds)
+    ? (dto as any).relatedTopicIds.map((id: number) => String(id))
+    : [],
   createdAt: new Date(),
   updatedAt: new Date(),
 });
@@ -155,8 +157,49 @@ const mapTopicToUpdateDto = (topic: Topic): UpdateTopicDto => ({
   canvasPositionX: topic.position.x,
   canvasPositionY: topic.position.y,
   roadmapId: parseInt(topic.roadmapId.replace(/\D/g, '')),
-  relatedTopicIds: Array.isArray((topic as any).relatedTopicIds) ? (topic as any).relatedTopicIds.map((id: string) => parseInt(id.replace(/\D/g, ''))) : undefined,
+  // Convert string ids to numeric for API
+  relatedTopicIds: Array.isArray((topic as any).relatedTopicIds)
+    ? (topic as any).relatedTopicIds
+        .map((id: string) => parseInt(String(id).replace(/\D/g, '')))
+        .filter((id: number) => !isNaN(id))
+    : undefined,
 });
+
+// ===== Pure Function to Compute Connections from Topics =====
+
+/**
+ * Derives visual connections from topics' relatedTopicIds.
+ * Deduplicates by ensuring each connection pair appears only once.
+ * @param topics - Array of topics with relatedTopicIds
+ * @returns Array of EditorConnection objects
+ */
+export const computeConnectionsFromTopics = (topics: Topic[]): EditorConnection[] => {
+  const connections: EditorConnection[] = [];
+  const seenPairs = new Set<string>();
+
+  for (const topic of topics) {
+    const relatedIds = (topic as any).relatedTopicIds || [];
+
+    for (const relatedId of relatedIds) {
+      // Create a canonical key to avoid duplicates (smaller id first)
+      const key = topic.id < relatedId
+        ? `${topic.id}-${relatedId}`
+        : `${relatedId}-${topic.id}`;
+
+      if (!seenPairs.has(key)) {
+        seenPairs.add(key);
+        connections.push({
+          id: `conn-${topic.id}-${relatedId}`,
+          from: topic.id,
+          to: relatedId,
+          type: 'suggested_order',
+        });
+      }
+    }
+  }
+
+  return connections;
+};
 
 // Editor state management
 export interface EditorNode {
@@ -180,7 +223,6 @@ export interface EditorState {
   selectedRoadmapId: string | null;
   selectedTopicId: string | null;
   nodes: EditorNode[];
-  connections: EditorConnection[];
   isDragging: boolean;
   draggedNodeId: string | null;
   connectingFrom: string | null;
@@ -198,7 +240,6 @@ let globalState: EditorState = {
   selectedRoadmapId: null,
   selectedTopicId: null,
   nodes: [],
-  connections: [],
   isDragging: false,
   draggedNodeId: null,
   connectingFrom: null,
@@ -230,6 +271,27 @@ const getSnapshot = () => globalState;
 const setState = (updater: (prev: EditorState) => EditorState) => {
   globalState = updater(globalState);
   emitChange();
+};
+
+// ===== Helper Functions =====
+
+/**
+ * Parse numeric ID from string ID, handling various formats
+ */
+const parseNumericId = (id: string): number => {
+  const parsed = parseInt(id.replace(/\D/g, ''));
+  return isNaN(parsed) ? 0 : parsed;
+};
+
+/**
+ * Get current roadmap from global state
+ */
+const getCurrentRoadmap = (): Roadmap | undefined => {
+  for (const cat of globalState.categories) {
+    const roadmap = cat.roadmaps.find(r => r.id === globalState.selectedRoadmapId);
+    if (roadmap) return roadmap;
+  }
+  return undefined;
 };
 
 // ===== API-based Actions =====
@@ -310,13 +372,12 @@ const selectCategory = (categoryId: string | null) => {
     selectedRoadmapId: null,
     selectedTopicId: null,
     nodes: [],
-    connections: [],
   }));
 };
 
 const selectRoadmap = async (roadmapId: string | null) => {
   if (!roadmapId) {
-    setState(prev => ({ ...prev, selectedRoadmapId: null, nodes: [], connections: [] }));
+    setState(prev => ({ ...prev, selectedRoadmapId: null, nodes: [] }));
     return;
   }
 
@@ -341,24 +402,12 @@ const selectRoadmap = async (roadmapId: string | null) => {
         status: t.status,
       }));
 
-      // Build connections from relatedTopicIds so editor shows relations as connections
-      const connections: EditorConnection[] = [];
-      for (const t of foundRoadmap.topics) {
-        const related = (t as any).relatedTopicIds || [];
-        for (const relId of related) {
-          // To avoid duplicates, only create connection when source id < target id (string compare)
-          if (t.id < relId) {
-            connections.push({ id: `conn-${t.id}-${relId}`, from: t.id, to: relId, type: 'suggested_order' });
-          }
-        }
-      }
-
+      // Connections are now computed, not stored
       return {
         ...prev,
         selectedRoadmapId: roadmapId,
         selectedTopicId: null,
         nodes,
-        connections,
         isLoading: false,
       };
     });
@@ -374,7 +423,7 @@ const selectRoadmap = async (roadmapId: string | null) => {
     }
 
     // Get roadmap ID as number
-    const numericRoadmapId = parseInt(roadmapId.replace(/\D/g, ''));
+    const numericRoadmapId = parseNumericId(roadmapId);
 
     // Load topics from API
     const topicDtos = await api.getTopics(numericRoadmapId);
@@ -399,23 +448,11 @@ const selectRoadmap = async (roadmapId: string | null) => {
         ),
       }));
 
-      // Build connections from relatedTopicIds
-      const connections: EditorConnection[] = [];
-      for (const t of topics) {
-        const related = (t as any).relatedTopicIds || [];
-        for (const relId of related) {
-          if (t.id < relId) {
-            connections.push({ id: `conn-${t.id}-${relId}`, from: t.id, to: relId, type: 'suggested_order' });
-          }
-        }
-      }
-
       return {
         ...prev,
         selectedRoadmapId: roadmapId,
         selectedTopicId: null,
         nodes,
-        connections,
         categories: newCategories,
         isLoading: false,
       };
@@ -457,7 +494,7 @@ const addCategory = async (name: string, icon: string) => {
 };
 
 const updateCategory = async (categoryId: string, updates: Partial<Pick<Category, 'name' | 'icon' | 'description'>>) => {
-  const numericId = parseInt(categoryId.replace(/\D/g, ''));
+  const numericId = parseNumericId(categoryId);
 
   setState(prev => {
     const category = prev.categories.find(c => c.id === categoryId);
@@ -481,7 +518,7 @@ const updateCategory = async (categoryId: string, updates: Partial<Pick<Category
 };
 
 const deleteCategory = async (categoryId: string) => {
-  const numericId = parseInt(categoryId.replace(/\D/g, ''));
+  const numericId = parseNumericId(categoryId);
 
   try {
     await api.deleteCategory(numericId);
@@ -497,7 +534,7 @@ const deleteCategory = async (categoryId: string) => {
 };
 
 const addRoadmap = async (categoryId: string, title: string, description?: string) => {
-  const numericCategoryId = parseInt(categoryId.replace(/\D/g, ''));
+  const numericCategoryId = parseNumericId(categoryId);
 
   const roadmapDto: RoadmapDto = {
     title,
@@ -538,7 +575,7 @@ const addRoadmap = async (categoryId: string, title: string, description?: strin
 };
 
 const updateRoadmap = async (roadmapId: string, updates: Partial<Pick<Roadmap, 'title' | 'description'>>) => {
-  const numericId = parseInt(roadmapId.replace(/\D/g, ''));
+  const numericId = parseNumericId(roadmapId);
 
   setState(prev => {
     let roadmap: Roadmap | undefined;
@@ -552,7 +589,7 @@ const updateRoadmap = async (roadmapId: string, updates: Partial<Pick<Roadmap, '
       id: numericId,
       title: updates.title || roadmap.title,
       description: updates.description || roadmap.description,
-      categoryId: parseInt(roadmap.categoryId.replace(/\D/g, '')),
+      categoryId: parseNumericId(roadmap.categoryId),
     };
 
     // Fire and forget
@@ -569,7 +606,7 @@ const updateRoadmap = async (roadmapId: string, updates: Partial<Pick<Roadmap, '
 };
 
 const deleteRoadmap = async (roadmapId: string) => {
-  const numericId = parseInt(roadmapId.replace(/\D/g, ''));
+  const numericId = parseNumericId(roadmapId);
 
   try {
     await api.deleteRoadmap(numericId);
@@ -591,7 +628,7 @@ const addNode = async (title: string, position: { x: number; y: number }) => {
   const { selectedRoadmapId } = globalState;
   if (!selectedRoadmapId) return;
 
-  const numericRoadmapId = parseInt(selectedRoadmapId.replace(/\D/g, ''));
+  const numericRoadmapId = parseNumericId(selectedRoadmapId);
 
   const createDto: CreateTopicDto = {
     title,
@@ -655,9 +692,8 @@ const addNode = async (title: string, position: { x: number; y: number }) => {
 };
 
 const updateNodePosition = async (nodeId: string, position: { x: number; y: number }) => {
-  const numericId = parseInt(nodeId.replace(/\D/g, ''));
-
   // Update local state immediately for responsiveness
+  console.log('updaa')
   setState(prev => {
     const newSavedPositions = { ...prev.savedPositions, [nodeId]: position };
     savePositions(newSavedPositions);
@@ -677,13 +713,11 @@ const updateNodePosition = async (nodeId: string, position: { x: number; y: numb
       savedPositions: newSavedPositions,
     };
   });
-
-  // Fire and forget API call
 };
 
 const updateNode = async (nodeId: string, updates: Partial<Pick<EditorNode, 'title' | 'status'>>) => {
-  const numericId = parseInt(nodeId.replace(/\D/g, ''));
-console.log('updateNode')
+  const numericId = parseNumericId(nodeId);
+
   setState(prev => {
     const node = prev.nodes.find(n => n.id === nodeId);
     if (!node) return prev;
@@ -714,7 +748,7 @@ console.log('updateNode')
 };
 
 const deleteNode = async (nodeId: string) => {
-  const numericId = parseInt(nodeId.replace(/\D/g, ''));
+  const numericId = parseNumericId(nodeId);
 
   try {
     await api.deleteTopic(numericId);
@@ -726,35 +760,77 @@ const deleteNode = async (nodeId: string) => {
     const { [nodeId]: _, ...remainingPositions } = prev.savedPositions;
     savePositions(remainingPositions);
 
+    // Remove this topic from all other topics' relatedTopicIds
+    const newCategories = prev.categories.map(c => ({
+      ...c,
+      roadmaps: c.roadmaps.map(r => ({
+        ...r,
+        topics: r.topics
+          .filter(t => t.id !== nodeId)
+          .map(t => ({
+            ...t,
+            relatedTopicIds: (t as any).relatedTopicIds?.filter((id: string) => id !== nodeId) || [],
+          })),
+      })),
+    }));
+
+    // Fire API updates for topics that had relations to the deleted topic
+    const affectedTopicIds: number[] = [];
+    for (const cat of prev.categories) {
+      for (const roadmap of cat.roadmaps) {
+        for (const topic of roadmap.topics) {
+          if ((topic as any).relatedTopicIds?.includes(nodeId)) {
+            const numericTopicId = parseNumericId(topic.id);
+            if (numericTopicId) {
+              affectedTopicIds.push(numericTopicId);
+            }
+          }
+        }
+      }
+    }
+
+    // Update affected topics via API
+    for (const affectedId of affectedTopicIds) {
+      const affectedTopic = newCategories
+        .flatMap(c => c.roadmaps)
+        .flatMap(r => r.topics)
+        .find(t => parseNumericId(t.id) === affectedId);
+
+      if (affectedTopic) {
+        const relatedNumericIds = ((affectedTopic as any).relatedTopicIds || [])
+          .map((id: string) => parseNumericId(id))
+          .filter((id: number) => id !== 0);
+
+        const updateDto: UpdateTopicDto = {
+          id: affectedId,
+          relatedTopicIds: relatedNumericIds,
+        };
+        api.updateTopic(affectedId, updateDto).catch(console.error);
+      }
+    }
+
     return {
       ...prev,
       nodes: prev.nodes.filter(n => n.id !== nodeId),
-      connections: prev.connections.filter(c => c.from !== nodeId && c.to !== nodeId),
       selectedTopicId: prev.selectedTopicId === nodeId ? null : prev.selectedTopicId,
-      categories: prev.categories.map(c => ({
-        ...c,
-        roadmaps: c.roadmaps.map(r => ({
-          ...r,
-          topics: r.topics.filter(t => t.id !== nodeId),
-          connections: r.connections.filter(conn => conn.fromTopicId !== nodeId && conn.toTopicId !== nodeId),
-        })),
-      })),
+      categories: newCategories,
       savedPositions: remainingPositions,
     };
   });
 };
 
-// Connections are now represented as relatedTopicIds on topics (many-to-many)
-// addConnection will update local state and fire updateTopic for both topics (bidirectional relation)
+/**
+ * Add a bidirectional connection between two topics.
+ * Updates relatedTopicIds on both topics and syncs to API.
+ */
 const addConnection = (fromId: string, toId: string, type: TopicConnection['type'] = 'suggested_order') => {
-  const newConnection: EditorConnection = {
-    id: `conn-${Date.now()}`,
-    from: fromId,
-    to: toId,
-    type,
-  };
+  // Prevent self-links
+  if (fromId === toId) {
+    console.warn('Cannot create self-referential connection');
+    return;
+  }
 
-  // Update local state: add connection and update relatedTopicIds on both topics
+  // Update local state: add relatedTopicIds bidirectionally
   setState(prev => {
     const newCategories = prev.categories.map(c => ({
       ...c,
@@ -765,26 +841,27 @@ const addConnection = (fromId: string, toId: string, type: TopicConnection['type
         const updatedTopics = r.topics.map(t => {
           if (t.id === fromId) {
             const existing = new Set((t as any).relatedTopicIds || []);
-            existing.add(toId);
-            return { ...t, relatedTopicIds: Array.from(existing), updatedAt: new Date() };
+            if (!existing.has(toId)) {
+              existing.add(toId);
+              return { ...t, relatedTopicIds: Array.from(existing), updatedAt: new Date() };
+            }
           }
           if (t.id === toId) {
             const existing = new Set((t as any).relatedTopicIds || []);
-            existing.add(fromId);
-            return { ...t, relatedTopicIds: Array.from(existing), updatedAt: new Date() };
+            if (!existing.has(fromId)) {
+              existing.add(fromId);
+              return { ...t, relatedTopicIds: Array.from(existing), updatedAt: new Date() };
+            }
           }
           return t;
         });
 
-        // Also return roadmap with updated topics and connections (connections kept for compatibility)
-        return { ...r, topics: updatedTopics, connections: [...r.connections, { id: newConnection.id, fromTopicId: fromId, toTopicId: toId, type }] };
+        return { ...r, topics: updatedTopics };
       }),
     }));
 
-    // Also update editor-level connections array
     return {
       ...prev,
-      connections: [...prev.connections, newConnection],
       connectingFrom: null,
       categories: newCategories,
     };
@@ -792,8 +869,13 @@ const addConnection = (fromId: string, toId: string, type: TopicConnection['type
 
   // Fire-and-forget API updates: update both topics' relatedTopicIds (send numeric arrays)
   try {
-    const numericFromId = parseInt(fromId.replace(/\D/g, ''));
-    const numericToId = parseInt(toId.replace(/\D/g, ''));
+    const numericFromId = parseNumericId(fromId);
+    const numericToId = parseNumericId(toId);
+
+    if (!numericFromId || !numericToId) {
+      console.error('Invalid topic IDs for connection');
+      return;
+    }
 
     // Find current topics from globalState to compute correct related ids
     const allTopics = globalState.categories.flatMap(c => c.roadmaps.flatMap(r => r.topics));
@@ -803,8 +885,8 @@ const addConnection = (fromId: string, toId: string, type: TopicConnection['type
     const sourceRelated = new Set<number>();
     if (sourceTopic && Array.isArray((sourceTopic as any).relatedTopicIds)) {
       for (const rid of (sourceTopic as any).relatedTopicIds) {
-        const parsed = parseInt(String(rid).replace(/\D/g, ''));
-        if (!isNaN(parsed)) sourceRelated.add(parsed);
+        const parsed = parseNumericId(String(rid));
+        if (parsed) sourceRelated.add(parsed);
       }
     }
     sourceRelated.add(numericToId);
@@ -812,64 +894,63 @@ const addConnection = (fromId: string, toId: string, type: TopicConnection['type
     const targetRelated = new Set<number>();
     if (targetTopic && Array.isArray((targetTopic as any).relatedTopicIds)) {
       for (const rid of (targetTopic as any).relatedTopicIds) {
-        const parsed = parseInt(String(rid).replace(/\D/g, ''));
-        if (!isNaN(parsed)) targetRelated.add(parsed);
+        const parsed = parseNumericId(String(rid));
+        if (parsed) targetRelated.add(parsed);
       }
     }
     targetRelated.add(numericFromId);
 
     // Call API to update both topics (fire-and-forget)
-    if (!isNaN(numericFromId)) {
-      const updateDto: UpdateTopicDto = { id: numericFromId, relatedTopicIds: Array.from(sourceRelated) };
-      api.updateTopic(numericFromId, updateDto).catch(console.error);
-    }
-    if (!isNaN(numericToId)) {
-      const updateDto: UpdateTopicDto = { id: numericToId, relatedTopicIds: Array.from(targetRelated) };
-      api.updateTopic(numericToId, updateDto).catch(console.error);
-    }
+    const updateFromDto: UpdateTopicDto = {
+        id: numericFromId,
+        title: sourceTopic.title,
+        description: sourceTopic.description,
+        canvasPositionX: sourceTopic.canvasPositionX,
+        canvasPositionY: sourceTopic.canvasPositionY,
+        roadmapId: sourceTopic.roadmapId,
+        relatedTopicIds: Array.from(sourceRelated) };
+    api.updateTopic(numericFromId, updateFromDto).catch(console.error);
   } catch (error) {
     console.error('Error while updating relatedTopicIds for topics:', error);
   }
-
-  return newConnection;
 };
 
-const deleteConnection = (connectionId: string) => {
-  // Find connection to know which topics to update
-  const conn = globalState.connections.find(c => c.id === connectionId);
-  if (!conn) {
-    // Still remove by id if not found
-    setState(prev => ({
-      ...prev,
-      connections: prev.connections.filter(c => c.id !== connectionId),
-      categories: prev.categories.map(c => ({
-        ...c,
-        roadmaps: c.roadmaps.map(r => ({
-          ...r,
-          connections: r.connections.filter(conn => conn.id !== connectionId),
-        })),
-      })),
-    }));
-    return;
-  }
+/**
+ * Delete a connection between two topics.
+ * Removes relatedTopicIds bidirectionally and syncs to API.
+ */
+const deleteConnection = (connectionIdOrFrom: string, toId?: string) => {
+  let fromId: string;
+  let targetId: string;
 
-  const { from: fromId, to: toId } = conn;
+  // Support both connection ID and from/to pair
+  if (toId) {
+    fromId = connectionIdOrFrom;
+    targetId = toId;
+  } else {
+    // Try to parse connection ID (format: conn-fromId-toId)
+    const match = connectionIdOrFrom.match(/^conn-(.+)-(.+)$/);
+    if (!match) {
+      console.error('Invalid connection ID format');
+      return;
+    }
+    fromId = match[1];
+    targetId = match[2];
+  }
 
   setState(prev => ({
     ...prev,
-    connections: prev.connections.filter(c => c.id !== connectionId),
     categories: prev.categories.map(c => ({
       ...c,
       roadmaps: c.roadmaps.map(r => ({
         ...r,
-        connections: r.connections.filter(conn => conn.id !== connectionId),
         topics: r.topics.map(t => {
           if (t.id === fromId) {
             const existing = new Set((t as any).relatedTopicIds || []);
-            existing.delete(toId);
+            existing.delete(targetId);
             return { ...t, relatedTopicIds: Array.from(existing), updatedAt: new Date() };
           }
-          if (t.id === toId) {
+          if (t.id === targetId) {
             const existing = new Set((t as any).relatedTopicIds || []);
             existing.delete(fromId);
             return { ...t, relatedTopicIds: Array.from(existing), updatedAt: new Date() };
@@ -882,37 +963,43 @@ const deleteConnection = (connectionId: string) => {
 
   // Fire-and-forget API updates: remove relation from both topics
   try {
-    const numericFromId = parseInt(fromId.replace(/\D/g, ''));
-    const numericToId = parseInt(toId.replace(/\D/g, ''));
+    const numericFromId = parseNumericId(fromId);
+    const numericToId = parseNumericId(targetId);
+
+    if (!numericFromId || !numericToId) {
+      console.error('Invalid topic IDs for connection deletion');
+      return;
+    }
 
     const allTopics = globalState.categories.flatMap(c => c.roadmaps.flatMap(r => r.topics));
     const sourceTopic = allTopics.find(t => t.id === fromId);
-    const targetTopic = allTopics.find(t => t.id === toId);
+    const targetTopic = allTopics.find(t => t.id === targetId);
 
     const sourceRelated: number[] = [];
     if (sourceTopic && Array.isArray((sourceTopic as any).relatedTopicIds)) {
       for (const rid of (sourceTopic as any).relatedTopicIds) {
-        const parsed = parseInt(String(rid).replace(/\D/g, ''));
-        if (!isNaN(parsed) && parsed !== numericToId) sourceRelated.push(parsed);
+        const parsed = parseNumericId(String(rid));
+        if (parsed && parsed !== numericToId) sourceRelated.push(parsed);
       }
     }
 
-    const targetRelated: number[] = [];
+    const targetRelatedIds: number[] = [];
     if (targetTopic && Array.isArray((targetTopic as any).relatedTopicIds)) {
       for (const rid of (targetTopic as any).relatedTopicIds) {
-        const parsed = parseInt(String(rid).replace(/\D/g, ''));
-        if (!isNaN(parsed) && parsed !== numericFromId) targetRelated.push(parsed);
+        const parsed = parseNumericId(String(rid));
+        if (parsed && parsed !== numericFromId) targetRelatedIds.push(parsed);
       }
     }
 
-    if (!isNaN(numericFromId)) {
-      const updateDto: UpdateTopicDto = { id: numericFromId, relatedTopicIds: sourceRelated };
-      api.updateTopic(numericFromId, updateDto).catch(console.error);
-    }
-    if (!isNaN(numericToId)) {
-      const updateDto: UpdateTopicDto = { id: numericToId, relatedTopicIds: targetRelated };
-      api.updateTopic(numericToId, updateDto).catch(console.error);
-    }
+    const updateFromDto: UpdateTopicDto = {
+        id: numericFromId,
+        title: sourceTopic.title,
+        description: sourceTopic.description,
+        canvasPositionX: sourceTopic.canvasPositionX,
+        canvasPositionY: sourceTopic.canvasPositionY,
+        roadmapId: sourceTopic.roadmapId,
+        relatedTopicIds: Array.from(sourceRelated) };
+    api.updateTopic(numericFromId, updateFromDto).catch(console.error);
   } catch (error) {
     console.error('Error while removing relatedTopicIds for topics:', error);
   }
@@ -933,7 +1020,7 @@ const setPan = (pan: { x: number; y: number }) => {
 // ===== Cards (Questions) =====
 
 const addQuestion = async (topicId: string, question: Omit<Question, 'id' | 'topicId' | 'createdAt' | 'updatedAt' | 'easeFactor' | 'interval' | 'repetitions'>) => {
-  const numericTopicId = parseInt(topicId.replace(/\D/g, ''));
+  const numericTopicId = parseNumericId(topicId);
 
   const cardDto: CardDto = {
     question: question.content,
@@ -981,7 +1068,7 @@ const addQuestion = async (topicId: string, question: Omit<Question, 'id' | 'top
 };
 
 const updateQuestion = async (questionId: string, updates: Partial<Question>) => {
-  const numericId = parseInt(questionId.replace(/\D/g, ''));
+  const numericId = parseNumericId(questionId);
 
   setState(prev => {
     // Find the question to get current values
@@ -1005,13 +1092,13 @@ const updateQuestion = async (questionId: string, updates: Partial<Question>) =>
         id: numericId,
         question: updates.content || foundQuestion.content,
         answer: updates.answer || foundQuestion.answer,
-        difficulty: (updates.difficulty || foundQuestion.difficulty) === 'beginner' ? 1 : 
-                   (updates.difficulty || foundQuestion.difficulty) === 'intermediate' ? 2 : 
+        difficulty: (updates.difficulty || foundQuestion.difficulty) === 'beginner' ? 1 :
+                   (updates.difficulty || foundQuestion.difficulty) === 'intermediate' ? 2 :
                    (updates.difficulty || foundQuestion.difficulty) === 'advanced' ? 3 : 4,
         importance: (updates.importance || foundQuestion.importance) === 'low' ? 1 :
                    (updates.importance || foundQuestion.importance) === 'medium' ? 2 :
                    (updates.importance || foundQuestion.importance) === 'high' ? 3 : 4,
-        topicId: parseInt(foundTopicId.replace(/\D/g, '')),
+        topicId: parseNumericId(foundTopicId),
       };
       api.updateCard(numericId, cardDto).catch(console.error);
     }
@@ -1035,7 +1122,7 @@ const updateQuestion = async (questionId: string, updates: Partial<Question>) =>
 };
 
 const deleteQuestion = async (questionId: string) => {
-  const numericId = parseInt(questionId.replace(/\D/g, ''));
+  const numericId = parseNumericId(questionId);
 
   try {
     await api.deleteCard(numericId);
@@ -1061,7 +1148,7 @@ const deleteQuestion = async (questionId: string) => {
 // ===== Resources (Notes, Articles, Videos) =====
 
 const addResource = async (topicId: string, resource: Omit<Resource, 'id' | 'topicId' | 'createdAt' | 'isCompleted'>) => {
-  const numericTopicId = parseInt(topicId.replace(/\D/g, ''));
+  const numericTopicId = parseNumericId(topicId);
 
   try {
     if (resource.type === 'description') {
@@ -1117,7 +1204,7 @@ const addResource = async (topicId: string, resource: Omit<Resource, 'id' | 'top
 };
 
 const updateResource = async (resourceId: string, updates: Partial<Resource>) => {
-  const numericId = parseInt(resourceId.replace(/\D/g, ''));
+  const numericId = parseNumericId(resourceId);
 
   setState(prev => {
     // Find resource to determine type
@@ -1136,7 +1223,7 @@ const updateResource = async (resourceId: string, updates: Partial<Resource>) =>
 
     if (foundResource) {
       const type = updates.type || foundResource.type;
-      const topicId = parseInt((updates.topicId || foundResource.topicId).replace(/\D/g, ''));
+      const topicId = parseNumericId(updates.topicId || foundResource.topicId);
 
       if (type === 'description') {
         const noteDto: NoteDto = {
@@ -1180,7 +1267,7 @@ const updateResource = async (resourceId: string, updates: Partial<Resource>) =>
 };
 
 const deleteResource = async (resourceId: string) => {
-  const numericId = parseInt(resourceId.replace(/\D/g, ''));
+  const numericId = parseNumericId(resourceId);
 
   // Find resource type before deleting
   let resourceType: Resource['type'] | undefined;
@@ -1227,10 +1314,11 @@ const deleteResource = async (resourceId: string) => {
 const saveAllData = async () => {
   // Build list of topics with updated positions
   const topicsToUpdate: UpdateTopicDto[] = [];
-  
+
   for (const node of globalState.nodes) {
-    const numericId = parseInt(node.id.replace(/\D/g, ''));
-    if (!isNaN(numericId)) {
+    const numericId = parseNumericId(node.id);
+    console.log(node)
+    if (numericId) {
       topicsToUpdate.push({
         id: numericId,
         canvasPositionX: node.position.x,
@@ -1241,7 +1329,7 @@ const saveAllData = async () => {
 
   if (topicsToUpdate.length > 0) {
     try {
-      await api.bulkUpdateTopics(topicsToUpdate);
+      //await api.bulkUpdateTopics(topicsToUpdate);
     } catch (err) {
       console.error('Failed to bulk update topics:', err);
     }
@@ -1253,6 +1341,16 @@ const saveAllData = async () => {
 
 // Get categories for Learn view
 const getCategories = () => globalState.categories;
+
+/**
+ * Get derived connections for the current roadmap.
+ * Computes connections from topics' relatedTopicIds.
+ */
+const getDerivedConnections = (): EditorConnection[] => {
+  const roadmap = getCurrentRoadmap();
+  if (!roadmap) return [];
+  return computeConnectionsFromTopics(roadmap.topics);
+};
 
 // Hook to use the store with automatic re-renders
 export const useEditorStore = () => {
@@ -1280,8 +1378,16 @@ export const useEditorStore = () => {
     return roadmap?.topics.find(t => t.id === state.selectedTopicId);
   }, [getSelectedRoadmap, state.selectedTopicId]);
 
+  // Compute connections on demand
+  //const connections = useCallback(() => {
+  //  const roadmap = getSelectedRoadmap();
+  //  if (!roadmap) return [];
+  //  return computeConnectionsFromTopics(roadmap.topics);
+  //}, [getSelectedRoadmap]);
+
   return {
     state,
+    connections: getDerivedConnections(), // Compute connections for UI
     loadCategories,
     selectCategory,
     selectRoadmap,
@@ -1304,6 +1410,7 @@ export const useEditorStore = () => {
     getSelectedCategory,
     getSelectedRoadmap,
     getSelectedTopic,
+    getDerivedConnections,
     addQuestion,
     updateQuestion,
     deleteQuestion,

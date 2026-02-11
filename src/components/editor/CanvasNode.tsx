@@ -11,7 +11,7 @@ interface CanvasNodeProps {
   isConnectingSource: boolean;
   onClick: () => void;
   onDoubleClick: () => void;
-  onMove: (position: { x: number; y: number }) => void;
+  onMove: (position: { x: number; y: number }) => void; // called once on drag end
   onDelete: () => void;
   onConnectionStart: () => void;
   onConnectionEnd: () => void;
@@ -57,8 +57,7 @@ export const CanvasNode = ({
     e.preventDefault();
     
     // Capture pointer for touch devices
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    
+    nodeRef.current?.setPointerCapture(e.pointerId);
     setHasDragged(false);
     startPosRef.current = { x: e.clientX, y: e.clientY };
     
@@ -79,18 +78,39 @@ export const CanvasNode = ({
       }
       
       if (dragStarted) {
-        onMove({
-          x: startPosX + deltaX,
-          y: startPosY + deltaY,
-        });
+        // --- MINIMAL CHANGE: directly mutate the DOM position so the node visibly moves ---
+        // We set left/top inline on the node element (preserves your CSS classes)
+        const el = nodeRef.current;
+        if (el) {
+          // use px numbers exactly like node.position uses
+          el.style.left = `${Math.round(startPosX + deltaX)}px`;
+          el.style.top = `${Math.round(startPosY + deltaY)}px`;
+        }
+        // Note: we DO NOT call onMove here
       }
     };
 
     const handlePointerUp = (upEvent: PointerEvent) => {
       startPosRef.current = null;
-      (upEvent.target as HTMLElement).releasePointerCapture?.(upEvent.pointerId);
+      nodeRef.current?.releasePointerCapture?.(upEvent.pointerId);
       document.removeEventListener('pointermove', handlePointerMove);
       document.removeEventListener('pointerup', handlePointerUp);
+
+      // If a drag happened, compute final position and call onMove once
+      if (dragStarted) {
+        const finalX = startPosX + (upEvent.clientX - startX);
+        const finalY = startPosY + (upEvent.clientY - startY);
+
+        // Call onMove only once with the final position
+        onMove({
+          x: Math.round(finalX),
+          y: Math.round(finalY),
+        });
+      } else {
+        // If there was no drag, ensure DOM left/top still come from store (no-op)
+        // If you want to reset DOM position to store position in non-drag case, uncomment:
+        // if (nodeRef.current) { nodeRef.current.style.left = `${node.position.x}px`; nodeRef.current.style.top = `${node.position.y}px`; }
+      }
     };
 
     document.addEventListener('pointermove', handlePointerMove);
