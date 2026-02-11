@@ -32,6 +32,7 @@ export interface UpdateTopicDto {
   canvasPositionX?: number;
   canvasPositionY?: number;
   roadmapId?: number;
+  relatedTopicIds?: number[];
 }
 
 export interface TopicDto {

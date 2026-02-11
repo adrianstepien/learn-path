@@ -73,6 +73,8 @@ const mapTopicDtoToTopic = (dto: TopicDto, roadmapId: string): Topic => ({
   questions: [],
   resources: [],
   childTopicIds: [],
+  // map relatedTopicIds from DTO if present
+  relatedTopicIds: Array.isArray((dto as any).relatedTopicIds) ? (dto as any).relatedTopicIds.map((id: number) => String(id)) : [],
   createdAt: new Date(),
   updatedAt: new Date(),
 });
@@ -153,6 +155,7 @@ const mapTopicToUpdateDto = (topic: Topic): UpdateTopicDto => ({
   canvasPositionX: topic.position.x,
   canvasPositionY: topic.position.y,
   roadmapId: parseInt(topic.roadmapId.replace(/\D/g, '')),
+  relatedTopicIds: Array.isArray((topic as any).relatedTopicIds) ? (topic as any).relatedTopicIds.map((id: string) => parseInt(id.replace(/\D/g, ''))) : undefined,
 });
 
 // Editor state management
@@ -234,39 +237,39 @@ const setState = (updater: (prev: EditorState) => EditorState) => {
 // Load all categories from API
 const loadCategories = async () => {
   setState(prev => ({ ...prev, isLoading: true, error: null }));
-  
+
   try {
     const available = await isApiAvailable();
-    
+
     if (!available) {
       // Fallback to mock data
       console.log('API unavailable, using mock data for editor');
-      setState(prev => ({ 
-        ...prev, 
+      setState(prev => ({
+        ...prev,
         categories: initialCategories,
-        isLoading: false 
+        isLoading: false
       }));
       return;
     }
 
     const categoryDtos = await api.getCategories();
-    
+
     // For each category, load its roadmaps
     const categoriesWithRoadmaps = await Promise.all(
       categoryDtos.map(async (catDto) => {
         if (!catDto.id) return mapCategoryDtoToCategory(catDto, []);
-        
+
         try {
           const roadmapDtos = await api.getRoadmaps(catDto.id);
-          
+
           // For each roadmap, load its topics
           const roadmapsWithTopics = await Promise.all(
             roadmapDtos.map(async (roadmapDto) => {
               if (!roadmapDto.id) return mapRoadmapDtoToRoadmap(roadmapDto, []);
-              
+
               try {
                 const topicDtos = await api.getTopics(roadmapDto.id);
-                const topics = topicDtos.map(t => 
+                const topics = topicDtos.map(t =>
                   mapTopicDtoToTopic(t, String(roadmapDto.id))
                 );
                 return mapRoadmapDtoToRoadmap(roadmapDto, topics);
@@ -275,27 +278,27 @@ const loadCategories = async () => {
               }
             })
           );
-          
+
           return mapCategoryDtoToCategory(catDto, roadmapsWithTopics);
         } catch {
           return mapCategoryDtoToCategory(catDto, []);
         }
       })
     );
-    
-    setState(prev => ({ 
-      ...prev, 
+
+    setState(prev => ({
+      ...prev,
       categories: categoriesWithRoadmaps.length > 0 ? categoriesWithRoadmaps : prev.categories,
-      isLoading: false 
+      isLoading: false
     }));
   } catch (err) {
     console.error('Failed to load categories:', err);
     // Fallback to mock data on error
-    setState(prev => ({ 
-      ...prev, 
+    setState(prev => ({
+      ...prev,
       categories: initialCategories,
-      isLoading: false, 
-      error: err instanceof Error ? err.message : 'Failed to load data' 
+      isLoading: false,
+      error: err instanceof Error ? err.message : 'Failed to load data'
     }));
   }
 };
@@ -338,12 +341,17 @@ const selectRoadmap = async (roadmapId: string | null) => {
         status: t.status,
       }));
 
-      const connections: EditorConnection[] = foundRoadmap.connections.map(c => ({
-        id: c.id,
-        from: c.fromTopicId,
-        to: c.toTopicId,
-        type: c.type,
-      }));
+      // Build connections from relatedTopicIds so editor shows relations as connections
+      const connections: EditorConnection[] = [];
+      for (const t of foundRoadmap.topics) {
+        const related = (t as any).relatedTopicIds || [];
+        for (const relId of related) {
+          // To avoid duplicates, only create connection when source id < target id (string compare)
+          if (t.id < relId) {
+            connections.push({ id: `conn-${t.id}-${relId}`, from: t.id, to: relId, type: 'suggested_order' });
+          }
+        }
+      }
 
       return {
         ...prev,
@@ -358,7 +366,7 @@ const selectRoadmap = async (roadmapId: string | null) => {
 
   try {
     const available = await isApiAvailable();
-    
+
     if (!available) {
       // Fallback to local state
       loadFromLocalState();
@@ -367,10 +375,10 @@ const selectRoadmap = async (roadmapId: string | null) => {
 
     // Get roadmap ID as number
     const numericRoadmapId = parseInt(roadmapId.replace(/\D/g, ''));
-    
+
     // Load topics from API
     const topicDtos = await api.getTopics(numericRoadmapId);
-    
+
     // Use saved positions if available, otherwise use API positions
     const nodes: EditorNode[] = topicDtos.map(t => ({
       id: String(t.id),
@@ -386,17 +394,28 @@ const selectRoadmap = async (roadmapId: string | null) => {
     setState(prev => {
       const newCategories = prev.categories.map(c => ({
         ...c,
-        roadmaps: c.roadmaps.map(r => 
+        roadmaps: c.roadmaps.map(r =>
           r.id === roadmapId ? { ...r, topics } : r
         ),
       }));
+
+      // Build connections from relatedTopicIds
+      const connections: EditorConnection[] = [];
+      for (const t of topics) {
+        const related = (t as any).relatedTopicIds || [];
+        for (const relId of related) {
+          if (t.id < relId) {
+            connections.push({ id: `conn-${t.id}-${relId}`, from: t.id, to: relId, type: 'suggested_order' });
+          }
+        }
+      }
 
       return {
         ...prev,
         selectedRoadmapId: roadmapId,
         selectedTopicId: null,
         nodes,
-        connections: [], // TODO: implement connections API if needed
+        connections,
         categories: newCategories,
         isLoading: false,
       };
@@ -439,7 +458,7 @@ const addCategory = async (name: string, icon: string) => {
 
 const updateCategory = async (categoryId: string, updates: Partial<Pick<Category, 'name' | 'icon' | 'description'>>) => {
   const numericId = parseInt(categoryId.replace(/\D/g, ''));
-  
+
   setState(prev => {
     const category = prev.categories.find(c => c.id === categoryId);
     if (!category) return prev;
@@ -454,7 +473,7 @@ const updateCategory = async (categoryId: string, updates: Partial<Pick<Category
     // Fire and forget API call
     api.updateCategory(numericId, categoryDto).catch(console.error);
 
-    const newCategories = prev.categories.map(c => 
+    const newCategories = prev.categories.map(c =>
       c.id === categoryId ? { ...c, ...updates } : c
     );
     return { ...prev, categories: newCategories };
@@ -463,7 +482,7 @@ const updateCategory = async (categoryId: string, updates: Partial<Pick<Category
 
 const deleteCategory = async (categoryId: string) => {
   const numericId = parseInt(categoryId.replace(/\D/g, ''));
-  
+
   try {
     await api.deleteCategory(numericId);
   } catch (err) {
@@ -479,7 +498,7 @@ const deleteCategory = async (categoryId: string) => {
 
 const addRoadmap = async (categoryId: string, title: string, description?: string) => {
   const numericCategoryId = parseInt(categoryId.replace(/\D/g, ''));
-  
+
   const roadmapDto: RoadmapDto = {
     title,
     description,
@@ -606,6 +625,7 @@ const addNode = async (title: string, position: { x: number; y: number }) => {
         questions: [],
         resources: [],
         childTopicIds: [],
+        relatedTopicIds: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -659,20 +679,11 @@ const updateNodePosition = async (nodeId: string, position: { x: number; y: numb
   });
 
   // Fire and forget API call
-  const node = globalState.nodes.find(n => n.id === nodeId);
-  if (node) {
-    const updateDto: UpdateTopicDto = {
-      id: numericId,
-      canvasPositionX: position.x,
-      canvasPositionY: position.y,
-    };
-    api.updateTopic(numericId, updateDto).catch(console.error);
-  }
 };
 
 const updateNode = async (nodeId: string, updates: Partial<Pick<EditorNode, 'title' | 'status'>>) => {
   const numericId = parseInt(nodeId.replace(/\D/g, ''));
-
+console.log('updateNode')
   setState(prev => {
     const node = prev.nodes.find(n => n.id === nodeId);
     if (!node) return prev;
@@ -733,7 +744,8 @@ const deleteNode = async (nodeId: string) => {
   });
 };
 
-// Connections are handled locally for now (no API endpoint)
+// Connections are now represented as relatedTopicIds on topics (many-to-many)
+// addConnection will update local state and fire updateTopic for both topics (bidirectional relation)
 const addConnection = (fromId: string, toId: string, type: TopicConnection['type'] = 'suggested_order') => {
   const newConnection: EditorConnection = {
     id: `conn-${Date.now()}`,
@@ -742,21 +754,34 @@ const addConnection = (fromId: string, toId: string, type: TopicConnection['type
     type,
   };
 
+  // Update local state: add connection and update relatedTopicIds on both topics
   setState(prev => {
     const newCategories = prev.categories.map(c => ({
       ...c,
       roadmaps: c.roadmaps.map(r => {
         if (r.id !== prev.selectedRoadmapId) return r;
-        const topicConn: TopicConnection = {
-          id: newConnection.id,
-          fromTopicId: fromId,
-          toTopicId: toId,
-          type,
-        };
-        return { ...r, connections: [...r.connections, topicConn] };
+
+        // Update topics' relatedTopicIds
+        const updatedTopics = r.topics.map(t => {
+          if (t.id === fromId) {
+            const existing = new Set((t as any).relatedTopicIds || []);
+            existing.add(toId);
+            return { ...t, relatedTopicIds: Array.from(existing), updatedAt: new Date() };
+          }
+          if (t.id === toId) {
+            const existing = new Set((t as any).relatedTopicIds || []);
+            existing.add(fromId);
+            return { ...t, relatedTopicIds: Array.from(existing), updatedAt: new Date() };
+          }
+          return t;
+        });
+
+        // Also return roadmap with updated topics and connections (connections kept for compatibility)
+        return { ...r, topics: updatedTopics, connections: [...r.connections, { id: newConnection.id, fromTopicId: fromId, toTopicId: toId, type }] };
       }),
     }));
 
+    // Also update editor-level connections array
     return {
       ...prev,
       connections: [...prev.connections, newConnection],
@@ -765,10 +790,71 @@ const addConnection = (fromId: string, toId: string, type: TopicConnection['type
     };
   });
 
+  // Fire-and-forget API updates: update both topics' relatedTopicIds (send numeric arrays)
+  try {
+    const numericFromId = parseInt(fromId.replace(/\D/g, ''));
+    const numericToId = parseInt(toId.replace(/\D/g, ''));
+
+    // Find current topics from globalState to compute correct related ids
+    const allTopics = globalState.categories.flatMap(c => c.roadmaps.flatMap(r => r.topics));
+    const sourceTopic = allTopics.find(t => t.id === fromId);
+    const targetTopic = allTopics.find(t => t.id === toId);
+
+    const sourceRelated = new Set<number>();
+    if (sourceTopic && Array.isArray((sourceTopic as any).relatedTopicIds)) {
+      for (const rid of (sourceTopic as any).relatedTopicIds) {
+        const parsed = parseInt(String(rid).replace(/\D/g, ''));
+        if (!isNaN(parsed)) sourceRelated.add(parsed);
+      }
+    }
+    sourceRelated.add(numericToId);
+
+    const targetRelated = new Set<number>();
+    if (targetTopic && Array.isArray((targetTopic as any).relatedTopicIds)) {
+      for (const rid of (targetTopic as any).relatedTopicIds) {
+        const parsed = parseInt(String(rid).replace(/\D/g, ''));
+        if (!isNaN(parsed)) targetRelated.add(parsed);
+      }
+    }
+    targetRelated.add(numericFromId);
+
+    // Call API to update both topics (fire-and-forget)
+    if (!isNaN(numericFromId)) {
+      const updateDto: UpdateTopicDto = { id: numericFromId, relatedTopicIds: Array.from(sourceRelated) };
+      api.updateTopic(numericFromId, updateDto).catch(console.error);
+    }
+    if (!isNaN(numericToId)) {
+      const updateDto: UpdateTopicDto = { id: numericToId, relatedTopicIds: Array.from(targetRelated) };
+      api.updateTopic(numericToId, updateDto).catch(console.error);
+    }
+  } catch (error) {
+    console.error('Error while updating relatedTopicIds for topics:', error);
+  }
+
   return newConnection;
 };
 
 const deleteConnection = (connectionId: string) => {
+  // Find connection to know which topics to update
+  const conn = globalState.connections.find(c => c.id === connectionId);
+  if (!conn) {
+    // Still remove by id if not found
+    setState(prev => ({
+      ...prev,
+      connections: prev.connections.filter(c => c.id !== connectionId),
+      categories: prev.categories.map(c => ({
+        ...c,
+        roadmaps: c.roadmaps.map(r => ({
+          ...r,
+          connections: r.connections.filter(conn => conn.id !== connectionId),
+        })),
+      })),
+    }));
+    return;
+  }
+
+  const { from: fromId, to: toId } = conn;
+
   setState(prev => ({
     ...prev,
     connections: prev.connections.filter(c => c.id !== connectionId),
@@ -777,9 +863,59 @@ const deleteConnection = (connectionId: string) => {
       roadmaps: c.roadmaps.map(r => ({
         ...r,
         connections: r.connections.filter(conn => conn.id !== connectionId),
+        topics: r.topics.map(t => {
+          if (t.id === fromId) {
+            const existing = new Set((t as any).relatedTopicIds || []);
+            existing.delete(toId);
+            return { ...t, relatedTopicIds: Array.from(existing), updatedAt: new Date() };
+          }
+          if (t.id === toId) {
+            const existing = new Set((t as any).relatedTopicIds || []);
+            existing.delete(fromId);
+            return { ...t, relatedTopicIds: Array.from(existing), updatedAt: new Date() };
+          }
+          return t;
+        }),
       })),
     })),
   }));
+
+  // Fire-and-forget API updates: remove relation from both topics
+  try {
+    const numericFromId = parseInt(fromId.replace(/\D/g, ''));
+    const numericToId = parseInt(toId.replace(/\D/g, ''));
+
+    const allTopics = globalState.categories.flatMap(c => c.roadmaps.flatMap(r => r.topics));
+    const sourceTopic = allTopics.find(t => t.id === fromId);
+    const targetTopic = allTopics.find(t => t.id === toId);
+
+    const sourceRelated: number[] = [];
+    if (sourceTopic && Array.isArray((sourceTopic as any).relatedTopicIds)) {
+      for (const rid of (sourceTopic as any).relatedTopicIds) {
+        const parsed = parseInt(String(rid).replace(/\D/g, ''));
+        if (!isNaN(parsed) && parsed !== numericToId) sourceRelated.push(parsed);
+      }
+    }
+
+    const targetRelated: number[] = [];
+    if (targetTopic && Array.isArray((targetTopic as any).relatedTopicIds)) {
+      for (const rid of (targetTopic as any).relatedTopicIds) {
+        const parsed = parseInt(String(rid).replace(/\D/g, ''));
+        if (!isNaN(parsed) && parsed !== numericFromId) targetRelated.push(parsed);
+      }
+    }
+
+    if (!isNaN(numericFromId)) {
+      const updateDto: UpdateTopicDto = { id: numericFromId, relatedTopicIds: sourceRelated };
+      api.updateTopic(numericFromId, updateDto).catch(console.error);
+    }
+    if (!isNaN(numericToId)) {
+      const updateDto: UpdateTopicDto = { id: numericToId, relatedTopicIds: targetRelated };
+      api.updateTopic(numericToId, updateDto).catch(console.error);
+    }
+  } catch (error) {
+    console.error('Error while removing relatedTopicIds for topics:', error);
+  }
 };
 
 const setConnectingFrom = (nodeId: string | null) => {
@@ -1003,23 +1139,23 @@ const updateResource = async (resourceId: string, updates: Partial<Resource>) =>
       const topicId = parseInt((updates.topicId || foundResource.topicId).replace(/\D/g, ''));
 
       if (type === 'description') {
-        const noteDto: NoteDto = { 
-          description: updates.content || foundResource.content || '', 
-          topicId 
+        const noteDto: NoteDto = {
+          description: updates.content || foundResource.content || '',
+          topicId
         };
         api.updateNote(numericId, noteDto).catch(console.error);
       } else if (type === 'article') {
-        const articleDto: ArticleDto = { 
-          description: updates.title || foundResource.title, 
+        const articleDto: ArticleDto = {
+          description: updates.title || foundResource.title,
           url: updates.url || foundResource.url || '',
-          topicId 
+          topicId
         };
         api.updateArticle(numericId, articleDto).catch(console.error);
       } else if (type === 'video') {
-        const videoDto: VideoDto = { 
-          description: updates.title || foundResource.title, 
+        const videoDto: VideoDto = {
+          description: updates.title || foundResource.title,
           url: updates.url || foundResource.url || '',
-          topicId 
+          topicId
         };
         api.updateVideo(numericId, videoDto).catch(console.error);
       }
