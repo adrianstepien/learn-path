@@ -127,3 +127,10 @@ export interface StudySession {
   correctAnswers: number;
   topicsStudied: string[];
 }
+
+export interface EditorConnection {
+  id: string;
+  from: string;
+  to: string;
+  type: TopicConnection['type'];
+}

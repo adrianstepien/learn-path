@@ -8,6 +8,7 @@ import { useZoomPan } from '@/pages/learn/roadmap/hooks/useZoomPan';
 import { useTouchGestures } from '@/pages/learn/roadmap/hooks/useTouchGestures';
 import { useRoadmapData } from '@/pages/learn/roadmap/hooks/useRoadmapData';
 import { roadmapMouseCanvas } from '@/pages/learn/roadmap/hooks/roadmapMouseCanvas';
+import { computeConnectionsFromTopics } from '@/domain/canvas/connections';
 import {
   RoadmapToolbar,
   StatusLegend,
@@ -78,6 +79,8 @@ const RoadmapViewPage = () => {
     );
   }
 
+  const connections = computeConnectionsFromTopics(roadmap.topics);
+
   return (
     <MainLayout>
       <div className="flex h-screen flex-col">
@@ -97,6 +100,7 @@ const RoadmapViewPage = () => {
         {/* Canvas */}
         <RoadmapCanvas
           roadmap={roadmap}
+          connections={connections}
           zoom={zoom}
           pan={pan}
           onPanChange={setPan}

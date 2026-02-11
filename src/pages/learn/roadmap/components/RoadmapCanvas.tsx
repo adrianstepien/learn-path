@@ -5,6 +5,7 @@ import { ConnectionLine } from './ConnectionLine';
 
 interface RoadmapCanvasProps {
   roadmap: Roadmap;
+  connections: EditorConnection[];
   zoom: number;
   pan: { x: number; y: number };
   selectedTopic: Topic | null;
@@ -25,6 +26,7 @@ interface RoadmapCanvasProps {
  */
 export const RoadmapCanvas = ({
   roadmap,
+  connections,
   zoom,
   pan,
   selectedTopic,
@@ -58,7 +60,7 @@ export const RoadmapCanvas = ({
         }}
       >
         {/* Connections */}
-        {roadmap.connections.map(conn => {
+        {connections.map(conn => {
           const fromTopic = roadmap.topics.find(t => t.id === conn.fromTopicId);
           const toTopic = roadmap.topics.find(t => t.id === conn.toTopicId);
           if (!fromTopic || !toTopic) return null;

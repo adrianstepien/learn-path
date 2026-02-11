@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useSyncExternalStore } from 'react';
 import { Category, Roadmap, Topic, Question, Resource, TopicConnection } from '@/types/learning';
 import { mockCategories as initialCategories } from '@/data/mockData';
+import { computeConnectionsFromTopics } from '@/domain/canvas/connections';
 import * as api from '@/lib/api';
 import { isApiAvailable } from '@/lib/api/config';
 import { 
@@ -165,42 +166,6 @@ const mapTopicToUpdateDto = (topic: Topic): UpdateTopicDto => ({
     : undefined,
 });
 
-// ===== Pure Function to Compute Connections from Topics =====
-
-/**
- * Derives visual connections from topics' relatedTopicIds.
- * Deduplicates by ensuring each connection pair appears only once.
- * @param topics - Array of topics with relatedTopicIds
- * @returns Array of EditorConnection objects
- */
-export const computeConnectionsFromTopics = (topics: Topic[]): EditorConnection[] => {
-  const connections: EditorConnection[] = [];
-  const seenPairs = new Set<string>();
-
-  for (const topic of topics) {
-    const relatedIds = (topic as any).relatedTopicIds || [];
-
-    for (const relatedId of relatedIds) {
-      // Create a canonical key to avoid duplicates (smaller id first)
-      const key = topic.id < relatedId
-        ? `${topic.id}-${relatedId}`
-        : `${relatedId}-${topic.id}`;
-
-      if (!seenPairs.has(key)) {
-        seenPairs.add(key);
-        connections.push({
-          id: `conn-${topic.id}-${relatedId}`,
-          from: topic.id,
-          to: relatedId,
-          type: 'suggested_order',
-        });
-      }
-    }
-  }
-
-  return connections;
-};
-
 // Editor state management
 export interface EditorNode {
   id: string;
@@ -208,13 +173,6 @@ export interface EditorNode {
   position: { x: number; y: number };
   title: string;
   status: Topic['status'];
-}
-
-export interface EditorConnection {
-  id: string;
-  from: string;
-  to: string;
-  type: TopicConnection['type'];
 }
 
 export interface EditorState {
@@ -1325,13 +1283,6 @@ export const useEditorStore = () => {
     const roadmap = getSelectedRoadmap();
     return roadmap?.topics.find(t => t.id === state.selectedTopicId);
   }, [getSelectedRoadmap, state.selectedTopicId]);
-
-  // Compute connections on demand
-  //const connections = useCallback(() => {
-  //  const roadmap = getSelectedRoadmap();
-  //  if (!roadmap) return [];
-  //  return computeConnectionsFromTopics(roadmap.topics);
-  //}, [getSelectedRoadmap]);
 
   return {
     state,
