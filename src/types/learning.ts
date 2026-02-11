@@ -118,16 +118,6 @@ export interface UserStats {
   lastStudyDate?: Date;
 }
 
-export interface StudySession {
-  id: string;
-  userId: string;
-  startedAt: Date;
-  endedAt?: Date;
-  questionsAttempted: number;
-  correctAnswers: number;
-  topicsStudied: string[];
-}
-
 export interface EditorConnection {
   id: string;
   from: string;

@@ -16,7 +16,6 @@ export const RoadmapMiniCard = ({ roadmap }: RoadmapMiniCardProps) => {
 
   const handleViewRoadmap = (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log('moze tuy')
     navigate(`/learn/roadmap/${roadmap.id}`);
   };
 
