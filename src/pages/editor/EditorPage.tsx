@@ -19,6 +19,16 @@ import { Category, Roadmap } from '@/types/learning';
 import { EditorCanvasLayout } from '@/pages/editor/components/EditorCanvasLayout';
 import { EditorCategoryGrid } from '@/pages/editor/components/EditorCategoryGrid';
 import { EditorRoadmapGrid } from '@/pages/editor/components/EditorRoadmapGrid';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
+
+const EMOJI_OPTIONS = ["💻", "📚", "🎨", "🔬", "📐", "🌍", "💼", "🎵", "⚽", "🍳", "📜", "🧠"];
 
 const EditorPage = () => {
   const store = useEditorStore();
@@ -144,25 +154,37 @@ const EditorPage = () => {
           </DialogHeader>
           <div className="space-y-4 py-4">
             {dialog.isCategoryDialog && (
-              <div className="flex gap-3">
-                <Input
-                  placeholder="Ikona (emoji)"
-                  value={dialog.formData.icon}
-                  onChange={(e) =>
-                    dialog.setFormData(prev => ({ ...prev, icon: e.target.value }))
-                  }
-                  className="w-20 text-center text-xl"
-                  maxLength={2}
-                />
-                <Input
-                  placeholder="Nazwa kategorii"
-                  value={dialog.formData.name}
-                  onChange={(e) =>
-                    dialog.setFormData(prev => ({ ...prev, name: e.target.value }))
-                  }
-                  className="flex-1"
-                />
-              </div>
+              <div className="flex gap-3 items-center">
+                  <div className="w-20">
+                    <Select
+                      value={dialog.formData.icon}
+                      onValueChange={(val) =>
+                        dialog.setFormData(prev => ({ ...prev, icon: val }))
+                      }
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Wybierz" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {EMOJI_OPTIONS.map((emoji) => (
+                          <SelectItem key={emoji} value={emoji}>
+                            <span className="text-lg">{emoji}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex-1">
+                    <Input
+                      placeholder="Nazwa kategorii"
+                      value={dialog.formData.name}
+                      onChange={(e) =>
+                        dialog.setFormData(prev => ({ ...prev, name: e.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
             )}
             {dialog.isRoadmapDialog && (
               <>
