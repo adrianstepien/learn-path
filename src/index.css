@@ -392,6 +392,29 @@
     margin: 1em 0;
   }
 
+  .ProseMirror img {
+    max-width: 100%;
+    height: auto;
+    display: inline-block;
+  }
+
+  /* uchwyty (przykład, targetuje atrybuty generowane przez node view) */
+  [data-resize-handle] {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: white;
+    border: 1px solid rgba(0,0,0,0.6);
+    position: absolute;
+    transform: translate(-50%, -50%);
+    box-sizing: border-box;
+  }
+
+  /* klasa dodawana podczas resize (opcjonalnie) */
+  .is-resizing {
+    outline: 2px dashed rgba(0,0,0,0.15);
+  }
+
   .prose strong {
     color: hsl(var(--foreground));
     font-weight: 600;

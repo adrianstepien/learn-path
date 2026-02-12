@@ -6,12 +6,12 @@ import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import { uploadImageToServer } from '@/lib/api/cards';
 import { useEffect, useCallback, useRef } from 'react';
-import { 
-  Bold, 
-  Italic, 
-  List, 
-  ListOrdered, 
-  Code, 
+import {
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  Code,
   Quote,
   ImageIcon,
   Undo,
@@ -56,19 +56,25 @@ export const RichTextEditor = ({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3],
-        },
+        heading: { levels: [1,2,3] },
       }),
       TextStyle,
       Color,
       Image.configure({
         inline: true,
         allowBase64: true,
+        resize: {
+          enabled: true,
+          directions: [
+            'top-left','top-right','bottom-left','bottom-right'
+          ],
+          minWidth: 50,
+          minHeight: 50,
+          // jeśli chce się zachować proporcje:
+          alwaysPreserveAspectRatio: false,
+        },
       }),
-      Placeholder.configure({
-        placeholder,
-      }),
+      Placeholder.configure({ placeholder }),
     ],
     content,
     onUpdate: ({ editor }) => {
