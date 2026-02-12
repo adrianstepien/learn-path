@@ -68,3 +68,15 @@ export async function createReview(review: ReviewRequestDTO): Promise<void> {
     body: JSON.stringify(review),
   });
 }
+
+export async function uploadImageToServer(file: File): Promise<string> {
+  const form = new FormData();
+  form.append('file', file);
+
+  const data = await apiRequest<{ url: string }>('/cards/images/upload', {
+    method: 'POST',
+    body: form,
+  });
+
+    return data.url;
+}

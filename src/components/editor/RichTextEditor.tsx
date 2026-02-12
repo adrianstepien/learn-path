@@ -4,6 +4,7 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
+import { uploadImageToServer } from '@/lib/api/cards';
 import { useEffect, useCallback, useRef } from 'react';
 import { 
   Bold, 
@@ -93,19 +94,18 @@ export const RichTextEditor = ({
     }
   }, [content, editor]);
 
-  const handleImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !editor) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      editor.chain().focus().setImage({ src: result }).run();
-    };
-    reader.readAsDataURL(file);
-    
-    // Reset input
-    event.target.value = '';
+    try {
+        const uploadedUrl = await uploadImageToServer(file); // implementuj poniżej
+        editor.chain().focus().setImage({ src: uploadedUrl }).run();
+      } catch (err) {
+        console.error('Upload failed', err);
+      } finally {
+        event.target.value = '';
+      }
   }, [editor]);
 
   if (!editor) return null;

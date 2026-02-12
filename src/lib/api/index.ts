@@ -15,4 +15,5 @@ export {
   getCardsToRepeatByTopic,
   getCardForStudy,
   createReview,
+  uploadImageToServer
 } from './cards';

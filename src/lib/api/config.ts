@@ -37,16 +37,15 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   
-  const defaultHeaders: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
+  const headers = new Headers(options.headers);
+
+  if (options.body && !(options.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
+  }
 
   const response = await fetch(url, {
     ...options,
-    headers: {
-      ...defaultHeaders,
-      ...options.headers,
-    },
+    headers,
   });
 
   if (!response.ok) {
@@ -54,7 +53,6 @@ export async function apiRequest<T>(
     throw new Error(`API Error ${response.status}: ${error}`);
   }
 
-  // Handle 204 No Content
   if (response.status === 204) {
     return undefined as T;
   }
