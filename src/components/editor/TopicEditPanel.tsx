@@ -14,7 +14,8 @@ import {
   BookOpen,
   ExternalLink,
   Pencil,
-  NotebookPen
+  NotebookPen,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +38,7 @@ import { Topic, Question, Resource } from '@/types/learning';
 import { cn } from '@/lib/utils';
 import { QuestionFormDialog } from './QuestionFormDialog';
 import { ResourceFormDialog } from './ResourceFormDialog';
+import { getTopicById } from '@/lib/api/topics';
 
 interface TopicEditPanelProps {
   topic: Topic;
@@ -83,12 +85,16 @@ export const TopicEditPanel = ({
   const [editingTitle, setEditingTitle] = useState(false);
   const [title, setTitle] = useState(topic.title);
   const [expandedSections, setExpandedSections] = useState<string[]>(['own_materials', 'articles', 'videos', 'questions']);
-  
+
+  // Data fetching states
+  const [fetchedDetails, setFetchedDetails] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
   // Dialog states
   const [questionDialogOpen, setQuestionDialogOpen] = useState(false);
   const [questionDialogMode, setQuestionDialogMode] = useState<'add' | 'edit'>('add');
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
-  
+
   const [resourceDialogOpen, setResourceDialogOpen] = useState(false);
   const [resourceDialogMode, setResourceDialogMode] = useState<'add' | 'edit'>('add');
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
@@ -100,14 +106,71 @@ export const TopicEditPanel = ({
     setEditingTitle(false);
   }, [topic.id, topic.title]);
 
-  // Filter resources by type
-  const ownMaterials = topic.resources.filter(r => r.type === 'description');
-  const articles = topic.resources.filter(r => r.type === 'article');
-  const videos = topic.resources.filter(r => r.type === 'video');
+  // Fetch detailed topic data on open
+  useEffect(() => {
+    const fetchDetails = async () => {
+      if (!topic?.id || !isOpen) return;
+
+      setIsLoading(true);
+      try {
+        const data = await getTopicById(Number(topic.id));
+        setFetchedDetails(data);
+      } catch (error) {
+        console.error("Failed to fetch topic details:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDetails();
+
+    // Reset on close or change
+    return () => {
+      if (!isOpen) {
+        setFetchedDetails(null);
+      }
+    };
+  }, [topic.id, isOpen]);
+
+  // --- Data Mapping Logic (Analogous to TopicSlidePanel) ---
+
+  const getMappedResources = (type: 'article' | 'video' | 'description') => {
+    if (fetchedDetails) {
+      let sourceArr: any[] = [];
+      if (type === 'description') sourceArr = fetchedDetails.notes || [];
+      if (type === 'article') sourceArr = fetchedDetails.articles || [];
+      if (type === 'video') sourceArr = fetchedDetails.videos || [];
+
+      // Map API structure to Resource structure
+      return sourceArr.map((item: any) => ({
+        ...item,
+        type: type,
+        // API often returns 'description' as the name for articles/notes if 'title' is missing
+        title: item.title || item.description || 'Bez tytułu',
+        content: item.content || (type === 'description' ? item.description : undefined)
+      })) as Resource[];
+    }
+    // Fallback to props
+    return topic.resources.filter(r => r.type === type);
+  };
+
+  const ownMaterials = getMappedResources('description');
+  const articles = getMappedResources('article');
+  const videos = getMappedResources('video');
+
+  const questions = fetchedDetails
+    ? (fetchedDetails.cards || fetchedDetails.questions || []).map((q: any) => ({
+        ...q,
+        // API might use 'question', 'front', or 'content'
+        content: q.content || q.question || q.front || ''
+      })) as Question[]
+    : topic.questions;
+
+  // --- End Data Mapping ---
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev =>
-      prev.includes(section) 
+      prev.includes(section)
         ? prev.filter(s => s !== section)
         : [...prev, section]
     );
@@ -180,9 +243,9 @@ export const TopicEditPanel = ({
           </p>
         )}
         {resource.url && (
-          <a 
-            href={resource.url} 
-            target="_blank" 
+          <a
+            href={resource.url}
+            target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-primary hover:underline flex items-center gap-1"
             onClick={(e) => e.stopPropagation()}
@@ -269,206 +332,213 @@ export const TopicEditPanel = ({
 
                 {/* Content */}
                 <ScrollArea className="flex-1 p-4">
-                  <div className="space-y-4">
-                    {/* Description */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-foreground">Opis tematu</label>
-                      <Textarea
-                        value={topic.description || ''}
-                        onChange={(e) => onUpdateTopic({ description: e.target.value })}
-                        placeholder="Dodaj opis tematu..."
-                        rows={3}
-                      />
+                  {isLoading ? (
+                    <div className="flex h-64 items-center justify-center">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Description */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground">Opis tematu</label>
+                        <Textarea
+                          // Prioritize topic.description (for optimistic UI on edit), then fetched details
+                          value={topic.description || fetchedDetails?.description || ''}
+                          onChange={(e) => onUpdateTopic({ description: e.target.value })}
+                          placeholder="Dodaj opis tematu..."
+                          rows={3}
+                        />
+                      </div>
 
-                    {/* Status */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-foreground">Status</label>
-                      <Select
-                        value={topic.status}
-                        onValueChange={(value: Topic['status']) => onUpdateTopic({ status: value })}
+                      {/* Status */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-foreground">Status</label>
+                        <Select
+                          value={topic.status}
+                          onValueChange={(value: Topic['status']) => onUpdateTopic({ status: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="not_started">Nie rozpoczęty</SelectItem>
+                            <SelectItem value="in_progress">W trakcie</SelectItem>
+                            <SelectItem value="mastered">Opanowany</SelectItem>
+                            <SelectItem value="due_review">Do powtórki</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Own Materials Section */}
+                      <Collapsible
+                        open={expandedSections.includes('own_materials')}
+                        onOpenChange={() => toggleSection('own_materials')}
                       >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="not_started">Nie rozpoczęty</SelectItem>
-                          <SelectItem value="in_progress">W trakcie</SelectItem>
-                          <SelectItem value="mastered">Opanowany</SelectItem>
-                          <SelectItem value="due_review">Do powtórki</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                        <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-primary/10 p-3 hover:bg-primary/20 transition-colors">
+                          <div className="flex items-center gap-2">
+                            <NotebookPen className="h-4 w-4 text-primary" />
+                            <span className="font-medium">Własne materiały</span>
+                            <Badge variant="secondary">{ownMaterials.length}</Badge>
+                          </div>
+                          {expandedSections.includes('own_materials') ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2 space-y-2">
+                          {ownMaterials.map((resource) => (
+                            <ResourceItem key={resource.id} resource={resource} />
+                          ))}
 
-                    {/* Own Materials Section */}
-                    <Collapsible
-                      open={expandedSections.includes('own_materials')}
-                      onOpenChange={() => toggleSection('own_materials')}
-                    >
-                      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-primary/10 p-3 hover:bg-primary/20 transition-colors">
-                        <div className="flex items-center gap-2">
-                          <NotebookPen className="h-4 w-4 text-primary" />
-                          <span className="font-medium">Własne materiały</span>
-                          <Badge variant="secondary">{ownMaterials.length}</Badge>
-                        </div>
-                        {expandedSections.includes('own_materials') ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="mt-2 space-y-2">
-                        {ownMaterials.map((resource) => (
-                          <ResourceItem key={resource.id} resource={resource} />
-                        ))}
-
-                        <Button
-                          variant="outline"
-                          className="w-full"
-                          onClick={() => handleOpenAddResource('description')}
-                        >
-                          <Plus className="mr-2 h-4 w-4" />
-                          Dodaj własny materiał
-                        </Button>
-                      </CollapsibleContent>
-                    </Collapsible>
-
-                    {/* Articles Section */}
-                    <Collapsible
-                      open={expandedSections.includes('articles')}
-                      onOpenChange={() => toggleSection('articles')}
-                    >
-                      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-accent/10 p-3 hover:bg-accent/20 transition-colors">
-                        <div className="flex items-center gap-2">
-                          <Link className="h-4 w-4 text-accent" />
-                          <span className="font-medium">Artykuły</span>
-                          <Badge variant="secondary">{articles.length}</Badge>
-                        </div>
-                        {expandedSections.includes('articles') ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="mt-2 space-y-2">
-                        {articles.map((resource) => (
-                          <ResourceItem key={resource.id} resource={resource} />
-                        ))}
-
-                        <Button
-                          variant="outline"
-                          className="w-full"
-                          onClick={() => handleOpenAddResource('article')}
-                        >
-                          <Plus className="mr-2 h-4 w-4" />
-                          Dodaj artykuł
-                        </Button>
-                      </CollapsibleContent>
-                    </Collapsible>
-
-                    {/* Videos Section */}
-                    <Collapsible
-                      open={expandedSections.includes('videos')}
-                      onOpenChange={() => toggleSection('videos')}
-                    >
-                      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-warning/10 p-3 hover:bg-warning/20 transition-colors">
-                        <div className="flex items-center gap-2">
-                          <Video className="h-4 w-4 text-warning" />
-                          <span className="font-medium">Filmy</span>
-                          <Badge variant="secondary">{videos.length}</Badge>
-                        </div>
-                        {expandedSections.includes('videos') ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="mt-2 space-y-2">
-                        {videos.map((resource) => (
-                          <ResourceItem key={resource.id} resource={resource} />
-                        ))}
-
-                        <Button
-                          variant="outline"
-                          className="w-full"
-                          onClick={() => handleOpenAddResource('video')}
-                        >
-                          <Plus className="mr-2 h-4 w-4" />
-                          Dodaj film
-                        </Button>
-                      </CollapsibleContent>
-                    </Collapsible>
-
-                    {/* Questions Section */}
-                    <Collapsible
-                      open={expandedSections.includes('questions')}
-                      onOpenChange={() => toggleSection('questions')}
-                    >
-                      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-secondary/50 p-3 hover:bg-secondary transition-colors">
-                        <div className="flex items-center gap-2">
-                          <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">Pytania</span>
-                          <Badge variant="secondary">{topic.questions.length}</Badge>
-                        </div>
-                        {expandedSections.includes('questions') ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="mt-2 space-y-2">
-                        {topic.questions.map((question) => (
-                          <div
-                            key={question.id}
-                            className="group rounded-lg border border-border p-3 hover:bg-secondary/30 transition-colors"
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => handleOpenAddResource('description')}
                           >
-                            <div className="flex items-start gap-3">
-                              <div className="flex-1 min-w-0">
-                                <div className="mb-2 flex flex-wrap gap-1">
-                                  <Badge variant="outline" className="text-xs">
-                                    {questionTypeLabels[question.type]}
-                                  </Badge>
-                                  <Badge variant="outline" className="text-xs">
-                                    {difficultyLabels[question.difficulty]}
-                                  </Badge>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Dodaj własny materiał
+                          </Button>
+                        </CollapsibleContent>
+                      </Collapsible>
+
+                      {/* Articles Section */}
+                      <Collapsible
+                        open={expandedSections.includes('articles')}
+                        onOpenChange={() => toggleSection('articles')}
+                      >
+                        <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-accent/10 p-3 hover:bg-accent/20 transition-colors">
+                          <div className="flex items-center gap-2">
+                            <Link className="h-4 w-4 text-accent" />
+                            <span className="font-medium">Artykuły</span>
+                            <Badge variant="secondary">{articles.length}</Badge>
+                          </div>
+                          {expandedSections.includes('articles') ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2 space-y-2">
+                          {articles.map((resource) => (
+                            <ResourceItem key={resource.id} resource={resource} />
+                          ))}
+
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => handleOpenAddResource('article')}
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Dodaj artykuł
+                          </Button>
+                        </CollapsibleContent>
+                      </Collapsible>
+
+                      {/* Videos Section */}
+                      <Collapsible
+                        open={expandedSections.includes('videos')}
+                        onOpenChange={() => toggleSection('videos')}
+                      >
+                        <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-warning/10 p-3 hover:bg-warning/20 transition-colors">
+                          <div className="flex items-center gap-2">
+                            <Video className="h-4 w-4 text-warning" />
+                            <span className="font-medium">Filmy</span>
+                            <Badge variant="secondary">{videos.length}</Badge>
+                          </div>
+                          {expandedSections.includes('videos') ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2 space-y-2">
+                          {videos.map((resource) => (
+                            <ResourceItem key={resource.id} resource={resource} />
+                          ))}
+
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => handleOpenAddResource('video')}
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Dodaj film
+                          </Button>
+                        </CollapsibleContent>
+                      </Collapsible>
+
+                      {/* Questions Section */}
+                      <Collapsible
+                        open={expandedSections.includes('questions')}
+                        onOpenChange={() => toggleSection('questions')}
+                      >
+                        <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg bg-secondary/50 p-3 hover:bg-secondary transition-colors">
+                          <div className="flex items-center gap-2">
+                            <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">Pytania</span>
+                            <Badge variant="secondary">{questions.length}</Badge>
+                          </div>
+                          {expandedSections.includes('questions') ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2 space-y-2">
+                          {questions.map((question) => (
+                            <div
+                              key={question.id}
+                              className="group rounded-lg border border-border p-3 hover:bg-secondary/30 transition-colors"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <div className="mb-2 flex flex-wrap gap-1">
+                                    <Badge variant="outline" className="text-xs">
+                                      {questionTypeLabels[question.type]}
+                                    </Badge>
+                                    <Badge variant="outline" className="text-xs">
+                                      {difficultyLabels[question.difficulty]}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-sm line-clamp-2">
+                                    {stripHtml(question.content)}
+                                  </p>
                                 </div>
-                                <p className="text-sm line-clamp-2">
-                                  {stripHtml(question.content)}
-                                </p>
-                              </div>
-                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleOpenEditQuestion(question)}
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-destructive"
-                                  onClick={() => onDeleteQuestion(question.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => handleOpenEditQuestion(question)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive"
+                                    onClick={() => onDeleteQuestion(question.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
 
-                        <Button
-                          variant="outline"
-                          className="w-full"
-                          onClick={handleOpenAddQuestion}
-                        >
-                          <Plus className="mr-2 h-4 w-4" />
-                          Dodaj pytanie
-                        </Button>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  </div>
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={handleOpenAddQuestion}
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Dodaj pytanie
+                          </Button>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </div>
+                  )}
                 </ScrollArea>
               </div>
             </motion.div>
