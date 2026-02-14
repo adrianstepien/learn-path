@@ -74,14 +74,16 @@ export const QuestionFormDialog = ({
   useEffect(() => {
     if (isOpen) {
       if (mode === 'edit' && question) {
-        setType(question.type);
-        setContent(question.content);
-        setAnswer(question.answer);
+        // Zabezpieczenie: używamy wartości domyślnych, jeśli pola w obiekcie question są undefined
+        setType(question.type || 'open_ended');
+        setContent(question.content || '');
+        setAnswer(question.answer || '');
         setHint(question.hint || '');
         setExplanation(question.explanation || '');
-        setDifficulty(question.difficulty);
-        setImportance(question.importance);
-        setTags([...question.tags]);
+        setDifficulty(question.difficulty || 'beginner');
+        setImportance(question.importance || 'medium');
+        // FIX: Dodano `|| []` aby zapobiec błędowi "not iterable"
+        setTags([...(question.tags || [])]);
       } else {
         // Reset for add mode
         setType('open_ended');
@@ -138,7 +140,7 @@ export const QuestionFormDialog = ({
             {mode === 'edit' ? 'Edytuj pytanie' : 'Dodaj nowe pytanie'}
           </DialogTitle>
           <DialogDescription>
-            {mode === 'edit' 
+            {mode === 'edit'
               ? 'Zmodyfikuj treść i właściwości pytania. Możesz używać formatowania tekstu, kolorów i obrazów.'
               : 'Utwórz nowe pytanie. Możesz używać formatowania tekstu, kolorów i obrazów.'
             }
