@@ -2,8 +2,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
-import Image from '@tiptap/extension-image';
-import ImageResize from 'tiptap-extension-resize-image';
+import { InlineImageResize } from './InlineImageResize';
 import Placeholder from '@tiptap/extension-placeholder';
 import { uploadImageToServer } from '@/lib/api/cards';
 import { useEffect, useCallback, useRef } from 'react';
@@ -61,13 +60,7 @@ export const RichTextEditor = ({
       }),
       TextStyle,
       Color,
-      Image.configure({
-          inline: false,
-          allowBase64: true
-      }),
-      ImageResize.configure({
-              allowBase64: true,
-      }),
+      InlineImageResize,
       Placeholder.configure({ placeholder }),
     ],
     content,
@@ -77,12 +70,15 @@ export const RichTextEditor = ({
     editorProps: {
       attributes: {
         class: cn(
-                  'prose prose-sm dark:prose-invert max-w-none focus:outline-none p-3',
-                  'prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1',
-                  'prose-pre:bg-muted prose-pre:p-2 prose-pre:rounded-md',
-                  'prose-code:bg-muted prose-code:px-1 prose-code:rounded',
-                  'prose-blockquote:border-l-2 prose-blockquote:border-primary prose-blockquote:pl-4',
-                ),
+          'prose prose-sm dark:prose-invert max-w-none focus:outline-none p-3',
+          'prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1',
+          'prose-pre:bg-muted prose-pre:p-2 prose-pre:rounded-md',
+          'prose-code:bg-muted prose-code:px-1 prose-code:rounded',
+          'prose-blockquote:border-l-2 prose-blockquote:border-primary prose-blockquote:pl-4',
+          // CRITICAL: Override prose's default block display for images
+          '[&_img]:inline-block [&_img]:align-middle [&_img]:max-w-full',
+          '[&_.inline-image-wrapper]:inline-block [&_.inline-image-wrapper]:align-middle',
+        ),
         style: `min-height: ${minHeight}`,
       },
     },
@@ -99,13 +95,14 @@ export const RichTextEditor = ({
     if (!file || !editor) return;
 
     try {
-        const uploadedUrl = await uploadImageToServer(file); // implementuj poniżej
-        editor.chain().focus().setImage({ src: uploadedUrl }).run();
-      } catch (err) {
-        console.error('Upload failed', err);
-      } finally {
-        event.target.value = '';
-      }
+      const uploadedUrl = await uploadImageToServer(file);
+      // Use the custom inline image command
+      editor.chain().focus().setInlineImage({ src: uploadedUrl, width: 200 }).run();
+    } catch (err) {
+      console.error('Upload failed', err);
+    } finally {
+      event.target.value = '';
+    }
   }, [editor]);
 
   if (!editor) return null;

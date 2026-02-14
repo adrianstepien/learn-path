@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select';
 import { X } from 'lucide-react';
 import { Question, QuestionType, DifficultyLevel, ImportanceLevel } from '@/types/learning';
-import { RichTextEditor } from './RichTextEditor';
+import { RichTextEditor } from '@/components/texteditor/RichTextEditor';
 
 interface QuestionFormDialogProps {
   isOpen: boolean;

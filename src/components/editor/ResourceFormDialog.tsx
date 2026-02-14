@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Resource } from '@/types/learning';
-import { RichTextEditor } from './RichTextEditor';
+import { RichTextEditor } from '@/components/texteditor/RichTextEditor';
 import { FileText, Video, Link } from 'lucide-react';
 
 interface ResourceFormDialogProps {
