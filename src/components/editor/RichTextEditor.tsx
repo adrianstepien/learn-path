@@ -3,6 +3,7 @@ import StarterKit from '@tiptap/starter-kit';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import Image from '@tiptap/extension-image';
+import ImageResize from 'tiptap-extension-resize-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import { uploadImageToServer } from '@/lib/api/cards';
 import { useEffect, useCallback, useRef } from 'react';
@@ -61,18 +62,11 @@ export const RichTextEditor = ({
       TextStyle,
       Color,
       Image.configure({
-        inline: true,
-        allowBase64: true,
-        resize: {
-          enabled: true,
-          directions: [
-            'top-left','top-right','bottom-left','bottom-right'
-          ],
-          minWidth: 50,
-          minHeight: 50,
-          // jeśli chce się zachować proporcje:
-          alwaysPreserveAspectRatio: false,
-        },
+          inline: false,
+          allowBase64: true
+      }),
+      ImageResize.configure({
+              allowBase64: true,
       }),
       Placeholder.configure({ placeholder }),
     ],
@@ -83,12 +77,12 @@ export const RichTextEditor = ({
     editorProps: {
       attributes: {
         class: cn(
-          'prose prose-sm dark:prose-invert max-w-none focus:outline-none p-3',
-          'prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1',
-          'prose-pre:bg-muted prose-pre:p-2 prose-pre:rounded-md',
-          'prose-code:bg-muted prose-code:px-1 prose-code:rounded',
-          'prose-blockquote:border-l-2 prose-blockquote:border-primary prose-blockquote:pl-4',
-        ),
+                  'prose prose-sm dark:prose-invert max-w-none focus:outline-none p-3',
+                  'prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1',
+                  'prose-pre:bg-muted prose-pre:p-2 prose-pre:rounded-md',
+                  'prose-code:bg-muted prose-code:px-1 prose-code:rounded',
+                  'prose-blockquote:border-l-2 prose-blockquote:border-primary prose-blockquote:pl-4',
+                ),
         style: `min-height: ${minHeight}`,
       },
     },
