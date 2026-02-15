@@ -102,7 +102,7 @@ const mapNoteToResource = (dto: NoteDto): Resource => ({
   id: String(dto.id),
   topicId: String(dto.topicId),
   type: 'note',
-  title: 'Notatka',
+  title: dto.title,
   content: dto.description,
   isCompleted: false,
   createdAt: new Date(),
@@ -1186,6 +1186,7 @@ const updateResource = async (resourceId: string, updates: Partial<Resource>) =>
 
       if (type === 'note') {
         const noteDto: NoteDto = {
+          title: updates.title || foundResource.title,
           description: updates.content || foundResource.content || '',
           topicId
         };
