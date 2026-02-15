@@ -125,6 +125,7 @@ export const EditorCanvasLayout = ({
         <TopicEditPanel
           topic={canvas.selectedTopic}
           isOpen={!!canvas.selectedNodeId}
+          isLoading={canvas.isLoading}
           onClose={canvas.closeTopicPanel}
           onUpdateTopic={canvas.updateSelectedTopic}
           onAddQuestion={canvas.addQuestionToSelectedTopic as any}

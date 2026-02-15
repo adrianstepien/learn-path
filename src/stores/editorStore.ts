@@ -414,6 +414,10 @@ const selectRoadmap = async (roadmapId: string | null) => {
 
 const selectTopic = (topicId: string | null) => {
   setState(prev => ({ ...prev, selectedTopicId: topicId }));
+
+  if (topicId) {
+      loadTopicDetails(topicId);
+    }
 };
 
 const addCategory = async (name: string, icon: string) => {
@@ -1043,6 +1047,56 @@ const deleteQuestion = async (questionId: string) => {
   }));
 };
 
+const loadTopicDetails = async (topicId: string) => {
+  const numericId = parseNumericId(topicId);
+  if (!numericId) return;
+
+  setState(prev => ({ ...prev, isLoading: true }));
+
+  try {
+    const details: TopicDetailsDto = await api.getTopicById(numericId);
+
+    // Scalamy 3 listy z API w jedną listę Resource[] dla frontendu
+    const resources: Resource[] = [
+      ...(details.notes || []).map(mapNoteToResource),
+      ...(details.articles || []).map(mapArticleToResource),
+      ...(details.videos || []).map(mapVideoToResource)
+    ];
+
+    // Opcjonalnie: Mapujemy też karty (pytania), jeśli są w details
+    const questions = (details.cards || []).map(c => mapCardDtoToQuestion(c, topicId));
+
+    setState(prev => {
+      // Musimy znaleźć temat głęboko w strukturze i go zaktualizować
+      const newCategories = prev.categories.map(c => ({
+        ...c,
+        roadmaps: c.roadmaps.map(r => ({
+          ...r,
+          topics: r.topics.map(t =>
+            t.id === topicId
+              ? {
+                  ...t,
+                  resources, // Nadpisujemy listę zasobów nowymi danymi z API
+                  questions: questions.length > 0 ? questions : t.questions, // Aktualizujemy pytania
+                  updatedAt: new Date()
+                }
+              : t
+          )
+        }))
+      }));
+
+      return {
+        ...prev,
+        categories: newCategories,
+        isLoading: false
+      };
+    });
+  } catch (err) {
+    console.error('Failed to load topic details:', err);
+    setState(prev => ({ ...prev, isLoading: false }));
+  }
+};
+
 // ===== Resources (Notes, Articles, Videos) =====
 
 const addResource = async (topicId: string, resource: Omit<Resource, 'id' | 'topicId' | 'createdAt' | 'isCompleted'>) => {
@@ -1307,6 +1361,7 @@ export const useEditorStore = () => {
     getSelectedCategory,
     getSelectedRoadmap,
     getSelectedTopic,
+    loadTopicDetails,
     getDerivedConnections,
     addQuestion,
     updateQuestion,

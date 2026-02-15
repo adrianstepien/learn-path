@@ -44,6 +44,7 @@ interface TopicEditPanelProps {
   topic: Topic;
   isOpen: boolean;
   onClose: () => void;
+  isLoading?: boolean;
   onUpdateTopic: (updates: Partial<Topic>) => void;
   onAddQuestion: (question: Omit<Question, 'id' | 'topicId' | 'createdAt' | 'updatedAt' | 'easeFactor' | 'interval' | 'repetitions'>) => void;
   onUpdateQuestion?: (questionId: string, updates: Partial<Question>) => void;
@@ -74,6 +75,7 @@ export const TopicEditPanel = ({
   topic,
   isOpen,
   onClose,
+  isLoading = false,
   onUpdateTopic,
   onAddQuestion,
   onUpdateQuestion,
@@ -86,9 +88,9 @@ export const TopicEditPanel = ({
   const [title, setTitle] = useState(topic.title);
   const [expandedSections, setExpandedSections] = useState<string[]>(['own_materials', 'articles', 'videos', 'questions']);
 
-  // Data fetching states
-  const [fetchedDetails, setFetchedDetails] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const ownMaterials = topic.resources.filter(r => r.type === 'note'); // pamiętaj o zmianie typu na 'note'
+  const articles = topic.resources.filter(r => r.type === 'article');
+  const videos = topic.resources.filter(r => r.type === 'video');
 
   // Dialog states
   const [questionDialogOpen, setQuestionDialogOpen] = useState(false);
@@ -106,32 +108,7 @@ export const TopicEditPanel = ({
     setEditingTitle(false);
   }, [topic.id, topic.title]);
 
-  // Fetch detailed topic data on open
-  useEffect(() => {
-    const fetchDetails = async () => {
-      if (!topic?.id || !isOpen) return;
-
-      setIsLoading(true);
-      try {
-        const data = await getTopicById(Number(topic.id));
-        setFetchedDetails(data);
-      } catch (error) {
-        console.error("Failed to fetch topic details:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchDetails();
-
-    // Reset on close or change
-    return () => {
-      if (!isOpen) {
-        setFetchedDetails(null);
-      }
-    };
-  }, [topic.id, isOpen]);
-
+  const questions = topic.questions;
   // --- Data Mapping Logic (Analogous to TopicSlidePanel) ---
 
   const getMappedResources = (type: 'article' | 'video' | 'note') => {
@@ -153,18 +130,6 @@ export const TopicEditPanel = ({
     // Fallback to props
     return topic.resources.filter(r => r.type === type);
   };
-
-  const ownMaterials = getMappedResources('note');
-  const articles = getMappedResources('article');
-  const videos = getMappedResources('video');
-
-  const questions = fetchedDetails
-    ? (fetchedDetails.cards || fetchedDetails.questions || []).map((q: any) => ({
-        ...q,
-        // API might use 'question', 'front', or 'content'
-        content: q.content || q.question || q.front || ''
-      })) as Question[]
-    : topic.questions;
 
   // --- End Data Mapping ---
 

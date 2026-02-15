@@ -37,6 +37,7 @@ export function useEditorCanvasService(store: EditorStore) {
   const handleNodeClick = useCallback(
     (nodeId: string) => {
       store.selectTopic(nodeId);
+      store.loadTopicDetails(nodeId);
     },
     [store]
   );
@@ -44,6 +45,7 @@ export function useEditorCanvasService(store: EditorStore) {
   const handleNodeDoubleClick = useCallback(
     (nodeId: string) => {
       store.selectTopic(nodeId);
+      store.loadTopicDetails(nodeId);
     },
     [store]
   );
