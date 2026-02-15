@@ -31,7 +31,7 @@ interface ResourceFormDialogProps {
 }
 
 const resourceTypes: { value: Resource['type']; label: string; icon: React.ReactNode }[] = [
-  { value: 'description', label: 'Opis / Notatka', icon: <FileText className="h-4 w-4" /> },
+  { value: 'note', label: 'Opis / Notatka', icon: <FileText className="h-4 w-4" /> },
   { value: 'article', label: 'Artykuł (link)', icon: <Link className="h-4 w-4" /> },
   { value: 'video', label: 'Video (link)', icon: <Video className="h-4 w-4" /> },
 ];
@@ -42,7 +42,7 @@ export const ResourceFormDialog = ({
   resource,
   onSave,
   mode,
-  defaultType = 'description',
+  defaultType = 'note',
 }: ResourceFormDialogProps) => {
   const [type, setType] = useState<Resource['type']>(defaultType);
   const [title, setTitle] = useState('');
@@ -71,20 +71,20 @@ export const ResourceFormDialog = ({
 
   const handleSave = () => {
     if (!title.trim()) return;
-    if (type !== 'description' && !url.trim()) return;
+    if (type !== 'note' && !url.trim()) return;
 
     onSave({
       type,
       title: title.trim(),
-      content: type === 'description' ? content : undefined,
-      url: type !== 'description' ? url.trim() : undefined,
+      content: type === 'note' ? content : undefined,
+      url: type !== 'note' ? url.trim() : undefined,
       estimatedMinutes,
     });
 
     onClose();
   };
 
-  const isValid = title.trim() && (type === 'description' || url.trim());
+  const isValid = title.trim() && (type === 'note' || url.trim());
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -96,7 +96,7 @@ export const ResourceFormDialog = ({
           <DialogDescription>
             {mode === 'edit' 
               ? 'Zmodyfikuj właściwości materiału edukacyjnego.'
-              : 'Dodaj nowy materiał - opis, artykuł lub video.'
+              : 'Dodaj nowy materiał - notatkę, artykuł lub video.'
             }
           </DialogDescription>
         </DialogHeader>
@@ -133,7 +133,7 @@ export const ResourceFormDialog = ({
           </div>
 
           {/* Type-specific content */}
-          {type === 'description' ? (
+          {type === 'note' ? (
             <div className="space-y-2">
               <Label>Treść</Label>
               <RichTextEditor

@@ -394,7 +394,7 @@ export const TopicEditPanel = ({
                           <Button
                             variant="outline"
                             className="w-full"
-                            onClick={() => handleOpenAddResource('description')}
+                            onClick={() => handleOpenAddResource('note')}
                           >
                             <Plus className="mr-2 h-4 w-4" />
                             Dodaj własny materiał

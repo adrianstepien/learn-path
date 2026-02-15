@@ -236,8 +236,10 @@ const setState = (updater: (prev: EditorState) => EditorState) => {
 /**
  * Parse numeric ID from string ID, handling various formats
  */
-const parseNumericId = (id: string): number => {
-  const parsed = parseInt(id.replace(/\D/g, ''));
+const parseNumericId = (id: string | number | undefined | null): number => {
+  if (!id) return 0;
+  const stringId = String(id); // Konwersja na string przed użyciem replace
+  const parsed = parseInt(stringId.replace(/\D/g, ''));
   return isNaN(parsed) ? 0 : parsed;
 };
 
@@ -1045,28 +1047,28 @@ const deleteQuestion = async (questionId: string) => {
 
 const addResource = async (topicId: string, resource: Omit<Resource, 'id' | 'topicId' | 'createdAt' | 'isCompleted'>) => {
   const numericTopicId = parseNumericId(topicId);
-
+  let createdEntity: any;
   try {
-    if (resource.type === 'description') {
+    if (resource.type === 'note') {
       const noteDto: NoteDto = {
         description: resource.content || '',
         topicId: numericTopicId,
       };
-      await api.createNote(noteDto);
+      createdEntity = await api.createNote(noteDto);
     } else if (resource.type === 'article') {
       const articleDto: ArticleDto = {
         description: resource.title,
         url: resource.url || '',
         topicId: numericTopicId,
       };
-      await api.createArticle(articleDto);
+      createdEntity = await api.createArticle(articleDto);
     } else if (resource.type === 'video') {
       const videoDto: VideoDto = {
         description: resource.title,
         url: resource.url || '',
         topicId: numericTopicId,
       };
-      await api.createVideo(videoDto);
+      createdEntity = await api.createVideo(videoDto);
     }
   } catch (err) {
     console.error('Failed to create resource:', err);
