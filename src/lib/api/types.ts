@@ -41,6 +41,7 @@ export interface TopicDto {
   description?: string;
   canvasPositionX: number;
   canvasPositionY: number;
+  relatedTopicIds?: number[];
 }
 
 export interface TopicDetailsDto {
@@ -83,6 +84,14 @@ export interface CardDto {
   difficulty: number;
   importance: number;
   topicId: number;
+}
+
+export interface FsrsCardDto {
+  cardId: number;
+  question: string;
+  answer: string;
+  difficulty: number;
+  importance: number;
 }
 
 export type ReviewRating = 'AGAIN' | 'HARD' | 'GOOD' | 'EASY';
