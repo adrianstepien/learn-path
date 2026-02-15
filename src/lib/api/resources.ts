@@ -9,7 +9,7 @@ export async function getNotesInTopic(topicId: number): Promise<NoteDto[]> {
 }
 
 // POST /notes - Create a new note
-export async function createNote(note: NoteDto): Promise<void> {
+export async function createNote(note: NoteDto): Promise<NoteDto> {
   return apiRequest<void>('/notes', {
     method: 'POST',
     body: JSON.stringify(note),
@@ -39,7 +39,7 @@ export async function getArticlesInTopic(topicId: number): Promise<ArticleDto[]>
 }
 
 // POST /articles - Create a new article
-export async function createArticle(article: ArticleDto): Promise<void> {
+export async function createArticle(article: ArticleDto): Promise<ArticleDto> {
   return apiRequest<void>('/articles', {
     method: 'POST',
     body: JSON.stringify(article),
@@ -69,7 +69,7 @@ export async function getVideosInTopic(topicId: number): Promise<VideoDto[]> {
 }
 
 // POST /videos - Create a new video
-export async function createVideo(video: VideoDto): Promise<void> {
+export async function createVideo(video: VideoDto): Promise<VideoDto> {
   return apiRequest<void>('/videos', {
     method: 'POST',
     body: JSON.stringify(video),

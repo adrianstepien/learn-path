@@ -79,7 +79,7 @@ const DescriptionDialog = ({ topic, details, onClose }: DescriptionDialogProps) 
 
   // Próbujemy pobrać opis z details (API) lub topic (Props)
   const descriptionFromDetails = details?.description;
-  const descriptionResource = topic.resources?.find(r => r.type === 'description');
+  const descriptionResource = topic.resources?.find(r => r.type === 'note');
 
   // Priorytetyzacja treści
   const contentToDisplay = descriptionFromDetails || topic.description || descriptionResource?.content;
@@ -154,7 +154,7 @@ export const TopicSlidePanel = ({ topic, onClose }: TopicSlidePanelProps) => {
   // Helper do pobierania Własnych Materiałów (Notes / Descriptions)
   const descriptions = fetchedDetails
     ? (fetchedDetails.notes || []) // API structure: notes
-    : (topic.resources || []).filter(r => r.type === 'description'); // Props structure
+    : (topic.resources || []).filter(r => r.type === 'note'); // Props structure
 
   // Helper do pobierania Artykułów
   const articles = fetchedDetails

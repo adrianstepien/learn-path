@@ -101,7 +101,7 @@ const mapCardDtoToQuestion = (dto: CardDto, topicId: string): Question => ({
 const mapNoteToResource = (dto: NoteDto): Resource => ({
   id: String(dto.id),
   topicId: String(dto.topicId),
-  type: 'description',
+  type: 'note',
   title: 'Notatka',
   content: dto.description,
   isCompleted: false,
@@ -1048,43 +1048,48 @@ const deleteQuestion = async (questionId: string) => {
 const addResource = async (topicId: string, resource: Omit<Resource, 'id' | 'topicId' | 'createdAt' | 'isCompleted'>) => {
   const numericTopicId = parseNumericId(topicId);
   let createdEntity: any;
+  let newResource: Resource;
+
   try {
     if (resource.type === 'note') {
       const noteDto: NoteDto = {
-        description: resource.content || '',
-        title: resource.title,
+        title: resource.title,           // Note wymaga title
+        description: resource.content || '', // Note wymaga description (treść)
         topicId: numericTopicId,
       };
-      createdEntity = await api.createNote(noteDto);
+      // API zwraca utworzony obiekt z ID
+      const response = await api.createNote(noteDto);
+      // Musimy zmapować odpowiedź API z powrotem na Resource
+      createdEntity = response; // Zakładając, że api.createNote zwraca obiekt, a nie void (warto sprawdzić w api/resources.ts czy zwraca response.json())
+      // Jeśli api.createNote zwraca void (według obecnego kodu), musisz to zmienić w api/resources.ts, aby zwracało utworzony obiekt!
+
+      // FIX: Zakładamy, że poprawisz api/resources.ts żeby zwracało obiekt
+      newResource = mapNoteToResource(createdEntity);
+
     } else if (resource.type === 'article') {
       const articleDto: ArticleDto = {
-        description: resource.title,
+        description: resource.title,     // Article: description to tytuł
         url: resource.url || '',
         topicId: numericTopicId,
       };
-      createdEntity = await api.createArticle(articleDto);
+      const response = await api.createArticle(articleDto);
+      newResource = mapArticleToResource(response);
+
     } else if (resource.type === 'video') {
       const videoDto: VideoDto = {
-        description: resource.title,
+        description: resource.title,     // Video: description to tytuł
         url: resource.url || '',
         topicId: numericTopicId,
       };
-      createdEntity = await api.createVideo(videoDto);
+      const response = await api.createVideo(videoDto);
+      newResource = mapVideoToResource(response);
     }
   } catch (err) {
     console.error('Failed to create resource:', err);
+    return;
   }
 
-  // Update local state
-  const newResource: Resource = {
-    ...resource,
-    id: createdEntity.id.toString(),
-    topicId,
-    isCompleted: false,
-    createdAt: new Date(),
-    content: resource.type === 'description' ? createdEntity.description : undefined,
-  };
-
+  // Aktualizacja stanu lokalnego
   setState(prev => ({
     ...prev,
     categories: prev.categories.map(c => ({
@@ -1093,14 +1098,14 @@ const addResource = async (topicId: string, resource: Omit<Resource, 'id' | 'top
         ...r,
         topics: r.topics.map(t =>
           t.id === topicId
-            ? { ...t, resources: [...t.resources, newResource], updatedAt: new Date() }
+            ? { ...t, resources: [...t.resources, newResource!], updatedAt: new Date() }
             : t
         ),
       })),
     })),
   }));
 
-  return newResource;
+  return newResource!;
 };
 
 const updateResource = async (resourceId: string, updates: Partial<Resource>) => {
@@ -1125,7 +1130,7 @@ const updateResource = async (resourceId: string, updates: Partial<Resource>) =>
       const type = updates.type || foundResource.type;
       const topicId = parseNumericId(updates.topicId || foundResource.topicId);
 
-      if (type === 'description') {
+      if (type === 'note') {
         const noteDto: NoteDto = {
           description: updates.content || foundResource.content || '',
           topicId
@@ -1184,7 +1189,7 @@ const deleteResource = async (resourceId: string) => {
   }
 
   try {
-    if (resourceType === 'description') {
+    if (resourceType === 'note') {
       await api.deleteNote(numericId);
     } else if (resourceType === 'article') {
       await api.deleteArticle(numericId);

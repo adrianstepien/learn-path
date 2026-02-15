@@ -31,7 +31,7 @@ interface ResourceFormDialogProps {
 }
 
 const resourceTypes: { value: Resource['type']; label: string; icon: React.ReactNode }[] = [
-  { value: 'note', label: 'Opis / Notatka', icon: <FileText className="h-4 w-4" /> },
+  { value: 'note', label: 'Notatka (Tekst)', icon: <FileText className="h-4 w-4" /> },
   { value: 'article', label: 'Artykuł (link)', icon: <Link className="h-4 w-4" /> },
   { value: 'video', label: 'Video (link)', icon: <Video className="h-4 w-4" /> },
 ];

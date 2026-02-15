@@ -98,7 +98,7 @@ export const TopicEditPanel = ({
   const [resourceDialogOpen, setResourceDialogOpen] = useState(false);
   const [resourceDialogMode, setResourceDialogMode] = useState<'add' | 'edit'>('add');
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
-  const [resourceDialogType, setResourceDialogType] = useState<Resource['type']>('description');
+  const [resourceDialogType, setResourceDialogType] = useState<Resource['type']>('note');
 
   // Sync title when topic changes
   useEffect(() => {
@@ -134,10 +134,10 @@ export const TopicEditPanel = ({
 
   // --- Data Mapping Logic (Analogous to TopicSlidePanel) ---
 
-  const getMappedResources = (type: 'article' | 'video' | 'description') => {
+  const getMappedResources = (type: 'article' | 'video' | 'note') => {
     if (fetchedDetails) {
       let sourceArr: any[] = [];
-      if (type === 'description') sourceArr = fetchedDetails.notes || [];
+      if (type === 'note') sourceArr = fetchedDetails.notes || [];
       if (type === 'article') sourceArr = fetchedDetails.articles || [];
       if (type === 'video') sourceArr = fetchedDetails.videos || [];
 
@@ -147,14 +147,14 @@ export const TopicEditPanel = ({
         type: type,
         // API often returns 'description' as the name for articles/notes if 'title' is missing
         title: item.title || item.description || 'Bez tytułu',
-        content: item.content || (type === 'description' ? item.description : undefined)
+        content: item.content || (type === 'note' ? item.description : undefined)
       })) as Resource[];
     }
     // Fallback to props
     return topic.resources.filter(r => r.type === type);
   };
 
-  const ownMaterials = getMappedResources('description');
+  const ownMaterials = getMappedResources('note');
   const articles = getMappedResources('article');
   const videos = getMappedResources('video');
 
@@ -232,12 +232,12 @@ export const TopicEditPanel = ({
 
   const ResourceItem = ({ resource }: { resource: Resource }) => (
     <div className="group flex items-center gap-3 rounded-lg border border-border p-3 hover:bg-secondary/30 transition-colors">
-      {resource.type === 'description' && <NotebookPen className="h-4 w-4 text-primary flex-shrink-0" />}
+      {resource.type === 'note' && <NotebookPen className="h-4 w-4 text-primary flex-shrink-0" />}
       {resource.type === 'article' && <Link className="h-4 w-4 text-accent flex-shrink-0" />}
       {resource.type === 'video' && <Video className="h-4 w-4 text-warning flex-shrink-0" />}
       <div className="flex-1 min-w-0">
         <p className="truncate font-medium">{resource.title}</p>
-        {resource.type === 'description' && resource.content && (
+        {resource.type === 'note' && resource.content && (
           <p className="text-xs text-muted-foreground truncate">
             {stripHtml(resource.content).substring(0, 50)}...
           </p>

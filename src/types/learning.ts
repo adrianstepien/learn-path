@@ -48,7 +48,7 @@ export interface QuestionAttempt {
 export interface Resource {
   id: string;
   topicId: string;
-  type: 'article' | 'video' | 'description';
+  type: 'article' | 'video' | 'note';
   title: string;
   content?: string;          // For descriptions
   url?: string;              // For articles/videos
