@@ -1052,6 +1052,7 @@ const addResource = async (topicId: string, resource: Omit<Resource, 'id' | 'top
     if (resource.type === 'note') {
       const noteDto: NoteDto = {
         description: resource.content || '',
+        title: resource.title,
         topicId: numericTopicId,
       };
       createdEntity = await api.createNote(noteDto);
@@ -1077,10 +1078,11 @@ const addResource = async (topicId: string, resource: Omit<Resource, 'id' | 'top
   // Update local state
   const newResource: Resource = {
     ...resource,
-    id: `res-${Date.now()}`,
+    id: createdEntity.id.toString(),
     topicId,
     isCompleted: false,
     createdAt: new Date(),
+    content: resource.type === 'description' ? createdEntity.description : undefined,
   };
 
   setState(prev => ({
