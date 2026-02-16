@@ -19,13 +19,11 @@ type EditorCanvasService = ReturnType<typeof useEditorCanvasService>;
 interface EditorCanvasLayoutProps {
   canvas: EditorCanvasService;
   onBack: () => void;
-  onStartStudy: () => void;
 }
 
 export const EditorCanvasLayout = ({
   canvas,
   onBack,
-  onStartStudy,
 }: EditorCanvasLayoutProps) => {
   const selectedRoadmap = canvas.selectedRoadmap;
 
@@ -77,15 +75,6 @@ export const EditorCanvasLayout = ({
             className="h-8 w-8 md:h-9 md:w-9 hidden sm:flex"
           >
             <Redo className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1 md:gap-2 h-8 md:h-9 px-2 md:px-4"
-            onClick={onStartStudy}
-          >
-            <Play className="h-4 w-4" />
-            <span className="hidden sm:inline">Ucz się</span>
           </Button>
           <Button
             onClick={canvas.handleSave}

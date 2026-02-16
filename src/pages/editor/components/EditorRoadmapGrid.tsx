@@ -24,7 +24,6 @@ interface EditorRoadmapGridProps {
   onEditRoadmap: (roadmap: Roadmap) => void;
   onDeleteRoadmap: (roadmapId: string) => void;
   onAddRoadmap: () => void;
-  onStartStudy: (roadmapId: string) => void;
 }
 
 export const EditorRoadmapGrid = ({
@@ -33,7 +32,6 @@ export const EditorRoadmapGrid = ({
   onEditRoadmap,
   onDeleteRoadmap,
   onAddRoadmap,
-  onStartStudy,
 }: EditorRoadmapGridProps) => {
   return (
     <motion.div

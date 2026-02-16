@@ -140,7 +140,7 @@ const RoadmapPage = () => {
         </motion.div>
 
         {/* Roadmaps Grid */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {filteredRoadmaps.map((roadmap, index) => (
             <RoadmapCard key={roadmap.id} roadmap={roadmap} delay={0.1 + index * 0.05} />
           ))}
