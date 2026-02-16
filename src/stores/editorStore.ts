@@ -129,28 +129,6 @@ const mapVideoToResource = (dto: VideoDto): Resource => ({
 });
 
 // ===== Domain to DTO Mappers =====
-
-const mapCategoryToDto = (cat: Category): CategoryDto => ({
-  id: cat.id ? parseInt(cat.id.replace(/\D/g, '')) || undefined : undefined,
-  title: cat.name,
-  description: cat.description,
-  iconData: cat.icon,
-});
-
-const mapRoadmapToDto = (roadmap: Roadmap): RoadmapDto => ({
-  id: roadmap.id ? parseInt(roadmap.id.replace(/\D/g, '')) || undefined : undefined,
-  title: roadmap.title,
-  description: roadmap.description,
-  categoryId: parseInt(roadmap.categoryId.replace(/\D/g, '')),
-});
-
-const mapTopicToCreateDto = (topic: { title: string; position: { x: number; y: number }; roadmapId: string }): CreateTopicDto => ({
-  title: topic.title,
-  canvasPositionX: topic.position.x,
-  canvasPositionY: topic.position.y,
-  roadmapId: parseInt(topic.roadmapId.replace(/\D/g, '')),
-});
-
 const mapTopicToUpdateDto = (topic: Topic): UpdateTopicDto => ({
   id: parseInt(topic.id.replace(/\D/g, '')),
   title: topic.title,
@@ -332,45 +310,7 @@ const selectRoadmap = async (roadmapId: string | null) => {
 
   setState(prev => ({ ...prev, isLoading: true }));
 
-  // Helper to load from local state
-  const loadFromLocalState = () => {
-    setState(prev => {
-      let foundRoadmap: Roadmap | undefined;
-      for (const cat of prev.categories) {
-        foundRoadmap = cat.roadmaps.find(r => r.id === roadmapId);
-        if (foundRoadmap) break;
-      }
-
-      if (!foundRoadmap) return { ...prev, isLoading: false };
-
-      const nodes: EditorNode[] = foundRoadmap.topics.map(t => ({
-        id: t.id,
-        topicId: t.id,
-        position: prev.savedPositions[t.id] || t.position,
-        title: t.title,
-        status: t.status,
-      }));
-
-      // Connections are now computed, not stored
-      return {
-        ...prev,
-        selectedRoadmapId: roadmapId,
-        selectedTopicId: null,
-        nodes,
-        isLoading: false,
-      };
-    });
-  };
-
   try {
-    const available = await isApiAvailable();
-
-    if (!available) {
-      // Fallback to local state
-      loadFromLocalState();
-      return;
-    }
-
     // Get roadmap ID as number
     const numericRoadmapId = parseNumericId(roadmapId);
 
@@ -408,7 +348,6 @@ const selectRoadmap = async (roadmapId: string | null) => {
     });
   } catch (err) {
     console.error('Failed to load roadmap topics:', err);
-    loadFromLocalState();
   }
 };
 
