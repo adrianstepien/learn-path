@@ -10,12 +10,6 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import type { Category, Roadmap } from '@/types/learning';
 
 interface EditorRoadmapGridProps {
@@ -60,34 +54,6 @@ export const EditorRoadmapGrid = ({
                 <Map className="h-6 w-6 md:h-7 md:w-7 text-primary" />
               </div>
               <div className="flex items-center gap-1">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-popover">
-                    <DropdownMenuItem onClick={(e) => {
-                        e.stopPropagation();
-                        onEditRoadmap(roadmap);
-                        }}>
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Edytuj
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => onDeleteRoadmap(roadmap.id)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Usuń
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
                 <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
               </div>
             </div>
@@ -99,6 +65,27 @@ export const EditorRoadmapGrid = ({
                 {roadmap.description}
               </p>
             )}
+          </div>
+          <div className="border-t border-border/50 px-4 md:px-6 py-3 md:py-4 bg-gradient-to-b from-secondary/30 to-secondary/10">
+            <div className="flex gap-2">
+              <Button
+                className="flex-1 h-9 flex items-center justify-center gap-2"
+                size="sm"
+                onClick={() => onEditRoadmap(roadmap)}
+              >
+                <Pencil className="h-4 w-4" />
+                Edytuj
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1 h-9 flex items-center justify-center gap-2"
+                size="sm"
+                onClick={() => onDeleteRoadmap(roadmap.id)}
+              >
+                <Trash2 className="h-4 w-4" />
+                Usuń
+              </Button>
+            </div>
           </div>
         </motion.div>
       ))}
