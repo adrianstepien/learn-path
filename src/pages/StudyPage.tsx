@@ -343,8 +343,8 @@ const StudyPage = () => {
                 className="rounded-2xl border border-border bg-card p-6"
               >
                 <h3 className="font-medium text-foreground mb-4">Jak dobrze znasz to zagadnienie?</h3>
-                <div className="grid grid-cols-5 gap-2">
-                  {[1, 2, 3, 4, 5].map(rating => (
+                <div className="grid grid-cols-4 gap-2">
+                  {[1, 2, 3, 4].map(rating => (
                     <button
                       key={rating}
                       className="rounded-xl border border-border p-2 md:p-3 text-center transition-all hover:border-primary hover:bg-primary/10 hover:scale-105"
@@ -359,15 +359,10 @@ const StudyPage = () => {
                         {rating === 2 && 'Słabo'}
                         {rating === 3 && 'Średnio'}
                         {rating === 4 && 'Dobrze'}
-                        {rating === 5 && 'Doskonale'}
                       </span>
                     </button>
                   ))}
                 </div>
-                <Button className="w-full mt-4" variant="outline" size="lg">
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Oznacz jako przerobione
-                </Button>
               </motion.div>
             )}
           </div>
