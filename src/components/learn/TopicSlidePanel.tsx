@@ -307,7 +307,7 @@ export const TopicSlidePanel = ({ topic, onClose }: TopicSlidePanelProps) => {
                             // API może zwracać title lub description jako nazwę
                             onClick={() => setSelectedMaterial({
                               id: desc.id,
-                              title: desc.title 'Bez tytułu',
+                              title: desc.title,
                               content: desc.description
                             })}
                             className="flex w-full items-center justify-between rounded-lg border border-border bg-card p-3 text-left transition-colors hover:bg-secondary"
