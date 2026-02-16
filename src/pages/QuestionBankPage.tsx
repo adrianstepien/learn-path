@@ -159,8 +159,6 @@ const QuestionBankPage = () => {
 
   const handleSaveQuestion = async (questionId: string, updates: any) => {
     try {
-        console.log('co ja tam mam ')
-        console.log(updates)
       await updateQuestion({ id: questionId, data: updates });
       toast.success('Pytanie zostało zaktualizowane');
       setIsEditDialogOpen(false);

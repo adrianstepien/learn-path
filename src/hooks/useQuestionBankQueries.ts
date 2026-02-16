@@ -237,8 +237,6 @@ export const useQuestionMutations = () => {
     mutationFn: async ({ id, data }: { id: string; data: Partial<Question> }) => {
       const available = await isApiAvailable();
       if (!available) throw new Error("API unavailable");
-console.log('uo tutej')
-console.log(data)
 // 1. POBIERZ AKTUALNE DANE Z CACHE
       const cachedQuestions = queryClient.getQueryData<Question[]>(['cards']);
       const existingQuestion = cachedQuestions?.find(q => q.id === id);
@@ -273,13 +271,9 @@ console.log(data)
       await api.updateCard(numericId, cardDto);
     },
     onSuccess: () => {
-        console.log('jada swiry jada')
+      // Po sukcesie odświeżamy cache przez react-query
       queryClient.invalidateQueries({ queryKey: ['cards'] });
-    },
-onError: (err, newData, context) => {
-  console.error("Błąd mutacji:", err); // Zobaczysz to w konsoli
-  // ... reszta kodu cofania zmian
-},
+    }
   });
 
   const addQuestionMutation = useMutation({
