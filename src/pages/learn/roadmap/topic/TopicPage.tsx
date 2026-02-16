@@ -1,6 +1,7 @@
+// src/pages/learn/roadmap/topic/TopicPage.tsx
 import { useState, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom'; // Dodaj useNavigate
 import { MainLayout } from '@/components/layout/MainLayout';
 import { TopicSlidePanel } from '@/components/learn/TopicSlidePanel';
 import { Topic } from '@/types/learning';
@@ -16,64 +17,48 @@ import {
 } from '@/pages/learn/roadmap/components';
 
 const TopicPage = () => {
-  const { roadmapId } = useParams();
+  // ZMIANA: Pobieramy też categoryId
+  const { roadmapId, categoryId } = useParams();
+  const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
 
-  // Zoom and pan logic
-  const {
-    zoom,
-    pan,
-    handleZoomIn,
-    handleZoomOut,
-    handleResetView,
-    setPan,
-    setZoom,
-  } = useZoomPan();
+  // ZMIANA: Przekazujemy oba ID do hooka
+  const { roadmap, getTopicPosition, isLoading, isError } = useRoadmapData(categoryId, roadmapId);
 
-  // Touch gesture handling
-  const {
-    handleTouchStart,
-    handleTouchMove,
-    handleTouchEnd,
-  } = useTouchGestures({
-    zoom,
-    setZoom,
-    pan,
-    setPan,
-  });
+  // ... (useZoomPan, useTouchGestures - bez zmian) ...
+  const { zoom, pan, handleZoomIn, handleZoomOut, handleResetView, setPan, setZoom } = useZoomPan();
+  const { handleTouchStart, handleTouchMove, handleTouchEnd } = useTouchGestures({ zoom, setZoom, pan, setPan });
 
-  // Roadmap data
-  const { roadmap, isLoading, error } = useRoadmapData(roadmapId);
+  // Drag logic (uproszczona wersja dla czytelności)
   const [isDragging, setIsDragging] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+  // ... (handleMouseDown/Move/Up bez zmian) ...
+  const handleMouseDown = (e: React.MouseEvent) => { setIsDragging(true); setStartPos({ x: e.clientX - pan.x, y: e.clientY - pan.y }); };
+  const handleMouseMove = (e: React.MouseEvent) => { if (isDragging) setPan({ x: e.clientX - startPos.x, y: e.clientY - startPos.y }); };
+  const handleMouseUp = () => setIsDragging(false);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setStartPos({
-      x: e.clientX - pan.x,
-      y: e.clientY - pan.y
-    });
-  };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    setPan({
-      x: e.clientX - startPos.x,
-      y: e.clientY - startPos.y
-    });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  // Handle roadmap not found
-  if (!roadmap) {
+  // ZMIANA: Obsługa ładowania
+  if (isLoading) {
     return (
       <MainLayout>
-        <div className="flex h-full items-center justify-center p-8">
-          <p className="text-muted-foreground">Roadmapa nie została znaleziona</p>
+        <div className="flex h-screen items-center justify-center">
+          ładowanie...
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // ZMIANA: Obsługa błędu
+  if (isError || !roadmap) {
+    return (
+      <MainLayout>
+        <div className="flex h-screen flex-col items-center justify-center gap-4">
+          <p className="text-muted-foreground">Nie znaleziono roadmapy</p>
+          <button onClick={() => navigate('/learn')} className="text-primary hover:underline">
+            Wróć do listy
+          </button>
         </div>
       </MainLayout>
     );
@@ -83,8 +68,7 @@ const TopicPage = () => {
 
   return (
     <MainLayout>
-      <div className="flex h-screen flex-col">
-        {/* Top Bar */}
+      <div className="flex h-screen flex-col overflow-hidden"> {/* Dodano overflow-hidden */}
         <RoadmapToolbar
           roadmapTitle={roadmap.title}
           roadmapId={roadmap.id}
@@ -94,30 +78,41 @@ const TopicPage = () => {
           onResetView={handleResetView}
         />
 
-        {/* Legend */}
         <StatusLegend />
 
-        {/* Canvas */}
-        <RoadmapCanvas
-          roadmap={roadmap}
-          connections={connections}
-          zoom={zoom}
-          pan={pan}
-          onPanChange={setPan}
-          selectedTopic={selectedTopic}
-          onTopicClick={setSelectedTopic}
-          getTopicPosition={getTopicPosition}
-           onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
+        {/* Dodano wrapper dla zdarzeń myszy na kontenerze */}
+        <div
+          className="flex-1 relative w-full h-full bg-background cursor-grab active:cursor-grabbing"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          containerRef={containerRef}
-        />
+          ref={containerRef}
+        >
+            <RoadmapCanvas
+              roadmap={roadmap}
+              connections={connections}
+              zoom={zoom}
+              pan={pan}
+              onPanChange={setPan}
+              selectedTopic={selectedTopic}
+              onTopicClick={setSelectedTopic}
+              getTopicPosition={getTopicPosition}
+              // Puste handlery, bo obsługujemy je w divie wyżej
+              onMouseDown={() => {}}
+              onMouseMove={() => {}}
+              onMouseUp={() => {}}
+              onTouchStart={() => {}}
+              onTouchMove={() => {}}
+              onTouchEnd={() => {}}
+              containerRef={containerRef}
+            />
+        </div>
       </div>
 
-      {/* Slide Panel */}
       <AnimatePresence>
         {selectedTopic && (
           <TopicSlidePanel

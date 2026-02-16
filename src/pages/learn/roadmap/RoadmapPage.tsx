@@ -12,7 +12,7 @@ import { useCategories } from '@/hooks/queries/useCategories';
 // Komponent RoadmapCard bez zmian...
 const RoadmapCard = ({ roadmap, delay }: { roadmap: Roadmap; delay: number }) => {
   const navigate = useNavigate();
-  // ... (reszta kodu RoadmapCard bez zmian, np. navigate)
+  const { categoryId } = useParams();
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -23,7 +23,7 @@ const RoadmapCard = ({ roadmap, delay }: { roadmap: Roadmap; delay: number }) =>
     >
       {/* Header - clickable to navigate to roadmap view */}
       <div 
-        onClick={() => navigate(`/learn/topic/${roadmap.id}`)}
+        onClick={() => navigate(`/learn/${categoryId}/topic/${roadmap.id}`)}
         className="cursor-pointer p-6 pb-4 transition-all hover:bg-gradient-to-br hover:from-secondary/50 hover:to-transparent"
       >
         <div className="mb-4 flex items-center justify-between">

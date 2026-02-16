@@ -1,3 +1,4 @@
+// src/pages/learn/roadmap/hooks/useRoadmapData.ts
 import { useQuery } from '@tanstack/react-query';
 import * as api from '@/lib/api';
 import { Roadmap, Topic } from '@/types/learning';
@@ -6,81 +7,73 @@ import { TopicDto } from '@/lib/api/types';
 interface UseRoadmapDataReturn {
   roadmap: Roadmap | undefined;
   isLoading: boolean;
-  error: unknown;
+  isError: boolean;
   getTopicPosition: (topic: Topic) => { x: number; y: number };
 }
 
-// Helper do mapowania DTO tematu na typ domenowy
+// Mapper z DTO na typ domenowy
 const mapTopicDtoToTopic = (dto: TopicDto, roadmapId: string): Topic => ({
   id: String(dto.id),
   roadmapId: roadmapId,
   title: dto.title,
   description: dto.description,
-  // Pozycja z backendu
-  position: { x: dto.canvasPositionX || 0, y: dto.canvasPositionY || 0 },
-  status: 'not_started', // Tutaj w przyszłości podepniesz postęp użytkownika
+  position: { x: dto.canvasPositionX || 0, y: dto.canvasPositionY || 0 }, // Pozycja z bazy
+  status: 'not_started',
   questions: [],
-  resources: [], // Resources można pobrać osobnym zapytaniem jeśli są ciężkie
+  resources: [],
   childTopicIds: [],
   createdAt: new Date(),
   updatedAt: new Date(),
 });
 
-export const useRoadmapData = (roadmapId: string | undefined): UseRoadmapDataReturn => {
-  const numericId = roadmapId ? parseInt(roadmapId.replace(/\D/g, '')) : NaN;
-  const isValidId = !isNaN(numericId);
+export const useRoadmapData = (categoryId: string | undefined, roadmapId: string | undefined): UseRoadmapDataReturn => {
+  // Parsowanie ID (zakładając że mogą przyjść jako np. "roadmap-1" lub po prostu "1")
+  const numericCatId = categoryId ? parseInt(categoryId.replace(/\D/g, '')) : NaN;
+  const numericRoadmapId = roadmapId ? parseInt(roadmapId.replace(/\D/g, '')) : NaN;
 
-  // 1. Pobieranie metadanych roadmapy (tytuł, opis)
-  const roadmapQuery = useQuery({
-    queryKey: ['roadmap', roadmapId],
+  // 1. Pobieramy listę roadmap w kategorii, aby znaleźć tę jedną i wziąć jej tytuł/opis
+  // (Robimy to, bo API nie ma endpointu getRoadmapById)
+  const { data: roadmapMeta, isLoading: isMetaLoading, isError: isMetaError } = useQuery({
+    queryKey: ['roadmaps', categoryId],
     queryFn: async () => {
-      if (!isValidId) throw new Error('Invalid ID');
-      const dto = await api.getRoadmapById(numericId);
-      return dto;
+      const roadmaps = await api.getRoadmaps(numericCatId);
+      return roadmaps.find(r => r.id === numericRoadmapId);
     },
-    enabled: isValidId,
-    retry: 1, // Nie ponawiaj w nieskończoność jeśli 404
+    enabled: !isNaN(numericCatId) && !isNaN(numericRoadmapId),
   });
 
-  // 2. Pobieranie tematów dla roadmapy
-  const topicsQuery = useQuery({
-    queryKey: ['roadmap', roadmapId, 'topics'],
+  // 2. Pobieramy tematy dla tej roadmapy
+  const { data: topics = [], isLoading: isTopicsLoading, isError: isTopicsError } = useQuery({
+    queryKey: ['topics', roadmapId],
     queryFn: async () => {
-      if (!isValidId) return [];
-      const dtos = await api.getTopics(numericId);
-      return dtos.map(dto => mapTopicDtoToTopic(dto, roadmapId!));
+      const dtos = await api.getTopics(numericRoadmapId);
+      return dtos.map(dto => mapTopicDtoToTopic(dto, String(numericRoadmapId)));
     },
-    enabled: isValidId,
+    enabled: !isNaN(numericRoadmapId),
   });
 
-  // Łączenie danych
-  let roadmap: Roadmap | undefined = undefined;
+  // 3. Składamy pełny obiekt
+  const roadmap: Roadmap | undefined = roadmapMeta ? {
+    id: String(roadmapMeta.id),
+    categoryId: String(roadmapMeta.categoryId),
+    title: roadmapMeta.title,
+    description: roadmapMeta.description,
+    topics: topics,
+    connections: [],
+    progress: 0,
+    totalQuestions: 0,
+    masteredQuestions: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  } : undefined;
 
-  if (roadmapQuery.data) {
-    roadmap = {
-      id: String(roadmapQuery.data.id),
-      categoryId: String(roadmapQuery.data.categoryId),
-      title: roadmapQuery.data.title,
-      description: roadmapQuery.data.description,
-      topics: topicsQuery.data || [], // Podpinamy pobrane tematy
-      connections: [],
-      progress: 0, // Do pobrania z endpointu statystyk
-      totalQuestions: 0,
-      masteredQuestions: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  }
-
-  // Funkcja pomocnicza do pozycji (teraz bierze po prostu z obiektu, bez store'a)
-  const getTopicPosition = (topic: Topic) => {
-    return topic.position || { x: 0, y: 0 };
-  };
+  // Prosty getter pozycji - bierze to co przyszło z API w obiekcie topic
+  const getTopicPosition = (topic: Topic) => topic.position;
 
   return {
     roadmap,
-    isLoading: roadmapQuery.isLoading || topicsQuery.isLoading,
-    error: roadmapQuery.error || topicsQuery.error,
+    isLoading: isMetaLoading || isTopicsLoading,
+    isError: isMetaError || isTopicsError || (!isMetaLoading && !roadmapMeta),
     getTopicPosition,
   };
 };
