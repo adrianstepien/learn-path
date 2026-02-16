@@ -119,29 +119,6 @@ export const EditorRoadmapGrid = ({
               </div>
             </div>
           </div>
-
-          {/* Actions */}
-          <div className="border-t border-border/50 px-4 md:px-6 py-3 md:py-4 bg-gradient-to-b from-secondary/30 to-secondary/10">
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                size="sm"
-                onClick={() => onSelectRoadmap(roadmap.id)}
-              >
-                <Pencil className="h-4 w-4 mr-2" />
-                Edytuj
-              </Button>
-              <Button
-                className="flex-1"
-                size="sm"
-                onClick={() => onStartStudy(roadmap.id)}
-              >
-                <Play className="h-4 w-4 mr-2" />
-                Ucz się
-              </Button>
-            </div>
-          </div>
         </motion.div>
       ))}
 
