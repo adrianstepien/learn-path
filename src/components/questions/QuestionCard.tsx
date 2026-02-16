@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion';
-import { 
-  HelpCircle, 
-  CheckCircle2, 
-  Code, 
-  MessageSquare, 
+import {
+  HelpCircle,
+  CheckCircle2,
+  Code,
+  MessageSquare,
   ToggleLeft,
   Pencil,
   Trash2,
@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { QuestionWithContext } from '@/stores/questionBankStore';
 import { QuestionType, DifficultyLevel, ImportanceLevel } from '@/types/learning';
+import { stripHtml } from '@/lib/utils';
 
 interface QuestionCardProps {
   question: QuestionWithContext;
@@ -92,7 +93,7 @@ export const QuestionCard = ({ question, onEdit, onDelete, onStudy }: QuestionCa
             {questionTypeLabels[question.type]}
           </span>
         </div>
-        
+
         <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onStudy}>
             <Play className="h-4 w-4 text-green-400" />
@@ -108,7 +109,7 @@ export const QuestionCard = ({ question, onEdit, onDelete, onStudy }: QuestionCa
 
       {/* Question */}
       <p className="mb-3 text-sm leading-relaxed text-foreground line-clamp-3">
-        {question.question}
+        {stripHtml(question.question)}
       </p>
 
       {/* Context info */}
