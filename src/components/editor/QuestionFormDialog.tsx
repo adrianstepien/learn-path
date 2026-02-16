@@ -21,6 +21,7 @@ import {
 import { X } from 'lucide-react';
 import { Question, QuestionType, DifficultyLevel, ImportanceLevel } from '@/types/learning';
 import { RichTextEditor } from '@/components/texteditor/RichTextEditor';
+import { stripHtml } from '@/lib/utils';
 
 interface QuestionFormDialogProps {
   isOpen: boolean;
@@ -112,7 +113,6 @@ export const QuestionFormDialog = ({
 
   const handleSave = () => {
     // Strip HTML to check if content is actually empty
-    const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '').trim();
     if (!stripHtml(content) || !stripHtml(answer)) return;
 
     onSave({
@@ -129,7 +129,6 @@ export const QuestionFormDialog = ({
     onClose();
   };
 
-  const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '').trim();
   const isValid = stripHtml(content) && stripHtml(answer);
 
   return (

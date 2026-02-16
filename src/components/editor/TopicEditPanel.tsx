@@ -39,6 +39,7 @@ import { cn } from '@/lib/utils';
 import { QuestionFormDialog } from './QuestionFormDialog';
 import { ResourceFormDialog } from './ResourceFormDialog';
 import { getTopicById } from '@/lib/api/topics';
+import { stripHtml } from '@/lib/utils';
 
 interface TopicEditPanelProps {
   topic: Topic;
@@ -191,9 +192,6 @@ export const TopicEditPanel = ({
       onUpdateResource(editingResource.id, resourceData);
     }
   };
-
-  // Strip HTML for preview
-  const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '').trim();
 
   const ResourceItem = ({ resource }: { resource: Resource }) => (
     <div className="group flex items-center gap-3 rounded-lg border border-border p-3 hover:bg-secondary/30 transition-colors">

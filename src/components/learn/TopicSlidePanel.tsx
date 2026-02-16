@@ -25,6 +25,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { getTopicById } from '@/lib/api/topics';
+import { stripHtml } from '@/lib/utils';
 
 interface TopicSlidePanelProps {
   topic: Topic;
@@ -454,7 +455,7 @@ export const TopicSlidePanel = ({ topic, onClose }: TopicSlidePanelProps) => {
                           >
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-foreground line-clamp-2 text-sm">
-                                {question.content || question.question || question.front || 'Pytanie'}
+                                {stripHtml(question.content || question.question || question.front || 'Pytanie')}
                               </p>
                               <div className="flex items-center gap-2 mt-1">
                                 {question.difficulty && (

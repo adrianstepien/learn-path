@@ -23,6 +23,7 @@ import { Question, QuestionType, DifficultyLevel, ImportanceLevel, Category, Roa
 import { QuestionWithContext } from '@/stores/questionBankStore';
 import { RichTextEditor } from '@/components/texteditor/RichTextEditor';
 import { toast } from 'sonner';
+import { stripHtml } from '@/lib/utils';
 
 interface QuestionEditDialogProps {
   isOpen: boolean;
@@ -169,9 +170,6 @@ export const QuestionEditDialog = ({
   const handleSave = async (e: React.MouseEvent) => {
     e.preventDefault(); // Zapobiega ewentualnemu submitowi formularza i przeładowaniu
 
-    // Prosta walidacja (strip HTML tags to check if empty)
-    const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '').trim();
-
     if (!stripHtml(content) || !stripHtml(answer)) {
       toast.error('Wypełnij treść pytania i odpowiedź');
       return;
@@ -217,7 +215,6 @@ export const QuestionEditDialog = ({
     }
   };
 
-  const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '').trim();
   const isValid = stripHtml(content) && stripHtml(answer) && selectedTopicId;
 
   return (
