@@ -21,8 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { X, Loader2 } from 'lucide-react';
 import { Question, QuestionType, DifficultyLevel, ImportanceLevel, Category, Roadmap, Topic } from '@/types/learning';
 import { QuestionWithContext } from '@/stores/questionBankStore';
-import { RichTextEditor } from '@/components/texteditor/RichTextEditor'; // Zmiana importu
-import { createCard, updateCard } from '@/lib/api/cards';
+import { RichTextEditor } from '@/components/texteditor/RichTextEditor';
 import { toast } from 'sonner';
 
 interface QuestionEditDialogProps {
@@ -30,8 +29,8 @@ interface QuestionEditDialogProps {
   onClose: () => void;
   question: QuestionWithContext | null;
   categories: Category[];
-  onSave: (questionId: string, updates: Partial<Question>) => void;
-  onAdd: (topicId: string, question: Omit<Question, 'id' | 'topicId' | 'createdAt' | 'updatedAt' | 'easeFactor' | 'interval' | 'repetitions'>) => void;
+  onSave: (questionId: string, updates: Partial<Question>) => Promise<void> | void;
+  onAdd: (topicId: string, question: Omit<Question, 'id' | 'topicId' | 'createdAt' | 'updatedAt' | 'easeFactor' | 'interval' | 'repetitions'>) => Promise<void> | void;
   mode: 'edit' | 'add';
 }
 
@@ -73,10 +72,10 @@ export const QuestionEditDialog = ({
   const [selectedRoadmapId, setSelectedRoadmapId] = useState<string>('');
   const [selectedTopicId, setSelectedTopicId] = useState<string>('');
 
-  // Stan formularza (taki sam jak w QuestionFormDialog)
+  // Stan formularza
   const [type, setType] = useState<QuestionType>('open_ended');
-  const [content, setContent] = useState(''); // String zamiast OutputData
-  const [answer, setAnswer] = useState('');   // String zamiast OutputData
+  const [content, setContent] = useState('');
+  const [answer, setAnswer] = useState('');
   const [hint, setHint] = useState('');
   const [explanation, setExplanation] = useState('');
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('beginner');
@@ -99,13 +98,12 @@ export const QuestionEditDialog = ({
   useEffect(() => {
     if (isOpen) {
       if (mode === 'edit' && question) {
-        setSelectedCategoryId(question.categoryId);
-        setSelectedRoadmapId(question.roadmapId);
-        setSelectedTopicId(question.topicId);
+        // Ustawiamy lokalizację na podstawie edytowanego pytania
+        setSelectedCategoryId(question.categoryId || '');
+        setSelectedRoadmapId(question.roadmapId || '');
+        setSelectedTopicId(question.topicId || '');
 
         setType(question.type);
-        // Uwaga: Jeśli w bazie jest stary JSON z EditorJS, RichTextEditor wyświetli go jako tekst.
-        // Docelowo zakłada się, że dane będą w formacie HTML/String.
         setContent(question.question || '');
         setAnswer(question.answer || '');
         setHint(question.hint || '');
@@ -114,7 +112,7 @@ export const QuestionEditDialog = ({
         setImportance(question.importance);
         setTags([...question.tags]);
       } else {
-        // Reset for add mode
+        // Reset for add mode - domyślnie pierwsza kategoria jeśli dostępna
         setSelectedCategoryId(categories[0]?.id || '');
         setSelectedRoadmapId('');
         setSelectedTopicId('');
@@ -134,18 +132,28 @@ export const QuestionEditDialog = ({
 
   // Update roadmap selection when category changes
   useEffect(() => {
-    if (mode === 'add') {
-      setSelectedRoadmapId('');
-      setSelectedTopicId('');
+    if (isOpen && selectedCategoryId) {
+       const currentCat = categories.find(c => c.id === selectedCategoryId);
+       // Sprawdzamy czy obecna roadmapa należy do nowej kategorii, jak nie to reset
+       const roadmapExists = currentCat?.roadmaps.some(r => r.id === selectedRoadmapId);
+       if (!roadmapExists && mode === 'add') { // W trybie add resetujemy agresywniej
+           setSelectedRoadmapId('');
+           setSelectedTopicId('');
+       }
     }
-  }, [selectedCategoryId, mode]);
+  }, [selectedCategoryId, categories, mode, isOpen]); // Dodane zależności dla bezpieczeństwa
 
   // Update topic selection when roadmap changes
   useEffect(() => {
-    if (mode === 'add') {
-      setSelectedTopicId('');
+    if (isOpen && selectedRoadmapId) {
+        // Podobna logika dla tematów
+        const currentRoadmap = availableRoadmaps.find(r => r.id === selectedRoadmapId);
+        const topicExists = currentRoadmap?.topics.some(t => t.id === selectedTopicId);
+        if (!topicExists && mode === 'add') {
+             setSelectedTopicId('');
+        }
     }
-  }, [selectedRoadmapId, mode]);
+  }, [selectedRoadmapId, availableRoadmaps, mode, isOpen]);
 
   const handleAddTag = () => {
     if (newTag.trim() && !tags.includes(newTag.trim())) {
@@ -158,7 +166,9 @@ export const QuestionEditDialog = ({
     setTags(tags.filter(t => t !== tagToRemove));
   };
 
-  const handleSave = async () => {
+  const handleSave = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Zapobiega ewentualnemu submitowi formularza i przeładowaniu
+
     // Prosta walidacja (strip HTML tags to check if empty)
     const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '').trim();
 
@@ -167,69 +177,40 @@ export const QuestionEditDialog = ({
       return;
     }
 
-    if (mode === 'add' && !selectedTopicId) {
-      toast.error('Wybierz temat, do którego chcesz dodać pytanie');
+    if (!selectedTopicId) {
+      toast.error('Wybierz temat, do którego przypisane jest pytanie');
       return;
     }
 
     setIsSaving(true);
 
     try {
-      // Convert difficulty/importance to API values
-      const difficultyValue = difficultyLevels.find(d => d.value === difficulty)?.apiValue || 1;
-      const importanceValue = importanceLevels.find(i => i.value === importance)?.apiValue || 2;
-
-      // Prepare card DTO for API
-      const cardDto = {
-        question: content, // Teraz wysyłamy string HTML
-        answer: answer,    // Teraz wysyłamy string HTML
-        difficulty: difficultyValue,
-        importance: importanceValue,
-        topicId: parseInt(selectedTopicId || question?.topicId || '0', 10),
+      const dataToSave = {
+        type,
+        question: content,
+        answer: answer,
+        hint: hint.trim() || undefined,
+        explanation: explanation.trim() || undefined,
+        difficulty,
+        importance,
+        tags,
+        // Ważne: Przekazujemy topicId, bo przy edycji mogło zostać zmienione (przeniesienie pytania)
+        topicId: selectedTopicId
       };
 
       if (mode === 'edit' && question) {
-        // Update existing card via API
-        const cardId = parseInt(question.id.replace('q-', ''), 10);
-        if (!isNaN(cardId)) {
-          await updateCard(cardId, { id: cardId, ...cardDto });
-        }
-
-        // Also update local store
-        onSave(question.id, {
-          type,
-          question: content, // aktualizacja nazwy pola zgodnie z interfejsem
-          answer: answer,
-          hint: hint.trim() || undefined,
-          explanation: explanation.trim() || undefined,
-          difficulty,
-          importance,
-          tags,
-        });
-
+        // Wywołujemy funkcję z rodzica - ona powinna obsłużyć API i aktualizację stanu
+        await onSave(question.id, dataToSave);
         toast.success('Pytanie zostało zaktualizowane');
-      } else if (mode === 'add' && selectedTopicId) {
-        // Create new card via API
-        await createCard(cardDto);
-
-        // Also add to local store
-        onAdd(selectedTopicId, {
-          type,
-          question: content,
-          answer: answer,
-          hint: hint.trim() || undefined,
-          explanation: explanation.trim() || undefined,
-          difficulty,
-          importance,
-          tags,
-        });
-
+      } else {
+        // Wywołujemy funkcję z rodzica
+        await onAdd(selectedTopicId, dataToSave);
         toast.success('Pytanie zostało dodane');
       }
 
       onClose();
     } catch (error) {
-      console.error('Error saving card:', error);
+      console.error('Error saving question:', error);
       toast.error('Wystąpił błąd podczas zapisywania');
     } finally {
       setIsSaving(false);
@@ -237,7 +218,7 @@ export const QuestionEditDialog = ({
   };
 
   const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '').trim();
-  const isValid = stripHtml(content) && stripHtml(answer) && (mode === 'edit' || selectedTopicId);
+  const isValid = stripHtml(content) && stripHtml(answer) && selectedTopicId;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -248,16 +229,15 @@ export const QuestionEditDialog = ({
           </DialogTitle>
           <DialogDescription>
             {mode === 'edit'
-              ? 'Zmodyfikuj treść i właściwości pytania.'
+              ? 'Możesz edytować treść oraz przenieść pytanie do innego tematu.'
               : 'Utwórz nowe pytanie i przypisz je do tematu.'
             }
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Location selection - unikalne dla tego komponentu */}
-          {mode === 'add' ? (
-            <div className="grid grid-cols-3 gap-3 mb-4 p-4 bg-muted/20 rounded-lg">
+          {/* Location selection - Zawsze widoczne, aby umożliwić przenoszenie pytań */}
+          <div className="grid grid-cols-3 gap-3 mb-4 p-4 bg-muted/20 rounded-lg border border-border/50">
               <div className="space-y-2">
                 <Label>Kategoria</Label>
                 <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
@@ -309,18 +289,7 @@ export const QuestionEditDialog = ({
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-          ) : question && (
-            <div className="rounded-lg bg-muted/50 p-3 mb-4">
-              <p className="text-sm text-muted-foreground">
-                <span className="font-medium text-foreground">{question.categoryName}</span>
-                {' → '}
-                <span className="font-medium text-foreground">{question.roadmapTitle}</span>
-                {' → '}
-                <span className="font-medium text-primary">{question.topicTitle}</span>
-              </p>
-            </div>
-          )}
+          </div>
 
           {/* Type and Difficulty Row */}
           <div className="grid grid-cols-3 gap-3">
