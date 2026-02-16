@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Database, BarChart3, BookOpen } from 'lucide-react';
@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button';
 import { QuestionCard } from '@/components/questions/QuestionCard';
 import { QuestionFilters } from '@/components/questions/QuestionFilters';
 import { QuestionEditDialog } from '@/components/questions/QuestionEditDialog';
-import { useQuestionBankStore, QuestionWithContext } from '@/stores/questionBankStore';
+// IMPORTUJEMY NOWE HOOKI ZAMIAST STORE
+import { useQuestionBankData, useQuestionMutations, QuestionWithContext } from '@/hooks/useQuestionBankQueries';
+import { QuestionType, DifficultyLevel, ImportanceLevel } from '@/types/learning';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,14 +22,108 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
+// Definicja stanu filtrów lokalnie w komponencie
+interface FilterState {
+  search: string;
+  categoryId: string | null;
+  roadmapId: string | null;
+  topicId: string | null;
+  type: QuestionType | null;
+  difficulty: DifficultyLevel | null;
+  importance: ImportanceLevel | null;
+}
+
+const initialFilters: FilterState = {
+  search: '',
+  categoryId: null,
+  roadmapId: null,
+  topicId: null,
+  type: null,
+  difficulty: null,
+  importance: null,
+};
+
 const QuestionBankPage = () => {
   const navigate = useNavigate();
-  const store = useQuestionBankStore();
-  
+
+  // 1. Użycie React Query Hooków
+  const { questions: allQuestions, categories, isLoading } = useQuestionBankData();
+  const { deleteQuestion, updateQuestion, addQuestion } = useQuestionMutations();
+
+  // 2. Lokalny stan filtrów i UI
+  const [filters, setFilters] = useState<FilterState>(initialFilters);
   const [editingQuestion, setEditingQuestion] = useState<QuestionWithContext | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'edit' | 'add'>('edit');
   const [questionToDelete, setQuestionToDelete] = useState<QuestionWithContext | null>(null);
+
+  // 3. Logika filtrowania (przeniesiona ze store)
+  const filteredQuestions = useMemo(() => {
+    return allQuestions.filter(q => {
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase();
+        const matchesSearch =
+          q.question.toLowerCase().includes(searchLower) ||
+          q.answer.toLowerCase().includes(searchLower) ||
+          q.topicTitle.toLowerCase().includes(searchLower) ||
+          q.tags.some(tag => tag.toLowerCase().includes(searchLower));
+        if (!matchesSearch) return false;
+      }
+
+      if (filters.categoryId && q.categoryId !== filters.categoryId) return false;
+      if (filters.roadmapId && q.roadmapId !== filters.roadmapId) return false;
+      if (filters.topicId && q.topicId !== filters.topicId) return false;
+      if (filters.type && q.type !== filters.type) return false;
+      if (filters.difficulty && q.difficulty !== filters.difficulty) return false;
+      if (filters.importance && q.importance !== filters.importance) return false;
+
+      return true;
+    });
+  }, [allQuestions, filters]);
+
+  // 4. Logika pomocnicza dla dropdownów (Available Roadmaps/Topics)
+  const availableRoadmaps = useMemo(() => {
+    if (!filters.categoryId) {
+      return categories.flatMap(c => c.roadmaps);
+    }
+    const category = categories.find(c => c.id === filters.categoryId);
+    return category?.roadmaps || [];
+  }, [categories, filters.categoryId]);
+
+  const availableTopics = useMemo(() => {
+    if (!filters.roadmapId) {
+      return availableRoadmaps.flatMap(r => r.topics);
+    }
+    const roadmap = availableRoadmaps.find(r => r.id === filters.roadmapId);
+    return roadmap?.topics || [];
+  }, [availableRoadmaps, filters.roadmapId]);
+
+  // 5. Statystyki on-the-fly
+  const stats = useMemo(() => ({
+    total: allQuestions.length,
+    filtered: filteredQuestions.length,
+    byType: {
+      open_ended: allQuestions.filter(q => q.type === 'open_ended').length,
+      code_write: allQuestions.filter(q => q.type === 'code_write').length,
+    },
+    byDifficulty: {
+      beginner: allQuestions.filter(q => q.difficulty === 'beginner').length,
+    },
+  }), [allQuestions, filteredQuestions]);
+
+  // Handlery
+  const updateFilter = <K extends keyof FilterState>(key: K, value: FilterState[K]) => {
+    setFilters(prev => {
+      const newFilters = { ...prev, [key]: value };
+      if (key === 'categoryId') {
+        newFilters.roadmapId = null;
+        newFilters.topicId = null;
+      } else if (key === 'roadmapId') {
+        newFilters.topicId = null;
+      }
+      return newFilters;
+    });
+  };
 
   const handleEdit = (question: QuestionWithContext) => {
     setEditingQuestion(question);
@@ -45,11 +141,15 @@ const QuestionBankPage = () => {
     setQuestionToDelete(question);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (questionToDelete) {
-      store.deleteQuestion(questionToDelete.id);
-      toast.success('Pytanie zostało usunięte');
-      setQuestionToDelete(null);
+      try {
+        await deleteQuestion(questionToDelete.id);
+        toast.success('Pytanie zostało usunięte');
+        setQuestionToDelete(null);
+      } catch (error) {
+        toast.error('Błąd podczas usuwania pytania');
+      }
     }
   };
 
@@ -57,15 +157,37 @@ const QuestionBankPage = () => {
     navigate(`/learn/study/${question.topicId}?questionId=${question.id}`);
   };
 
-  const handleSaveQuestion = (questionId: string, updates: any) => {
-    store.updateQuestion(questionId, updates);
-    toast.success('Pytanie zostało zaktualizowane');
+  const handleSaveQuestion = async (questionId: string, updates: any) => {
+    try {
+        console.log('co ja tam mam ')
+        console.log(updates)
+      await updateQuestion({ id: questionId, data: updates });
+      toast.success('Pytanie zostało zaktualizowane');
+      setIsEditDialogOpen(false);
+    } catch (error) {
+      toast.error('Błąd aktualizacji');
+    }
   };
 
-  const handleAddQuestion = (topicId: string, question: any) => {
-    store.addQuestion(topicId, question);
-    toast.success('Pytanie zostało dodane');
+  const handleAddQuestion = async (topicId: string, question: any) => {
+    try {
+      await addQuestion({ topicId, data: question });
+      toast.success('Pytanie zostało dodane');
+      setIsEditDialogOpen(false);
+    } catch (error) {
+      toast.error('Błąd dodawania');
+    }
   };
+
+  if (isLoading) {
+      return (
+          <MainLayout>
+              <div className="flex items-center justify-center min-h-screen">
+                  <div className="text-lg">Ładowanie danych...</div>
+              </div>
+          </MainLayout>
+      )
+  }
 
   return (
     <MainLayout>
@@ -103,7 +225,7 @@ const QuestionBankPage = () => {
                 <Database className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{store.stats.total}</p>
+                <p className="text-2xl font-bold text-foreground">{stats.total}</p>
                 <p className="text-xs text-muted-foreground">Wszystkich pytań</p>
               </div>
             </div>
@@ -115,7 +237,7 @@ const QuestionBankPage = () => {
                 <BookOpen className="h-5 w-5 text-green-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{store.stats.byType.open_ended}</p>
+                <p className="text-2xl font-bold text-foreground">{stats.byType.open_ended}</p>
                 <p className="text-xs text-muted-foreground">Pytań otwartych</p>
               </div>
             </div>
@@ -127,7 +249,7 @@ const QuestionBankPage = () => {
                 <BarChart3 className="h-5 w-5 text-blue-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{store.stats.byDifficulty.beginner}</p>
+                <p className="text-2xl font-bold text-foreground">{stats.byDifficulty.beginner}</p>
                 <p className="text-xs text-muted-foreground">Dla początkujących</p>
               </div>
             </div>
@@ -139,7 +261,7 @@ const QuestionBankPage = () => {
                 <Database className="h-5 w-5 text-purple-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{store.stats.byType.code_write}</p>
+                <p className="text-2xl font-bold text-foreground">{stats.byType.code_write}</p>
                 <p className="text-xs text-muted-foreground">Pytań z kodem</p>
               </div>
             </div>
@@ -154,14 +276,14 @@ const QuestionBankPage = () => {
           className="mb-6"
         >
           <QuestionFilters
-            filters={store.filters}
-            categories={store.categories}
-            availableRoadmaps={store.availableRoadmaps}
-            availableTopics={store.availableTopics}
-            onUpdateFilter={store.updateFilter}
-            onResetFilters={store.resetFilters}
-            totalCount={store.stats.total}
-            filteredCount={store.stats.filtered}
+            filters={filters}
+            categories={categories}
+            availableRoadmaps={availableRoadmaps}
+            availableTopics={availableTopics}
+            onUpdateFilter={updateFilter}
+            onResetFilters={() => setFilters(initialFilters)}
+            totalCount={stats.total}
+            filteredCount={stats.filtered}
           />
         </motion.div>
 
@@ -171,10 +293,10 @@ const QuestionBankPage = () => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
         >
-          {store.filteredQuestions.length > 0 ? (
+          {filteredQuestions.length > 0 ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               <AnimatePresence mode="popLayout">
-                {store.filteredQuestions.map((question) => (
+                {filteredQuestions.map((question) => (
                   <QuestionCard
                     key={question.id}
                     question={question}
@@ -190,12 +312,12 @@ const QuestionBankPage = () => {
               <div className="mb-4 text-6xl">📚</div>
               <h3 className="text-lg font-semibold text-foreground">Brak pytań</h3>
               <p className="mt-1 text-center text-muted-foreground">
-                {store.stats.total === 0
+                {stats.total === 0
                   ? 'Nie masz jeszcze żadnych pytań. Dodaj pierwsze!'
                   : 'Żadne pytanie nie pasuje do wybranych filtrów.'
                 }
               </p>
-              {store.stats.total === 0 && (
+              {stats.total === 0 && (
                 <Button onClick={handleAdd} className="mt-4 gap-2">
                   <Plus className="h-4 w-4" />
                   Dodaj pierwsze pytanie
@@ -210,7 +332,7 @@ const QuestionBankPage = () => {
           isOpen={isEditDialogOpen}
           onClose={() => setIsEditDialogOpen(false)}
           question={editingQuestion}
-          categories={store.categories}
+          categories={categories}
           onSave={handleSaveQuestion}
           onAdd={handleAddQuestion}
           mode={dialogMode}

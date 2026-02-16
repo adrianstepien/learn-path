@@ -106,9 +106,9 @@ export const QuestionCard = ({ question, onEdit, onDelete, onStudy }: QuestionCa
         </div>
       </div>
 
-      {/* Question content */}
+      {/* Question */}
       <p className="mb-3 text-sm leading-relaxed text-foreground line-clamp-3">
-        {question.content}
+        {question.question}
       </p>
 
       {/* Context info */}

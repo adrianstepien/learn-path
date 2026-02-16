@@ -57,5 +57,6 @@ export async function apiRequest<T>(
     return undefined as T;
   }
 
-  return response.json();
+  const text = await response.text();
+  return text ? JSON.parse(text) : (undefined as T);
 }
