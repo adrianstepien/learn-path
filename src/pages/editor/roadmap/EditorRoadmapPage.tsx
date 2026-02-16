@@ -54,7 +54,7 @@ const EditorRoadmapPage = () => {
 
         <EditorRoadmapGrid
           category={category}
-          onSelectRoadmap={(roadmapId) => navigate(`/editor/roadmap/${roadmapId}`)}
+          onSelectRoadmap={(roadmapId) => navigate(`/editor/topic/${roadmapId}`)}
           onEditRoadmap={(roadmap) => dialog.openDialog('edit-roadmap', roadmap)}
           onDeleteRoadmap={store.deleteRoadmap}
           onAddRoadmap={() => dialog.openDialog('add-roadmap')}

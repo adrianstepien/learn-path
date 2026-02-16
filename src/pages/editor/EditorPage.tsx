@@ -45,7 +45,7 @@ const EditorPage = () => {
         {/* Grid Kategorii */}
         <EditorCategoryGrid
           categories={filteredCategories}
-          onSelectCategory={(id) => navigate(`/editor/category/${id}`)}
+          onSelectCategory={(id) => navigate(`/editor/roadmap/${id}`)}
           onEditCategory={(category) => dialog.openDialog('edit-category', category)}
           onDeleteCategory={store.deleteCategory}
           onAddCategory={() => dialog.openDialog('add-category')}

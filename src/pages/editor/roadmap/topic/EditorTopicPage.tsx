@@ -6,7 +6,7 @@ import { useEditorCanvasService } from '@/pages/editor/hooks/editorCanvasService
 import { EditorCanvasLayout } from '@/pages/editor/components/EditorCanvasLayout';
 import { Loader2 } from 'lucide-react';
 
-const EditorCanvasPage = () => {
+const EditorTopicPage = () => {
   const { roadmapId } = useParams<{ roadmapId: string }>();
   const navigate = useNavigate();
   const store = useEditorStore();
@@ -36,10 +36,10 @@ const EditorCanvasPage = () => {
     <MainLayout>
       <EditorCanvasLayout
         canvas={canvas}
-        onBack={() => navigate(`/editor/category/${selectedRoadmap.categoryId}`)}
+        onBack={() => navigate(`/editor/roadmap/${selectedRoadmap.categoryId}`)}
       />
     </MainLayout>
   );
 };
 
-export default EditorCanvasPage;
+export default EditorTopicPage;
