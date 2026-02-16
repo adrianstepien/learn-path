@@ -154,18 +154,6 @@ export const ResourceFormDialog = ({
               />
             </div>
           )}
-
-          {/* Estimated time */}
-          <div className="space-y-2">
-            <Label>Szacowany czas (minuty)</Label>
-            <Input
-              type="number"
-              min={1}
-              max={999}
-              value={estimatedMinutes}
-              onChange={(e) => setEstimatedMinutes(parseInt(e.target.value) || 10)}
-            />
-          </div>
         </div>
 
         <DialogFooter>

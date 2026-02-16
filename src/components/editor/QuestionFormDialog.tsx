@@ -214,27 +214,6 @@ export const QuestionFormDialog = ({
             />
           </div>
 
-          {/* Hint */}
-          <div className="space-y-2">
-            <Label>Podpowiedź (opcjonalnie)</Label>
-            <Input
-              value={hint}
-              onChange={(e) => setHint(e.target.value)}
-              placeholder="Dodatkowa wskazówka dla użytkownika..."
-            />
-          </div>
-
-          {/* Explanation with rich editor */}
-          <div className="space-y-2">
-            <Label>Wyjaśnienie (opcjonalnie)</Label>
-            <RichTextEditor
-              content={explanation}
-              onChange={setExplanation}
-              placeholder="Szczegółowe wyjaśnienie po udzieleniu odpowiedzi..."
-              minHeight="80px"
-            />
-          </div>
-
           {/* Tags */}
           <div className="space-y-2">
             <Label>Tagi</Label>
