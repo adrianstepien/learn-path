@@ -110,29 +110,6 @@ export const TopicEditPanel = ({
   }, [topic.id, topic.title]);
 
   const questions = topic.questions;
-  // --- Data Mapping Logic (Analogous to TopicSlidePanel) ---
-
-  const getMappedResources = (type: 'article' | 'video' | 'note') => {
-    if (fetchedDetails) {
-      let sourceArr: any[] = [];
-      if (type === 'note') sourceArr = fetchedDetails.notes || [];
-      if (type === 'article') sourceArr = fetchedDetails.articles || [];
-      if (type === 'video') sourceArr = fetchedDetails.videos || [];
-
-      // Map API structure to Resource structure
-      return sourceArr.map((item: any) => ({
-        ...item,
-        type: type,
-        // API often returns 'description' as the name for articles/notes if 'title' is missing
-        title: item.title || item.description || 'Bez tytułu',
-        content: item.content || (type === 'note' ? item.description : undefined)
-      })) as Resource[];
-    }
-    // Fallback to props
-    return topic.resources.filter(r => r.type === type);
-  };
-
-  // --- End Data Mapping ---
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev =>
@@ -306,7 +283,7 @@ export const TopicEditPanel = ({
                         <label className="text-sm font-medium text-foreground">Opis tematu</label>
                         <Textarea
                           // Prioritize topic.description (for optimistic UI on edit), then fetched details
-                          value={topic.description || fetchedDetails?.description || ''}
+                          value={topic.description || ''}
                           onChange={(e) => onUpdateTopic({ description: e.target.value })}
                           placeholder="Dodaj opis tematu..."
                           rows={3}
