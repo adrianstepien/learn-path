@@ -16,6 +16,7 @@ import {
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { TiptapRenderer } from '@/components/study/TiptapRenderer';
 import { getTopicById, getCategoryById, getRoadmapById, mockCategories } from '@/data/mockData';
 import { getCardsToRepeatByCategory, getCardsToRepeatByRoadmap, getCardsToRepeatByTopic } from '@/lib/api/cards';
 import { cn } from '@/lib/utils';
@@ -237,7 +238,7 @@ const StudyPage = () => {
 
               {/* Question Content */}
               <h2 className="text-lg md:text-xl font-semibold text-foreground mb-6 leading-relaxed">
-                {question.question}
+                <TiptapRenderer content={question.question} />
               </h2>
 
               {/* Hint */}
@@ -307,7 +308,9 @@ const StudyPage = () => {
                   className="mt-6 rounded-xl border border-success/30 bg-success/10 p-4"
                 >
                   <h4 className="font-medium text-foreground mb-2">Wzorcowa odpowiedź:</h4>
-                  <p className="text-sm text-foreground leading-relaxed">{question.answer}</p>
+                  <p className="text-sm text-foreground leading-relaxed">
+                    <TiptapRenderer content={question.answer} />
+                  </p>
                 </motion.div>
               )}
 
