@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { QuestionCard } from '@/components/questions/QuestionCard';
 import { QuestionFilters } from '@/components/questions/QuestionFilters';
 import { QuestionEditDialog } from '@/components/questions/QuestionEditDialog';
-// IMPORTUJEMY NOWE HOOKI ZAMIAST STORE
-import { useQuestionBankData, useQuestionMutations, QuestionWithContext } from '@/hooks/useQuestionBankQueries';
+// IMPORT Z NOWEGO HOOKA
+import { useQuestionBank, QuestionWithContext } from '@/hooks/useQuestionBank';
 import { QuestionType, DifficultyLevel, ImportanceLevel } from '@/types/learning';
 import {
   AlertDialog,
@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
-// Definicja stanu filtrów lokalnie w komponencie
+// Definicja stanu filtrów
 interface FilterState {
   search: string;
   categoryId: string | null;
@@ -46,9 +46,16 @@ const initialFilters: FilterState = {
 const QuestionBankPage = () => {
   const navigate = useNavigate();
 
-  // 1. Użycie React Query Hooków
-  const { questions: allQuestions, categories, isLoading } = useQuestionBankData();
-  const { deleteQuestion, updateQuestion, addQuestion } = useQuestionMutations();
+  // 1. Użycie nowego hooka useQuestionBank
+  // Zwracamy 'questions' zamiast 'allQuestions'
+  const {
+    questions,
+    categories,
+    isLoading,
+    deleteQuestion,
+    updateQuestion,
+    addQuestion
+  } = useQuestionBank();
 
   // 2. Lokalny stan filtrów i UI
   const [filters, setFilters] = useState<FilterState>(initialFilters);
@@ -57,9 +64,9 @@ const QuestionBankPage = () => {
   const [dialogMode, setDialogMode] = useState<'edit' | 'add'>('edit');
   const [questionToDelete, setQuestionToDelete] = useState<QuestionWithContext | null>(null);
 
-  // 3. Logika filtrowania (przeniesiona ze store)
+  // 3. Logika filtrowania (używamy zmiennej 'questions')
   const filteredQuestions = useMemo(() => {
-    return allQuestions.filter(q => {
+    return questions.filter(q => {
       if (filters.search) {
         const searchLower = filters.search.toLowerCase();
         const matchesSearch =
@@ -79,9 +86,9 @@ const QuestionBankPage = () => {
 
       return true;
     });
-  }, [allQuestions, filters]);
+  }, [questions, filters]);
 
-  // 4. Logika pomocnicza dla dropdownów (Available Roadmaps/Topics)
+  // 4. Logika pomocnicza dla dropdownów
   const availableRoadmaps = useMemo(() => {
     if (!filters.categoryId) {
       return categories.flatMap(c => c.roadmaps);
@@ -98,18 +105,18 @@ const QuestionBankPage = () => {
     return roadmap?.topics || [];
   }, [availableRoadmaps, filters.roadmapId]);
 
-  // 5. Statystyki on-the-fly
+  // 5. Statystyki (używamy zmiennej 'questions')
   const stats = useMemo(() => ({
-    total: allQuestions.length,
+    total: questions.length,
     filtered: filteredQuestions.length,
     byType: {
-      open_ended: allQuestions.filter(q => q.type === 'open_ended').length,
-      code_write: allQuestions.filter(q => q.type === 'code_write').length,
+      open_ended: questions.filter(q => q.type === 'open_ended').length,
+      code_write: questions.filter(q => q.type === 'code_write').length,
     },
     byDifficulty: {
-      beginner: allQuestions.filter(q => q.difficulty === 'beginner').length,
+      beginner: questions.filter(q => q.difficulty === 'beginner').length,
     },
-  }), [allQuestions, filteredQuestions]);
+  }), [questions, filteredQuestions]);
 
   // Handlery
   const updateFilter = <K extends keyof FilterState>(key: K, value: FilterState[K]) => {
