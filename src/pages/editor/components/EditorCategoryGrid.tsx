@@ -1,11 +1,5 @@
 import { motion } from 'framer-motion';
-import {
-  ChevronRight,
-  MoreVertical,
-  Pencil,
-  Plus,
-  Trash2,
-} from 'lucide-react';
+import { ChevronRight, Pencil, Plus, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import type { Category } from '@/types/learning';
@@ -41,12 +35,20 @@ export const EditorCategoryGrid = ({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
             whileHover={{ y: -4 }}
-            className="group rounded-2xl border border-border bg-card shadow-card transition-all hover:shadow-lg hover:border-primary/20 overflow-hidden"
+            className="group rounded-2xl border border-border bg-card shadow-card transition-all hover:shadow-lg hover:border-primary/20 overflow-hidden flex flex-col"
           >
             {/* Header - clickable */}
             <div
+              role="button"
+              tabIndex={0}
               onClick={() => onSelectCategory(category.id)}
-              className="cursor-pointer p-4 md:p-6 pb-4 transition-all hover:bg-gradient-to-br hover:from-secondary/50 hover:to-transparent"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelectCategory(category.id);
+                }
+              }}
+              className="cursor-pointer p-4 md:p-6 pb-4 transition-all hover:bg-gradient-to-br hover:from-secondary/50 hover:to-transparent min-h-[140px] md:min-h-[160px] flex flex-col flex-1"
             >
               <div className="mb-3 md:mb-4 flex items-center justify-between">
                 <div className="h-12 w-12 md:h-14 md:w-14 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
@@ -56,41 +58,47 @@ export const EditorCategoryGrid = ({
                   <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
                 </div>
               </div>
-              <h3 className="mb-2 text-base md:text-lg font-bold text-foreground">
-                {category.name}
-              </h3>
-              {category.description && (
-                <p className="mb-3 md:mb-4 text-xs md:text-sm text-muted-foreground line-clamp-2">
-                  {category.description}
-                </p>
-              )}
+
+              <div>
+                <h3 className="mb-2 text-base md:text-lg font-bold text-foreground">
+                  {category.name}
+                </h3>
+                {category.description && (
+                  <p className="mb-3 md:mb-4 text-xs md:text-sm text-muted-foreground line-clamp-2">
+                    {category.description}
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="border-t border-border/50 px-4 md:px-6 py-3 md:py-4 bg-gradient-to-b from-secondary/30 to-secondary/10">
-            <div className="flex gap-2">
-              <Button
-                className="flex-1 h-9 flex items-center justify-center gap-2"
-                size="sm"
-                onClick={() => onEditRoadmap(roadmap)}
-              >
-                <Pencil className="h-4 w-4" />
-                Edytuj
-              </Button>
-              <Button
-                variant="destructive"
-                className="flex-1 h-9 flex items-center justify-center gap-2"
-                size="sm"
-                onClick={() => onDeleteRoadmap(roadmap.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-                Usuń
-              </Button>
+
+            {/* Footer - zawsze na dole */}
+            <div className="mt-auto border-t border-border/50 px-4 md:px-6 py-3 md:py-4 bg-gradient-to-b from-secondary/30 to-secondary/10">
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1 h-9 flex items-center justify-center gap-2"
+                  size="sm"
+                  onClick={() => onEditCategory(category)}
+                >
+                  <Pencil className="h-4 w-4" />
+                  Edytuj
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1 h-9 flex items-center justify-center gap-2"
+                  size="sm"
+                  onClick={() => onDeleteCategory(category.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Usuń
+                </Button>
+              </div>
             </div>
-          </div>
           </motion.div>
         ))}
 
         {/* Add category button */}
         <motion.button
+          type="button"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: categories.length * 0.05 }}
@@ -119,4 +127,3 @@ export const EditorCategoryGrid = ({
     </>
   );
 };
-
