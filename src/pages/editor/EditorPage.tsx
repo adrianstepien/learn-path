@@ -126,7 +126,6 @@ const EditorPage = () => {
               }
               onDeleteCategory={store.deleteCategory}
               onAddCategory={() => dialog.openDialog('add-category')}
-              getTotalTopics={categories.getTotalTopics}
             />
           ) : (
             <EditorRoadmapGrid

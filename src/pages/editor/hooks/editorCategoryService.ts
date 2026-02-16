@@ -32,9 +32,6 @@ export function useEditorCategoryService(store: EditorStore) {
     [store]
   );
 
-  const getTotalTopics = useCallback((category: Category) => {
-    return category.roadmaps.reduce((sum, r) => sum + r.topics.length, 0);
-  }, []);
 
   return {
     searchQuery,
@@ -43,7 +40,6 @@ export function useEditorCategoryService(store: EditorStore) {
     selectedCategory,
     selectCategory,
     selectRoadmap,
-    getTotalTopics,
   };
 }
 

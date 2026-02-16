@@ -22,7 +22,6 @@ interface EditorCategoryGridProps {
   onEditCategory: (category: Category) => void;
   onDeleteCategory: (categoryId: string) => void;
   onAddCategory: () => void;
-  getTotalTopics: (category: Category) => number;
 }
 
 export const EditorCategoryGrid = ({
@@ -31,7 +30,6 @@ export const EditorCategoryGrid = ({
   onEditCategory,
   onDeleteCategory,
   onAddCategory,
-  getTotalTopics,
 }: EditorCategoryGridProps) => {
   return (
     <>
@@ -100,25 +98,6 @@ export const EditorCategoryGrid = ({
                   {category.description}
                 </p>
               )}
-
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
-                  {category.roadmaps.length} roadmap
-                  {category.roadmaps.length !== 1 ? 'y' : 'a'} •{' '}
-                  {getTotalTopics(category)} tematów
-                </span>
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-16 md:w-20 rounded-full bg-secondary overflow-hidden">
-                    <div
-                      className="h-2 rounded-full gradient-primary transition-all duration-500"
-                      style={{ width: `${category.progress}%` }}
-                    />
-                  </div>
-                  <span className="text-xs font-bold text-foreground">
-                    {category.progress}%
-                  </span>
-                </div>
-              </div>
             </div>
           </motion.div>
         ))}
