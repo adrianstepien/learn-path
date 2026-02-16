@@ -1,18 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Search, ChevronRight, Play } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { getCategoryById } from '@/data/mockData';
 import { Roadmap } from '@/types/learning';
 import { useRoadmaps } from '@/hooks/queries/useRoadmaps';
-import * as api from '@/lib/api';
+import { useCategories } from '@/hooks/queries/useCategories';
 
+// Komponent RoadmapCard bez zmian...
 const RoadmapCard = ({ roadmap, delay }: { roadmap: Roadmap; delay: number }) => {
   const navigate = useNavigate();
-
+  // ... (reszta kodu RoadmapCard bez zmian, np. navigate)
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -70,16 +70,32 @@ const RoadmapCard = ({ roadmap, delay }: { roadmap: Roadmap; delay: number }) =>
 
 const RoadmapPage = () => {
   const { categoryId } = useParams();
-  const { state } = useLocation();
   const navigate = useNavigate();
-
   const [searchQuery, setSearchQuery] = useState('');
-  const { data: roadmaps = [], isLoading } = useRoadmaps(categoryId);
+
+  // 1. Pobieramy roadmapy dla kategorii
+  const { data: roadmaps = [], isLoading: isLoadingRoadmaps } = useRoadmaps(categoryId);
+
+  // 2. Pobieramy informacje o samej kategorii (aby wyświetlić nagłówek)
+  // Używamy select, aby wyciągnąć konkretną kategorię z cache (lub pobrać listę jeśli pusta)
+  const { data: category, isLoading: isLoadingCategory } = useCategories({
+      select: (categories) => categories.find(c => c.id === categoryId)
+  });
 
   const filteredRoadmaps = roadmaps.filter(roadmap =>
     roadmap.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     roadmap.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Loading state
+  if (isLoadingCategory || isLoadingRoadmaps) {
+      return <MainLayout><div className="p-8">Ładowanie...</div></MainLayout>;
+  }
+
+  // Error/Not found state
+  if (!category && !isLoadingCategory) {
+      return <MainLayout><div className="p-8">Nie znaleziono kategorii.</div></MainLayout>;
+  }
 
   return (
     <MainLayout>
@@ -95,17 +111,17 @@ const RoadmapPage = () => {
           Powrót do kategorii
         </motion.button>
 
-        {/* Header */}
+        {/* Header - Dane pobrane z React Query */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
           <div className="flex items-center gap-4 mb-2">
-            <span className="text-3xl md:text-4xl">{state.icon}</span>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">{state.name}</h1>
+            <span className="text-3xl md:text-4xl">{category?.icon || '📁'}</span>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">{category?.name}</h1>
           </div>
-          <p className="text-muted-foreground">{state.description}</p>
+          <p className="text-muted-foreground">{category?.description}</p>
         </motion.div>
 
         {/* Search */}

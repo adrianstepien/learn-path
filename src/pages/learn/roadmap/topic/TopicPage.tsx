@@ -44,7 +44,7 @@ const TopicPage = () => {
   });
 
   // Roadmap data
-  const { roadmap, getTopicPosition } = useRoadmapData(roadmapId);
+  const { roadmap, isLoading, error } = useRoadmapData(roadmapId);
   const [isDragging, setIsDragging] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
 
