@@ -10,6 +10,8 @@ import CategoryPage from "./pages/CategoryPage";
 import RoadmapViewPage from "./pages/learn/roadmap/RoadmapViewPage";
 import StudyPage from "./pages/StudyPage";
 import EditorPage from "./pages/editor/EditorPage";
+import EditorCanvasPage from "./pages/editor/EditorCanvasPage";
+import EditorCategoryPage from "./pages/editor/EditorCategoryPage";
 import QuestionBankPage from "./pages/QuestionBankPage";
 import ImportPage from "./pages/ImportPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -32,6 +34,8 @@ const App = () => (
             <Route path="/learn/roadmap/:roadmapId" element={<RoadmapViewPage />} />
             <Route path="/learn/study/:topicId?" element={<StudyPage />} />
             <Route path="/editor" element={<EditorPage />} />
+            <Route path="/editor/category/:categoryId" element={<EditorCategoryPage />} />
+            <Route path="/editor/roadmap/:roadmapId" element={<EditorCanvasPage />} />
             <Route path="/questions" element={<QuestionBankPage />} />
             <Route path="/import" element={<ImportPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
