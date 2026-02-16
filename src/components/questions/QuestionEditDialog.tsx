@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -21,7 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { X, Loader2 } from 'lucide-react';
 import { Question, QuestionType, DifficultyLevel, ImportanceLevel, Category, Roadmap, Topic } from '@/types/learning';
 import { QuestionWithContext } from '@/stores/questionBankStore';
-import { EditorJsComponent, OutputData } from '@/components/editor/EditorJsComponent';
+import { RichTextEditor } from '@/components/texteditor/RichTextEditor'; // Zmiana importu
 import { createCard, updateCard } from '@/lib/api/cards';
 import { toast } from 'sonner';
 
@@ -59,25 +59,6 @@ const importanceLevels: { value: ImportanceLevel; label: string; apiValue: numbe
   { value: 'critical', label: 'Krytyczna', apiValue: 4 },
 ];
 
-// Empty EditorJS data
-const emptyEditorData: OutputData = { blocks: [], time: Date.now(), version: '2.28.0' };
-
-// Helper to parse stored JSON content
-const parseEditorContent = (content: string | OutputData | undefined): OutputData => {
-  if (!content) return emptyEditorData;
-  if (typeof content === 'object') return content as OutputData;
-  try {
-    return JSON.parse(content) as OutputData;
-  } catch {
-    // If it's plain text (legacy), convert to EditorJS format
-    return {
-      blocks: content ? [{ type: 'paragraph', data: { text: content } }] : [],
-      time: Date.now(),
-      version: '2.28.0',
-    };
-  }
-};
-
 export const QuestionEditDialog = ({
   isOpen,
   onClose,
@@ -87,22 +68,25 @@ export const QuestionEditDialog = ({
   onAdd,
   mode,
 }: QuestionEditDialogProps) => {
+  // Logika lokalizacji (Kategoria -> Roadmapa -> Temat)
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [selectedRoadmapId, setSelectedRoadmapId] = useState<string>('');
   const [selectedTopicId, setSelectedTopicId] = useState<string>('');
+
+  // Stan formularza (taki sam jak w QuestionFormDialog)
   const [type, setType] = useState<QuestionType>('open_ended');
-  const [questionContent, setQuestionContent] = useState<OutputData>(emptyEditorData);
-  const [answerContent, setAnswerContent] = useState<OutputData>(emptyEditorData);
+  const [content, setContent] = useState(''); // String zamiast OutputData
+  const [answer, setAnswer] = useState('');   // String zamiast OutputData
   const [hint, setHint] = useState('');
   const [explanation, setExplanation] = useState('');
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('beginner');
   const [importance, setImportance] = useState<ImportanceLevel>('medium');
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-  const [editorKey, setEditorKey] = useState(0);
 
-  // Get available roadmaps and topics based on selection
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Pobieranie dostępnych roadmap i tematów na podstawie wyboru
   const availableRoadmaps: Roadmap[] = selectedCategoryId
     ? categories.find(c => c.id === selectedCategoryId)?.roadmaps || []
     : [];
@@ -114,16 +98,16 @@ export const QuestionEditDialog = ({
   // Reset form when dialog opens/closes or question changes
   useEffect(() => {
     if (isOpen) {
-      // Force re-render editors with new key
-      setEditorKey(prev => prev + 1);
-      
       if (mode === 'edit' && question) {
         setSelectedCategoryId(question.categoryId);
         setSelectedRoadmapId(question.roadmapId);
         setSelectedTopicId(question.topicId);
+
         setType(question.type);
-        setQuestionContent(parseEditorContent(question.content));
-        setAnswerContent(parseEditorContent(question.answer));
+        // Uwaga: Jeśli w bazie jest stary JSON z EditorJS, RichTextEditor wyświetli go jako tekst.
+        // Docelowo zakłada się, że dane będą w formacie HTML/String.
+        setContent(question.question || '');
+        setAnswer(question.answer || '');
         setHint(question.hint || '');
         setExplanation(question.explanation || '');
         setDifficulty(question.difficulty);
@@ -134,15 +118,17 @@ export const QuestionEditDialog = ({
         setSelectedCategoryId(categories[0]?.id || '');
         setSelectedRoadmapId('');
         setSelectedTopicId('');
+
         setType('open_ended');
-        setQuestionContent(emptyEditorData);
-        setAnswerContent(emptyEditorData);
+        setContent('');
+        setAnswer('');
         setHint('');
         setExplanation('');
         setDifficulty('beginner');
         setImportance('medium');
         setTags([]);
       }
+      setNewTag('');
     }
   }, [isOpen, question, mode, categories]);
 
@@ -172,20 +158,17 @@ export const QuestionEditDialog = ({
     setTags(tags.filter(t => t !== tagToRemove));
   };
 
-  const handleQuestionChange = useCallback((data: OutputData) => {
-    setQuestionContent(data);
-  }, []);
-
-  const handleAnswerChange = useCallback((data: OutputData) => {
-    setAnswerContent(data);
-  }, []);
-
   const handleSave = async () => {
-    const hasQuestionContent = questionContent.blocks && questionContent.blocks.length > 0;
-    const hasAnswerContent = answerContent.blocks && answerContent.blocks.length > 0;
-    
-    if (!hasQuestionContent || !hasAnswerContent) {
+    // Prosta walidacja (strip HTML tags to check if empty)
+    const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '').trim();
+
+    if (!stripHtml(content) || !stripHtml(answer)) {
       toast.error('Wypełnij treść pytania i odpowiedź');
+      return;
+    }
+
+    if (mode === 'add' && !selectedTopicId) {
+      toast.error('Wybierz temat, do którego chcesz dodać pytanie');
       return;
     }
 
@@ -198,8 +181,8 @@ export const QuestionEditDialog = ({
 
       // Prepare card DTO for API
       const cardDto = {
-        question: JSON.stringify(questionContent),
-        answer: JSON.stringify(answerContent),
+        question: content, // Teraz wysyłamy string HTML
+        answer: answer,    // Teraz wysyłamy string HTML
         difficulty: difficultyValue,
         importance: importanceValue,
         topicId: parseInt(selectedTopicId || question?.topicId || '0', 10),
@@ -211,36 +194,36 @@ export const QuestionEditDialog = ({
         if (!isNaN(cardId)) {
           await updateCard(cardId, { id: cardId, ...cardDto });
         }
-        
+
         // Also update local store
         onSave(question.id, {
           type,
-          content: JSON.stringify(questionContent),
-          answer: JSON.stringify(answerContent),
+          question: content, // aktualizacja nazwy pola zgodnie z interfejsem
+          answer: answer,
           hint: hint.trim() || undefined,
           explanation: explanation.trim() || undefined,
           difficulty,
           importance,
           tags,
         });
-        
+
         toast.success('Pytanie zostało zaktualizowane');
       } else if (mode === 'add' && selectedTopicId) {
         // Create new card via API
         await createCard(cardDto);
-        
+
         // Also add to local store
         onAdd(selectedTopicId, {
           type,
-          content: JSON.stringify(questionContent),
-          answer: JSON.stringify(answerContent),
+          question: content,
+          answer: answer,
           hint: hint.trim() || undefined,
           explanation: explanation.trim() || undefined,
           difficulty,
           importance,
           tags,
         });
-        
+
         toast.success('Pytanie zostało dodane');
       }
 
@@ -253,9 +236,8 @@ export const QuestionEditDialog = ({
     }
   };
 
-  const hasQuestionContent = questionContent.blocks && questionContent.blocks.length > 0;
-  const hasAnswerContent = answerContent.blocks && answerContent.blocks.length > 0;
-  const isValid = hasQuestionContent && hasAnswerContent && (mode === 'edit' || selectedTopicId);
+  const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '').trim();
+  const isValid = stripHtml(content) && stripHtml(answer) && (mode === 'edit' || selectedTopicId);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -265,17 +247,17 @@ export const QuestionEditDialog = ({
             {mode === 'edit' ? 'Edytuj pytanie' : 'Dodaj nowe pytanie'}
           </DialogTitle>
           <DialogDescription>
-            {mode === 'edit' 
-              ? 'Zmodyfikuj treść i właściwości pytania'
-              : 'Utwórz nowe pytanie i przypisz je do tematu'
+            {mode === 'edit'
+              ? 'Zmodyfikuj treść i właściwości pytania.'
+              : 'Utwórz nowe pytanie i przypisz je do tematu.'
             }
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Location selection (only for add mode or shown as info for edit) */}
+          {/* Location selection - unikalne dla tego komponentu */}
           {mode === 'add' ? (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-3 mb-4 p-4 bg-muted/20 rounded-lg">
               <div className="space-y-2">
                 <Label>Kategoria</Label>
                 <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
@@ -294,8 +276,8 @@ export const QuestionEditDialog = ({
 
               <div className="space-y-2">
                 <Label>Roadmapa</Label>
-                <Select 
-                  value={selectedRoadmapId} 
+                <Select
+                  value={selectedRoadmapId}
                   onValueChange={setSelectedRoadmapId}
                   disabled={!selectedCategoryId}
                 >
@@ -312,8 +294,8 @@ export const QuestionEditDialog = ({
 
               <div className="space-y-2">
                 <Label>Temat</Label>
-                <Select 
-                  value={selectedTopicId} 
+                <Select
+                  value={selectedTopicId}
                   onValueChange={setSelectedTopicId}
                   disabled={!selectedRoadmapId}
                 >
@@ -329,7 +311,7 @@ export const QuestionEditDialog = ({
               </div>
             </div>
           ) : question && (
-            <div className="rounded-lg bg-muted/50 p-3">
+            <div className="rounded-lg bg-muted/50 p-3 mb-4">
               <p className="text-sm text-muted-foreground">
                 <span className="font-medium text-foreground">{question.categoryName}</span>
                 {' → '}
@@ -340,67 +322,22 @@ export const QuestionEditDialog = ({
             </div>
           )}
 
-          {/* Question type */}
-          <div className="space-y-2">
-            <Label>Typ pytania</Label>
-            <Select value={type} onValueChange={(v) => setType(v as QuestionType)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {questionTypes.map(t => (
-                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Type and Difficulty Row */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-2">
+              <Label>Typ pytania</Label>
+              <Select value={type} onValueChange={(v) => setType(v as QuestionType)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {questionTypes.map(t => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Content - EditorJS */}
-          <div className="space-y-2">
-            <Label>Treść pytania *</Label>
-            <EditorJsComponent
-              key={`question-${editorKey}`}
-              editorId={`question-editor-${editorKey}`}
-              data={questionContent}
-              onChange={handleQuestionChange}
-              placeholder="Wpisz treść pytania..."
-            />
-          </div>
-
-          {/* Answer - EditorJS */}
-          <div className="space-y-2">
-            <Label>Odpowiedź / Wzorzec *</Label>
-            <EditorJsComponent
-              key={`answer-${editorKey}`}
-              editorId={`answer-editor-${editorKey}`}
-              data={answerContent}
-              onChange={handleAnswerChange}
-              placeholder="Wpisz oczekiwaną odpowiedź..."
-            />
-          </div>
-
-          {/* Hint */}
-          <div className="space-y-2">
-            <Label>Podpowiedź (opcjonalnie)</Label>
-            <Input
-              value={hint}
-              onChange={(e) => setHint(e.target.value)}
-              placeholder="Dodatkowa wskazówka dla użytkownika..."
-            />
-          </div>
-
-          {/* Explanation */}
-          <div className="space-y-2">
-            <Label>Wyjaśnienie (opcjonalnie)</Label>
-            <Input
-              value={explanation}
-              onChange={(e) => setExplanation(e.target.value)}
-              placeholder="Szczegółowe wyjaśnienie po udzieleniu odpowiedzi..."
-            />
-          </div>
-
-          {/* Difficulty and importance */}
-          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Poziom trudności</Label>
               <Select value={difficulty} onValueChange={(v) => setDifficulty(v as DifficultyLevel)}>
@@ -428,6 +365,49 @@ export const QuestionEditDialog = ({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Question Content - RichTextEditor */}
+          <div className="space-y-2">
+            <Label>Treść pytania *</Label>
+            <RichTextEditor
+              content={content}
+              onChange={setContent}
+              placeholder="Wpisz treść pytania..."
+              minHeight="120px"
+            />
+          </div>
+
+          {/* Answer Content - RichTextEditor */}
+          <div className="space-y-2">
+            <Label>Odpowiedź / Wzorzec *</Label>
+            <RichTextEditor
+              content={answer}
+              onChange={setAnswer}
+              placeholder="Wpisz oczekiwaną odpowiedź..."
+              minHeight="100px"
+            />
+          </div>
+
+          {/* Hint */}
+          <div className="space-y-2">
+            <Label>Podpowiedź (opcjonalnie)</Label>
+            <Input
+              value={hint}
+              onChange={(e) => setHint(e.target.value)}
+              placeholder="Dodatkowa wskazówka dla użytkownika..."
+            />
+          </div>
+
+          {/* Explanation - RichTextEditor */}
+          <div className="space-y-2">
+            <Label>Wyjaśnienie (opcjonalnie)</Label>
+            <RichTextEditor
+              content={explanation}
+              onChange={setExplanation}
+              placeholder="Szczegółowe wyjaśnienie po udzieleniu odpowiedzi..."
+              minHeight="80px"
+            />
           </div>
 
           {/* Tags */}
