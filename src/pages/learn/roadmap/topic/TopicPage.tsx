@@ -15,7 +15,7 @@ import {
   RoadmapCanvas
 } from '@/pages/learn/roadmap/components';
 
-const RoadmapViewPage = () => {
+const TopicPage = () => {
   const { roadmapId } = useParams();
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
@@ -130,4 +130,4 @@ const RoadmapViewPage = () => {
   );
 };
 
-export default RoadmapViewPage;
+export default TopicPage;

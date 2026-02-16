@@ -82,12 +82,12 @@ const EditorPage = () => {
               </div>
               <div>
                 <h1 className="text-xl md:text-2xl font-bold text-foreground">
-                  {selectedCategory ? selectedCategory.name : 'Edytor Roadmap'}
+                  {selectedCategory ? selectedCategory.name : 'Edytor kategorii'}
                 </h1>
                 <p className="text-sm text-muted-foreground">
                   {selectedCategory 
                     ? `${selectedCategory.roadmaps.length} roadmap${selectedCategory.roadmaps.length !== 1 ? 'y' : 'a'}`
-                    : 'Wybierz kategorię lub roadmapę do edycji'
+                    : 'Wybierz kategorię do edycji'
                   }
                 </p>
               </div>

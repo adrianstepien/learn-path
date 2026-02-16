@@ -6,8 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/useTheme";
 import Index from "./pages/Index";
 import LearnPage from "./pages/learn/LearnPage";
-import CategoryPage from "./pages/CategoryPage";
-import RoadmapViewPage from "./pages/learn/roadmap/RoadmapViewPage";
+import RoadmapPage from "./pages/learn/roadmap/RoadmapPage";
+import TopicPage from "./pages/learn/roadmap/topic/TopicPage";
 import StudyPage from "./pages/StudyPage";
 import EditorPage from "./pages/editor/EditorPage";
 import QuestionBankPage from "./pages/QuestionBankPage";
@@ -28,8 +28,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/learn" element={<LearnPage />} />
-            <Route path="/learn/category/:categoryId" element={<CategoryPage />} />
-            <Route path="/learn/roadmap/:roadmapId" element={<RoadmapViewPage />} />
+            <Route path="/learn/roadmap/:categoryId" element={<RoadmapPage />} />
+            <Route path="/learn/topic/:roadmapId" element={<TopicPage />} />
             <Route path="/learn/study/:topicId?" element={<StudyPage />} />
             <Route path="/editor" element={<EditorPage />} />
             <Route path="/questions" element={<QuestionBankPage />} />

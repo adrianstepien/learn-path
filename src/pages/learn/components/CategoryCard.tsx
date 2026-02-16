@@ -33,7 +33,7 @@ export const CategoryCard = ({
   const displayRoadmapCount = isExpanded ? roadmaps.length : category.roadmaps.length;
 
   const handleNavigateToCategory = () => {
-    navigate(`/learn/category/${category.id}`, {
+    navigate(`/learn/roadmap/${category.id}`, {
       state: {
         name: category.name,
         description: category.description,

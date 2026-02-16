@@ -101,23 +101,6 @@ export const EditorRoadmapGrid = ({
                 {roadmap.description}
               </p>
             )}
-
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-xs font-medium text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
-                {roadmap.topics.length} tematów • {roadmap.totalQuestions} pytań
-              </span>
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-16 md:w-20 rounded-full bg-secondary overflow-hidden">
-                  <div
-                    className="h-2 rounded-full gradient-primary transition-all duration-500"
-                    style={{ width: `${roadmap.progress}%` }}
-                  />
-                </div>
-                <span className="text-xs font-bold text-foreground">
-                  {roadmap.progress}%
-                </span>
-              </div>
-            </div>
           </div>
         </motion.div>
       ))}

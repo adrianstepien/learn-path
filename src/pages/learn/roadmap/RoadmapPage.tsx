@@ -22,7 +22,7 @@ const RoadmapCard = ({ roadmap, delay }: { roadmap: Roadmap; delay: number }) =>
     >
       {/* Header - clickable to navigate to roadmap view */}
       <div 
-        onClick={() => navigate(`/learn/roadmap/${roadmap.id}`)}
+        onClick={() => navigate(`/learn/topic/${roadmap.id}`)}
         className="cursor-pointer p-6 pb-4 transition-all hover:bg-gradient-to-br hover:from-secondary/50 hover:to-transparent"
       >
         <div className="mb-4 flex items-center justify-between">
@@ -67,7 +67,7 @@ const RoadmapCard = ({ roadmap, delay }: { roadmap: Roadmap; delay: number }) =>
   );
 };
 
-const CategoryPage = () => {
+const RoadmapPage = () => {
   const { categoryId } = useParams();
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -160,4 +160,4 @@ const CategoryPage = () => {
   );
 };
 
-export default CategoryPage;
+export default RoadmapPage;
