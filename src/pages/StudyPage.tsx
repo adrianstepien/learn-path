@@ -58,23 +58,20 @@ const StudyPage = () => {
         const data = await getCardsToRepeatByTopic(topicId);
         if (data) {
             collectedQuestions = data;
-            //TODO: do zmiany
-            studyTitle = "Powtórka kategorii";
+            studyTitle = "Powtórka tematu";
         }
     } else if (roadmapId) {
         // Study entire roadmap
         const data = await getCardsToRepeatByRoadmap(roadmapId);
         if (data) {
             collectedQuestions = data;
-            //TODO: do zmiany
-            studyTitle = "Powtórka kategorii";
+            studyTitle = "Powtórka roadmapy";
         }
     } else if (categoryId) {
         // Study entire category
         const data = await getCardsToRepeatByCategory(categoryId);
         if (data) {
           collectedQuestions = data;
-          //TODO: do zmiany
           studyTitle = "Powtórka kategorii";
       }
     }
