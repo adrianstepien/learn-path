@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { getCategoryById } from '@/data/mockData';
 import { Roadmap } from '@/types/learning';
+import { useRoadmaps } from '@/hooks/queries/useRoadmaps';
 import * as api from '@/lib/api';
 
 const RoadmapCard = ({ roadmap, delay }: { roadmap: Roadmap; delay: number }) => {
@@ -73,21 +74,7 @@ const RoadmapPage = () => {
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [roadmaps, setRoadmaps] = useState<Roadmap[]>([]);
-
-  useEffect(() => {
-      const fetchData = async () => {
-        try {
-          const data = await api.getRoadmaps(categoryId);
-          setRoadmaps(data);
-        } catch (error) {
-          console.error("Błąd pobierania:", error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetchData();
-    }, [categoryId]);
+  const { data: roadmaps = [], isLoading } = useRoadmaps(categoryId);
 
   const filteredRoadmaps = roadmaps.filter(roadmap =>
     roadmap.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
