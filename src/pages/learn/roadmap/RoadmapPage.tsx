@@ -10,7 +10,7 @@ import { Roadmap } from '@/types/learning';
 import { useRoadmaps } from '@/hooks/queries/useRoadmaps';
 import * as api from '@/lib/api';
 
-const RoadmapCard = ({ roadmap, delay }: { roadmap: Roadmap; delay: number }) => {
+const RoadmapCard = ({ roadmap, categoryId, delay }: { roadmap: Roadmap; categoryId: string; delay: number }) => {
   const navigate = useNavigate();
 
   return (
@@ -23,7 +23,7 @@ const RoadmapCard = ({ roadmap, delay }: { roadmap: Roadmap; delay: number }) =>
     >
       {/* Header - clickable to navigate to roadmap view */}
       <div 
-        onClick={() => navigate(`/learn/topic/${roadmap.id}`)}
+        onClick={() => navigate(`/learn/${categoryId}/topic/${roadmap.id}`)}
         className="cursor-pointer p-6 pb-4 transition-all hover:bg-gradient-to-br hover:from-secondary/50 hover:to-transparent"
       >
         <div className="mb-4 flex items-center justify-between">
@@ -129,7 +129,7 @@ const RoadmapPage = () => {
         {/* Roadmaps Grid */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {filteredRoadmaps.map((roadmap, index) => (
-            <RoadmapCard key={roadmap.id} roadmap={roadmap} delay={0.1 + index * 0.05} />
+            <RoadmapCard key={roadmap.id} roadmap={roadmap} categoryId={categoryId!} delay={0.1 + index * 0.05} />
           ))}
         </div>
 
