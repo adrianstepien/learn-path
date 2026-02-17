@@ -75,13 +75,11 @@ export const RoadmapCanvas = ({
             if (!fromTopic || !toTopic) return null;
 
             const fromBase = getTopicPosition(fromTopic);
-            console.log("a to pozycja")
-            console.log(fromBase)
             const toBase = getTopicPosition(toTopic);
 
             // Match connection anchor points with editor canvas
-            const fromPos = { x: fromBase.x + 80, y: fromBase.y + 40 };
-            const toPos = { x: toBase.x + 80, y: toBase.y + 40 };
+            const fromPos = { x: fromBase.x + 96, y: fromBase.y + 40 };
+            const toPos = { x: toBase.x + 96, y: toBase.y + 40 };
 
             return (
               <CanvasConnection

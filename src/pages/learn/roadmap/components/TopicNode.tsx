@@ -40,7 +40,7 @@ export const TopicNode = ({
         top: position.y,
       }}
       className={cn(
-        'topic-node w-48 cursor-pointer rounded-xl border-2 bg-card p-4 shadow-md transition-all',
+        'topic-node min-w-[180px] w-[180px] cursor-pointer rounded-xl border-2 bg-card p-4 shadow-md transition-all',
         statusColors[topic.status],
         isSelected && 'ring-2 ring-primary ring-offset-2 ring-offset-background'
       )}

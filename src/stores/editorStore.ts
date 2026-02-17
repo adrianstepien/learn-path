@@ -1227,7 +1227,7 @@ const saveAllData = async () => {
 
   if (topicsToUpdate.length > 0) {
     try {
-      //await api.bulkUpdateTopics(topicsToUpdate);
+      await api.bulkUpdateTopics(topicsToUpdate);
     } catch (err) {
       console.error('Failed to bulk update topics:', err);
     }

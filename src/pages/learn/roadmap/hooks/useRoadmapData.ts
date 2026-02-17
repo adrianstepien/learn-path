@@ -62,7 +62,11 @@ export const useRoadmapData = (
     roadmapId: roadmapId!,
     title: dto.title,
     description: dto.description,
-    position: { x: dto.canvasPositionX, y: dto.canvasPositionY },
+    position: {
+          x: Number(dto.canvasPositionX) || 0,
+          y: Number(dto.canvasPositionY) || 0
+        },
+    relatedTopicIds: dto.relatedTopicIds?.map(String) || [],
     status: 'not_started' as const,
     questions: [],
     resources: [],
