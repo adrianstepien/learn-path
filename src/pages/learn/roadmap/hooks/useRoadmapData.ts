@@ -50,7 +50,6 @@ export const useRoadmapData = (
     queryKey: ['topics', roadmapId],
     queryFn: async () => {
       if (!numericRoadmapId) return [];
-      console.log(api.getTopics(numericRoadmapId));
       return api.getTopics(numericRoadmapId);
     },
     enabled: !!numericRoadmapId && !!roadmapDto,
@@ -99,7 +98,6 @@ export const useRoadmapData = (
    * Get position for a topic - simply return topic.position
    */
   const getTopicPosition = (topic: Topic): { x: number; y: number } => {
-    console.log(topic.position)
     return topic.position;
   };
 
