@@ -1,82 +1,78 @@
-import { useState, useMemo, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { 
+import {
   ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  CheckCircle,
-  Mic,
   Bot,
   Lightbulb,
   Clock,
   Star,
-  BookOpen
+  BookOpen,
+  Mic,
+  CheckCircle, // Dodane dla ekranu końcowego
+  Trophy       // Dodane dla ekranu końcowego
 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { TiptapRenderer } from '@/components/study/TiptapRenderer';
-import { getTopicById, getCategoryById, getRoadmapById, mockCategories } from '@/data/mockData';
 import { getCardsToRepeatByCategory, getCardsToRepeatByRoadmap, getCardsToRepeatByTopic } from '@/lib/api/cards';
 import { cn } from '@/lib/utils';
 import { Question } from '@/types/learning';
 
 const difficultyColors = {
-  beginner: 'bg-success/20 text-success',
-  intermediate: 'bg-warning/20 text-warning',
-  advanced: 'bg-destructive/20 text-destructive',
-  expert: 'bg-primary/20 text-primary',
+  beginner: 'bg-green-500/20 text-green-600',
+  intermediate: 'bg-yellow-500/20 text-yellow-600',
+  advanced: 'bg-orange-500/20 text-orange-600',
+  expert: 'bg-red-500/20 text-red-600',
 };
 
 const StudyPage = () => {
   const { topicId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  
+
   const categoryId = searchParams.get('category');
   const roadmapId = searchParams.get('roadmap');
-  
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+
+  // ZMIANA: Zamiast indeksu, trzymamy tablicę i "zjadamy" ją od początku
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [initialCount, setInitialCount] = useState(0); // Do paska postępu
+  const [hasFetched, setHasFetched] = useState(false);
+
   const [userAnswer, setUserAnswer] = useState('');
   const [showAnswer, setShowAnswer] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [llmFeedback, setLlmFeedback] = useState<string | null>(null);
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
-  const [questions, setQuestions] = useState<Question[]>([]);
   const [title, setTitle] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
 
   // Collect all questions based on mode
   useEffect(() => {
     const fetchData = async () => {
       let collectedQuestions: any[] = [];
-    let studyTitle = '';
+      let studyTitle = '';
 
-    if (topicId) {
-        // Study specific topic
-        const data = await getCardsToRepeatByTopic(topicId);
-        if (data) {
+      if (topicId) {
+          const data = await getCardsToRepeatByTopic(topicId);
+          if (data) {
+              collectedQuestions = data;
+              studyTitle = "Powtórka tematu";
+          }
+      } else if (roadmapId) {
+          const data = await getCardsToRepeatByRoadmap(roadmapId);
+          if (data) {
+              collectedQuestions = data;
+              studyTitle = "Powtórka roadmapy";
+          }
+      } else if (categoryId) {
+          const data = await getCardsToRepeatByCategory(categoryId);
+          if (data) {
             collectedQuestions = data;
-            studyTitle = "Powtórka tematu";
+            studyTitle = "Powtórka kategorii";
         }
-    } else if (roadmapId) {
-        // Study entire roadmap
-        const data = await getCardsToRepeatByRoadmap(roadmapId);
-        if (data) {
-            collectedQuestions = data;
-            studyTitle = "Powtórka roadmapy";
-        }
-    } else if (categoryId) {
-        // Study entire category
-        const data = await getCardsToRepeatByCategory(categoryId);
-        if (data) {
-          collectedQuestions = data;
-          studyTitle = "Powtórka kategorii";
       }
-    }
 
-      // Normalizacja danych: obsługa id oraz parsowanie treści pytania, jeśli jest w formacie JSON
       const finalQuestions = collectedQuestions.map(q => ({
         ...q,
         id: q.cardId?.toString() || q.id,
@@ -86,17 +82,76 @@ const StudyPage = () => {
       }));
 
       setQuestions(finalQuestions);
+      setInitialCount(finalQuestions.length);
       setTitle(studyTitle);
+      setHasFetched(true);
     };
 
     fetchData();
   }, [topicId, categoryId, roadmapId]);
 
-  if (questions.length === 0) {
+  const resetQuestionState = () => {
+    setUserAnswer('');
+    setShowAnswer(false);
+    setLlmFeedback(null);
+  };
+
+  // --- NOWA LOGIKA OCENIANIA ---
+  const handleRate = (rating: number) => {
+    if (questions.length === 0) return;
+
+    // Tutaj możesz dodać wywołanie API do zapisu wyniku (SRS)
+    // np. await api.saveReview(questions[0].id, rating);
+
+    if (rating === 1) {
+      // Jeśli "Nie znam" (1) -> przenieś na koniec kolejki
+      setQuestions(prev => {
+        const [current, ...rest] = prev;
+        return [...rest, current];
+      });
+    } else {
+      // Każda inna ocena -> usuń z kolejki (zaliczone w tej sesji)
+      setQuestions(prev => {
+        const [, ...rest] = prev;
+        return rest;
+      });
+    }
+
+    resetQuestionState();
+  };
+
+  // --- EKRAN KOŃCOWY (gdy wyczerpano pytania) ---
+  if (hasFetched && questions.length === 0 && initialCount > 0) {
     return (
       <MainLayout>
         <div className="flex h-full items-center justify-center p-8">
-          <motion.div 
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center max-w-md bg-card p-8 rounded-2xl border border-border shadow-lg"
+          >
+            <div className="mb-6 inline-flex h-24 w-24 items-center justify-center rounded-full bg-yellow-500/20">
+              <Trophy className="h-12 w-12 text-yellow-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">Sesja ukończona!</h2>
+            <p className="text-muted-foreground mb-8">
+              Przerobiłeś wszystkie {initialCount} zaplanowanych kart.
+            </p>
+            <Button onClick={() => navigate(-1)} size="lg" className="w-full">
+              Wróć do listy
+            </Button>
+          </motion.div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // --- EKRAN BRAKU PYTAŃ (na starcie) ---
+  if (hasFetched && questions.length === 0) {
+    return (
+      <MainLayout>
+        <div className="flex h-full items-center justify-center p-8">
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center max-w-md"
@@ -106,12 +161,7 @@ const StudyPage = () => {
             </div>
             <h2 className="text-xl font-semibold text-foreground mb-2">Brak pytań do nauki</h2>
             <p className="text-muted-foreground mb-6">
-              {categoryId 
-                ? 'W tej kategorii nie ma jeszcze pytań. Dodaj pytania do tematów, aby rozpocząć naukę.'
-                : roadmapId 
-                  ? 'W tej roadmapie nie ma jeszcze pytań.'
-                  : 'W tym temacie nie ma jeszcze pytań.'
-              }
+              Wygląda na to, że w tej sekcji nie ma kart wymgających powtórki.
             </p>
             <Button onClick={() => navigate(-1)} variant="outline" size="lg">
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -123,44 +173,30 @@ const StudyPage = () => {
     );
   }
 
-  const question = questions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+  // Jeśli jeszcze ładuje
+  if (!hasFetched || questions.length === 0) {
+    return <MainLayout><div className="p-8 flex justify-center">Ładowanie...</div></MainLayout>;
+  }
 
-  const handlePrevious = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1);
-      resetQuestionState();
-    }
-  };
+  // Zawsze bierzemy PIERWSZE pytanie z kolejki
+  const question = questions[0];
 
-  const handleNext = () => {
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
-      resetQuestionState();
-    }
-  };
-
-  const resetQuestionState = () => {
-    setUserAnswer('');
-    setShowAnswer(false);
-    setLlmFeedback(null);
-  };
+  // Obliczanie postępu (ile zrobiliśmy vs ile było na początku)
+  const progress = initialCount > 0 ? ((initialCount - questions.length) / initialCount) * 100 : 0;
 
   const handleVerifyWithLLM = async () => {
     setIsLoadingFeedback(true);
     // Simulate LLM response
     await new Promise(resolve => setTimeout(resolve, 1500));
     setLlmFeedback(
-      `**Analiza odpowiedzi:**\n\nTwoja odpowiedź jest częściowo poprawna. Dobrze wyjaśniłeś podstawowe pojęcia, jednak brakuje kilku kluczowych szczegółów:\n\n- Warto wspomnieć o izolacji na poziomie systemu plików\n- Nie uwzględniłeś aspektu sieciowego kontenerów\n\n**Sugestia:** Zapoznaj się z dokumentacją dotyczącą namespaces i cgroups w kontekście Docker.`
+      `**Analiza odpowiedzi:**\n\nTwoja odpowiedź jest weryfikowana przez AI. (To jest mockup).\n\n**Sugestia:** Sprawdź poprawność w oparciu o wzorcową odpowiedź.`
     );
     setIsLoadingFeedback(false);
   };
 
   const toggleRecording = () => {
     setIsRecording(!isRecording);
-    // In a real app, this would use the Web Speech API
     if (!isRecording) {
-      // Start recording
       setTimeout(() => {
         setUserAnswer(prev => prev + ' [Transkrypcja mowy...]');
         setIsRecording(false);
@@ -193,8 +229,9 @@ const StudyPage = () => {
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-foreground font-semibold">
-                  {currentQuestionIndex + 1}/{questions.length}
+                  {questions.length}
                 </span>
+                <span className="text-muted-foreground text-xs">pozostało</span>
               </div>
             </div>
           </div>
@@ -202,7 +239,7 @@ const StudyPage = () => {
           {/* Progress bar */}
           <div className="mt-4 h-2 w-full rounded-full bg-secondary overflow-hidden">
             <motion.div
-              className="h-full rounded-full gradient-primary"
+              className="h-full rounded-full gradient-primary bg-primary"
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.3 }}
@@ -214,22 +251,25 @@ const StudyPage = () => {
         <div className="flex-1 overflow-auto">
           <div className="mx-auto max-w-3xl p-4 md:p-8">
             {/* Question Card */}
+            <AnimatePresence mode="wait">
             <motion.div
-              key={question.id}
-              initial={{ opacity: 0, y: 20 }}
+              key={question.id} // Kluczowe dla animacji przy zmianie pytania
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               className="rounded-2xl border border-border bg-card p-6 md:p-8 shadow-lg mb-6"
             >
               {/* Question Meta */}
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 <span className={cn(
                   'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
-                  difficultyColors['beginner']
+                  // @ts-ignore - ignorujemy typowanie kluczy dla uproszczenia
+                  difficultyColors[question.difficulty || 'beginner']
                 )}>
-                  {'beginner'}
+                  {question.difficulty || 'beginner'}
                 </span>
                 <span className="text-xs text-muted-foreground capitalize px-2.5 py-0.5 rounded-full bg-secondary">
-                  {'open_ended'}
+                  {question.type || 'open_ended'}
                 </span>
               </div>
 
@@ -246,7 +286,8 @@ const StudyPage = () => {
                 </div>
               )}
 
-              {/* Answer Input */}
+              {/* Answer Input - widoczne tylko gdy nie pokazano odpowiedzi */}
+              {!showAnswer && !llmFeedback && (
               <div className="space-y-4">
                 <div className="relative">
                   <Textarea
@@ -259,8 +300,8 @@ const StudyPage = () => {
                     onClick={toggleRecording}
                     className={cn(
                       'absolute right-3 top-3 rounded-full p-2 transition-all',
-                      isRecording 
-                        ? 'bg-destructive text-destructive-foreground animate-pulse shadow-lg' 
+                      isRecording
+                        ? 'bg-destructive text-destructive-foreground animate-pulse shadow-lg'
                         : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80'
                     )}
                   >
@@ -269,7 +310,7 @@ const StudyPage = () => {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <Button 
+                  <Button
                     onClick={handleVerifyWithLLM}
                     disabled={!userAnswer.trim() || isLoadingFeedback}
                     className="flex-1"
@@ -287,15 +328,16 @@ const StudyPage = () => {
                       </>
                     )}
                   </Button>
-                  <Button 
+                  <Button
                     variant="outline"
-                    onClick={() => setShowAnswer(!showAnswer)}
+                    onClick={() => setShowAnswer(true)}
                     size="lg"
                   >
-                    {showAnswer ? 'Ukryj odpowiedź' : 'Pokaż odpowiedź'}
+                    Pokaż odpowiedź
                   </Button>
                 </div>
               </div>
+              )}
 
               {/* Expected Answer */}
               {showAnswer && (
@@ -305,9 +347,9 @@ const StudyPage = () => {
                   className="mt-6 rounded-xl border border-success/30 bg-success/10 p-4"
                 >
                   <h4 className="font-medium text-foreground mb-2">Wzorcowa odpowiedź:</h4>
-                  <p className="text-sm text-foreground leading-relaxed">
+                  <div className="text-sm text-foreground leading-relaxed">
                     <TiptapRenderer content={question.answer} />
-                  </p>
+                  </div>
                 </motion.div>
               )}
 
@@ -325,25 +367,24 @@ const StudyPage = () => {
                   <div className="prose prose-sm text-foreground whitespace-pre-line">
                     {llmFeedback}
                   </div>
-                  <p className="mt-3 text-xs text-muted-foreground italic">
-                    ⚠️ Ocena automatyczna – może zawierać błędy
-                  </p>
                 </motion.div>
               )}
             </motion.div>
+            </AnimatePresence>
 
-            {/* Rating Section */}
+            {/* Rating Section - TERAZ SŁUŻY JAKO NAWIGACJA */}
             {(showAnswer || llmFeedback) && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="rounded-2xl border border-border bg-card p-6"
               >
-                <h3 className="font-medium text-foreground mb-4">Jak dobrze znasz to zagadnienie?</h3>
+                <h3 className="font-medium text-foreground mb-4 text-center">Jak oceniasz swoją odpowiedź?</h3>
                 <div className="grid grid-cols-4 gap-2">
                   {[1, 2, 3, 4].map(rating => (
                     <button
                       key={rating}
+                      onClick={() => handleRate(rating)}
                       className="rounded-xl border border-border p-2 md:p-3 text-center transition-all hover:border-primary hover:bg-primary/10 hover:scale-105"
                     >
                       <div className="flex justify-center mb-1">
@@ -351,11 +392,11 @@ const StudyPage = () => {
                           <Star key={i} className="h-3 w-3 md:h-4 md:w-4 fill-warning text-warning" />
                         ))}
                       </div>
-                      <span className="text-[10px] md:text-xs text-muted-foreground hidden sm:block">
-                        {rating === 1 && 'Nie znam'}
-                        {rating === 2 && 'Słabo'}
-                        {rating === 3 && 'Średnio'}
-                        {rating === 4 && 'Dobrze'}
+                      <span className="text-[10px] md:text-xs text-muted-foreground block font-semibold mt-1">
+                        {rating === 1 && 'Nie znam (Powtórz)'}
+                        {rating === 2 && 'Trudne'}
+                        {rating === 3 && 'Dobre'}
+                        {rating === 4 && 'Łatwe'}
                       </span>
                     </button>
                   ))}
@@ -365,28 +406,7 @@ const StudyPage = () => {
           </div>
         </div>
 
-        {/* Footer Navigation */}
-        <div className="border-t border-border bg-card/80 backdrop-blur-sm px-4 md:px-6 py-4">
-          <div className="flex items-center justify-between max-w-3xl mx-auto">
-            <Button
-              variant="outline"
-              onClick={handlePrevious}
-              disabled={currentQuestionIndex === 0}
-              size="lg"
-            >
-              <ChevronLeft className="mr-1 md:mr-2 h-4 w-4" />
-              <span className="hidden sm:inline">Poprzednie</span>
-            </Button>
-            <Button
-              onClick={handleNext}
-              disabled={currentQuestionIndex === questions.length - 1}
-              size="lg"
-            >
-              <span className="hidden sm:inline">Następne</span>
-              <ChevronRight className="ml-1 md:ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        {/* Footer Navigation - USUNIĘTO - Oceny sterują przepływem */}
       </div>
     </MainLayout>
   );
