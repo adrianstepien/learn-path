@@ -71,24 +71,22 @@ export const EditorCategoryGrid = ({
               </div>
             </div>
 
-            {/* Footer - zawsze na dole */}
-            <div className="mt-auto border-t border-border/50 px-4 md:px-6 py-3 md:py-4 bg-gradient-to-b from-secondary/30 to-secondary/10">
+            {/* Footer - spójny z CategoryCard */}
+            <div className="mt-auto border-t border-border px-4 md:px-6 py-4 bg-secondary/30">
               <div className="flex gap-2">
                 <Button
-                  className="flex-1 h-9 flex items-center justify-center gap-2"
-                  size="sm"
+                  className="flex-1"
                   onClick={() => onEditCategory(category)}
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Pencil className="h-4 w-4 mr-2" />
                   Edytuj
                 </Button>
                 <Button
                   variant="destructive"
-                  className="flex-1 h-9 flex items-center justify-center gap-2"
-                  size="sm"
+                  className="flex-1"
                   onClick={() => onDeleteCategory(category.id)}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4 mr-2" />
                   Usuń
                 </Button>
               </div>
