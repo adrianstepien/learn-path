@@ -8,7 +8,7 @@ import type {
   TopicDto,
   CreateTopicDto,
 } from '@/lib/api/types';
-import { editorKeys } from './editorQueryKeys';
+import { queryKeys } from './queryKeys';
 import {
   mapRoadmapDtoToRoadmap,
   mapTopicDtoToTopic,
@@ -27,7 +27,7 @@ export const useEditorRoadmap = (roadmapId: string | undefined) => {
   const numericRoadmapId = roadmapId ? parseNumericId(roadmapId) : 0;
 
   const roadmapQuery = useQuery<Roadmap | null>({
-    queryKey: editorKeys.roadmap(roadmapId || 'unknown'),
+    queryKey: queryKeys.roadmap(roadmapId || 'unknown'),
     enabled: !!numericRoadmapId,
     queryFn: async () => {
       // Fallback: search roadmap through categories if a direct endpoint is missing
@@ -54,7 +54,7 @@ export const useEditorRoadmap = (roadmapId: string | undefined) => {
   });
 
   const topicsQuery = useQuery<Topic[]>({
-    queryKey: editorKeys.topics(roadmapId || 'unknown'),
+    queryKey: queryKeys.topics(roadmapId || 'unknown'),
     enabled: !!numericRoadmapId,
     queryFn: async () => {
       try {
@@ -86,15 +86,15 @@ export const useEditorRoadmap = (roadmapId: string | undefined) => {
     },
     onMutate: async (newPos) => {
       await queryClient.cancelQueries({
-        queryKey: editorKeys.topics(roadmapId || 'unknown'),
+        queryKey: queryKeys.topics(roadmapId || 'unknown'),
       });
 
       const previousTopics = queryClient.getQueryData<Topic[]>(
-        editorKeys.topics(roadmapId || 'unknown'),
+        queryKeys.topics(roadmapId || 'unknown'),
       );
 
       queryClient.setQueryData<Topic[]>(
-        editorKeys.topics(roadmapId || 'unknown'),
+        queryKeys.topics(roadmapId || 'unknown'),
         (old) => {
           if (!old) return [];
           return old.map((t) =>
@@ -109,7 +109,7 @@ export const useEditorRoadmap = (roadmapId: string | undefined) => {
       console.error('Failed to move node', error);
       if (context?.previousTopics) {
         queryClient.setQueryData(
-          editorKeys.topics(roadmapId || 'unknown'),
+          queryKeys.topics(roadmapId || 'unknown'),
           context.previousTopics,
         );
       }
@@ -117,7 +117,7 @@ export const useEditorRoadmap = (roadmapId: string | undefined) => {
     },
     onSettled: () => {
       queryClient.invalidateQueries({
-        queryKey: editorKeys.topics(roadmapId || 'unknown'),
+        queryKey: queryKeys.topics(roadmapId || 'unknown'),
       });
     },
   });
@@ -137,7 +137,7 @@ export const useEditorRoadmap = (roadmapId: string | undefined) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: editorKeys.topics(roadmapId || 'unknown'),
+        queryKey: queryKeys.topics(roadmapId || 'unknown'),
       });
     },
     onError: (error) => {
@@ -152,7 +152,7 @@ export const useEditorRoadmap = (roadmapId: string | undefined) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: editorKeys.topics(roadmapId || 'unknown'),
+        queryKey: queryKeys.topics(roadmapId || 'unknown'),
       });
     },
     onError: (error) => {
@@ -166,7 +166,7 @@ export const useEditorRoadmap = (roadmapId: string | undefined) => {
     mutationFn: async (payload: { from: string; to: string }) => {
       const topics =
         queryClient.getQueryData<Topic[]>(
-          editorKeys.topics(roadmapId || 'unknown'),
+          queryKeys.topics(roadmapId || 'unknown'),
         ) || [];
       const sourceTopic = topics.find((t) => t.id === payload.from);
 
@@ -188,7 +188,7 @@ export const useEditorRoadmap = (roadmapId: string | undefined) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: editorKeys.topics(roadmapId || 'unknown'),
+        queryKey: queryKeys.topics(roadmapId || 'unknown'),
       });
     },
     onError: (error) => {
@@ -201,7 +201,7 @@ export const useEditorRoadmap = (roadmapId: string | undefined) => {
     mutationFn: async (payload: { from: string; to: string }) => {
       const topics =
         queryClient.getQueryData<Topic[]>(
-          editorKeys.topics(roadmapId || 'unknown'),
+          queryKeys.topics(roadmapId || 'unknown'),
         ) || [];
       const sourceTopic = topics.find((t) => t.id === payload.from);
 
@@ -219,7 +219,7 @@ export const useEditorRoadmap = (roadmapId: string | undefined) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: editorKeys.topics(roadmapId || 'unknown'),
+        queryKey: queryKeys.topics(roadmapId || 'unknown'),
       });
     },
     onError: (error) => {
@@ -266,7 +266,7 @@ export const useCreateRoadmapMutation = () => {
       await api.createRoadmap(dto);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: editorKeys.categories() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.categories() });
     },
     onError: (error) => {
       console.error('Failed to create roadmap', error);
@@ -287,7 +287,7 @@ export const useUpdateRoadmapMutation = () => {
   return useMutation({
     mutationFn: async ({ id, title, description }: UpdateRoadmapPayload) => {
       const categories =
-        queryClient.getQueryData<Category[]>(editorKeys.categories()) || [];
+        queryClient.getQueryData<Category[]>(queryKeys.categories()) || [];
       let foundRoadmap: Roadmap | undefined;
       for (const cat of categories) {
         const r = cat.roadmaps.find((roadmap) => roadmap.id === id);
@@ -308,7 +308,7 @@ export const useUpdateRoadmapMutation = () => {
       await api.updateRoadmap(dto.id!, dto);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: editorKeys.categories() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.categories() });
     },
     onError: (error) => {
       console.error('Failed to update roadmap', error);
@@ -329,7 +329,7 @@ export const useDeleteRoadmapMutation = () => {
       await api.deleteRoadmap(parseNumericId(id));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: editorKeys.categories() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.categories() });
     },
     onError: (error) => {
       console.error('Failed to delete roadmap', error);

@@ -10,7 +10,7 @@ import type {
   VideoDto,
   CardDto,
 } from '@/lib/api/types';
-import { editorKeys } from './editorQueryKeys';
+import { queryKeys } from './queryKeys';
 import {
   mapArticleToResource,
   mapCardDtoToQuestion,
@@ -28,7 +28,7 @@ export const useEditorTopic = (topicId: string | null | undefined) => {
   const numericId = topicId ? parseNumericId(topicId) : 0;
 
   return useQuery<TopicDetails>({
-    queryKey: editorKeys.topicDetails(topicId || 'unknown'),
+    queryKey: queryKeys.topicDetails(topicId || 'unknown'),
     enabled: !!numericId,
     queryFn: async () => {
       try {
@@ -99,7 +99,7 @@ export const useAddQuestionMutation = () => {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: editorKeys.topicDetails(variables.topicId),
+        queryKey: queryKeys.topicDetails(variables.topicId),
       });
     },
     onError: (error) => {
@@ -126,7 +126,7 @@ export const useUpdateQuestionMutation = () => {
     }: UpdateQuestionPayload) => {
       const numericId = parseNumericId(questionId);
       const details = queryClient.getQueryData<TopicDetails>(
-        editorKeys.topicDetails(topicId),
+        queryKeys.topicDetails(topicId),
       );
 
       const existing = details?.questions.find((q) => q.id === questionId);
@@ -159,7 +159,7 @@ export const useUpdateQuestionMutation = () => {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: editorKeys.topicDetails(variables.topicId),
+        queryKey: queryKeys.topicDetails(variables.topicId),
       });
     },
     onError: (error) => {
@@ -184,7 +184,7 @@ export const useDeleteQuestionMutation = () => {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: editorKeys.topicDetails(variables.topicId),
+        queryKey: queryKeys.topicDetails(variables.topicId),
       });
     },
     onError: (error) => {
@@ -233,7 +233,7 @@ export const useAddResourceMutation = () => {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: editorKeys.topicDetails(variables.topicId),
+        queryKey: queryKeys.topicDetails(variables.topicId),
       });
     },
     onError: (error) => {
@@ -261,7 +261,7 @@ export const useUpdateResourceMutation = () => {
       const numericId = parseNumericId(resourceId);
 
       const details = queryClient.getQueryData<TopicDetails>(
-        editorKeys.topicDetails(topicId),
+        queryKeys.topicDetails(topicId),
       );
 
       const found = details?.resources.find((r) => r.id === resourceId);
@@ -295,7 +295,7 @@ export const useUpdateResourceMutation = () => {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: editorKeys.topicDetails(variables.topicId),
+        queryKey: queryKeys.topicDetails(variables.topicId),
       });
     },
     onError: (error) => {
@@ -318,7 +318,7 @@ export const useDeleteResourceMutation = () => {
       const numericId = parseNumericId(resourceId);
 
       const details = queryClient.getQueryData<TopicDetails>(
-        editorKeys.topicDetails(topicId),
+        queryKeys.topicDetails(topicId),
       );
       const found = details?.resources.find((r) => r.id === resourceId);
       if (!found) return;
@@ -333,7 +333,7 @@ export const useDeleteResourceMutation = () => {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: editorKeys.topicDetails(variables.topicId),
+        queryKey: queryKeys.topicDetails(variables.topicId),
       });
     },
     onError: (error) => {

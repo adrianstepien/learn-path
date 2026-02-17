@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import * as api from '@/lib/api';
 import type { Category } from '@/types/learning';
 import type { CategoryDto, RoadmapDto, TopicDto } from '@/lib/api/types';
-import { editorKeys } from './editorQueryKeys';
+import { queryKeys } from './queryKeys';
 import {
   mapCategoryDtoToCategory,
   mapRoadmapDtoToRoadmap,
@@ -15,7 +15,7 @@ import {
 // Core query: categories with nested roadmaps and topics
 export const useEditorCategories = () => {
   return useQuery<Category[]>({
-    queryKey: editorKeys.categories(),
+    queryKey: queryKeys.categories(),
     queryFn: async () => {
       try {
         const categoryDtos = await api.getCategories();
@@ -86,7 +86,7 @@ export const useCreateCategoryMutation = () => {
       await api.createCategory(dto);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: editorKeys.categories() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.categories() });
     },
     onError: (error) => {
       console.error('Failed to create category', error);
@@ -109,7 +109,7 @@ export const useUpdateCategoryMutation = () => {
     mutationFn: async ({ id, name, icon, description }: UpdateCategoryPayload) => {
       const numericId = parseNumericId(id);
       const categories = queryClient.getQueryData<Category[]>(
-        editorKeys.categories(),
+        queryKeys.categories(),
       );
       const existing = categories?.find((c) => c.id === id);
 
@@ -123,7 +123,7 @@ export const useUpdateCategoryMutation = () => {
       await api.updateCategory(numericId, dto);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: editorKeys.categories() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.categories() });
     },
     onError: (error) => {
       console.error('Failed to update category', error);
@@ -145,7 +145,7 @@ export const useDeleteCategoryMutation = () => {
       await api.deleteCategory(numericId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: editorKeys.categories() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.categories() });
     },
     onError: (error) => {
       console.error('Failed to delete category', error);

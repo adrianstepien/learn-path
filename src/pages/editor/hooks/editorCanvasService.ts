@@ -16,7 +16,7 @@ import {
 } from '@/hooks/queries/useEditorTopic';
 import type { EditorNode } from '@/stores/editorStore';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { editorKeys } from '@/hooks/queries/editorQueryKeys';
+import { queryKeys } from '@/hooks/queries/queryKeys';
 import { mapTopicToUpdateDto } from '@/domain/editorMappers';
 import * as api from '@/lib/api';
 
@@ -63,7 +63,7 @@ export function useEditorCanvasService(roadmapId: string | undefined) {
       updates: Partial<Topic>;
     }) => {
       const cachedTopics =
-        queryClient.getQueryData<Topic[]>(editorKeys.topics(roadmapId || 'unknown')) ||
+        queryClient.getQueryData<Topic[]>(queryKeys.topics(roadmapId || 'unknown')) ||
         [];
       const existing = cachedTopics.find((t) => t.id === topicId);
       if (!existing) return;
@@ -75,7 +75,7 @@ export function useEditorCanvasService(roadmapId: string | undefined) {
     },
     onSuccess: () => {
       if (!roadmapId) return;
-      queryClient.invalidateQueries({ queryKey: editorKeys.topics(roadmapId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.topics(roadmapId) });
     },
   });
 
