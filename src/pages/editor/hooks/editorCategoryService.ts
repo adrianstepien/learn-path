@@ -1,37 +1,23 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useEditorCategories } from '@/hooks/queries/useEditorCategories';
+import { useEditorStore } from '@/stores/editorStore';
+import { useCategorySearch } from '@/pages/learn/hooks/useCategorySearch';
 
-import type { Category } from '@/types/learning';
-import type { useEditorStore } from '@/stores/editorStore';
+export function useEditorCategoryService() {
+  const ui = useEditorStore();
+  const { data: categories = [], isLoading, error } = useEditorCategories();
+  const { searchQuery, setSearchQuery, filteredCategories } =
+    useCategorySearch(categories);
 
-type EditorStore = ReturnType<typeof useEditorStore>;
+  const selectCategory = (categoryId: string | null) => {
+    ui.setSelectedCategoryId(categoryId);
+  };
 
-export function useEditorCategoryService(store: EditorStore) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const selectRoadmap = (roadmapId: string | null) => {
+    ui.setSelectedRoadmapId(roadmapId);
+  };
 
-  const selectedCategory = store.getSelectedCategory();
-
-  const filteredCategories = useMemo(
-    () =>
-      store.state.categories.filter((cat) =>
-        cat.name.toLowerCase().includes(searchQuery.toLowerCase())
-      ),
-    [store.state.categories, searchQuery]
-  );
-
-  const selectCategory = useCallback(
-    (categoryId: string | null) => {
-      store.selectCategory(categoryId);
-    },
-    [store]
-  );
-
-  const selectRoadmap = useCallback(
-    (roadmapId: string | null) => {
-      store.selectRoadmap(roadmapId);
-    },
-    [store]
-  );
-
+  const selectedCategory =
+    categories.find((c) => c.id === ui.selectedCategoryId) ?? null;
 
   return {
     searchQuery,
@@ -40,6 +26,8 @@ export function useEditorCategoryService(store: EditorStore) {
     selectedCategory,
     selectCategory,
     selectRoadmap,
+    isLoading,
+    error,
   };
 }
 

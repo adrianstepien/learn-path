@@ -9,18 +9,18 @@ import { Loader2 } from 'lucide-react';
 const EditorTopicPage = () => {
   const { roadmapId } = useParams<{ roadmapId: string }>();
   const navigate = useNavigate();
-  const store = useEditorStore();
-  const canvas = useEditorCanvasService(store);
+  const ui = useEditorStore();
+  const canvas = useEditorCanvasService(roadmapId);
 
   useEffect(() => {
-    if (roadmapId && store.state.selectedRoadmapId !== roadmapId) {
-      store.selectRoadmap(roadmapId);
+    if (roadmapId && ui.selectedRoadmapId !== roadmapId) {
+      ui.setSelectedRoadmapId(roadmapId);
     }
-  }, [roadmapId, store.state.selectedRoadmapId]);
+  }, [roadmapId, ui.selectedRoadmapId]);
 
-  const selectedRoadmap = store.getSelectedRoadmap();
+  const selectedRoadmap = canvas.selectedRoadmap;
 
-  if (store.state.isLoading && !selectedRoadmap) {
+  if (canvas.isLoading && !selectedRoadmap) {
     return (
       <MainLayout>
         <div className="flex items-center justify-center h-screen">

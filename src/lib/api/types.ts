@@ -35,6 +35,11 @@ export interface UpdateTopicDto {
   relatedTopicIds?: number[];
 }
 
+export interface UpdateTopicPositionDto {
+  canvasPositionX?: number;
+  canvasPositionY?: number;
+}
+
 export interface TopicDto {
   id?: number;
   title: string;

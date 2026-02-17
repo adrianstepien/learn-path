@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { EditorCanvas } from '@/components/editor/EditorCanvas';
 import { TopicEditPanel } from '@/components/editor/TopicEditPanel';
 import { AddNodeDialog } from '@/components/editor/AddNodeDialog';
-import type { useEditorCanvasService } from '@/pages/editor/services/editorCanvasService';
+import type { useEditorCanvasService } from '@/pages/editor/hooks/editorCanvasService';
 
 type EditorCanvasService = ReturnType<typeof useEditorCanvasService>;
 

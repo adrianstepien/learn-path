@@ -1,9 +1,15 @@
 import { useCallback, useMemo, useState } from 'react';
 
 import type { Category, Roadmap } from '@/types/learning';
-import type { useEditorStore } from '@/stores/editorStore';
-
-type EditorStore = ReturnType<typeof useEditorStore>;
+import { useEditorStore } from '@/stores/editorStore';
+import {
+  useCreateCategoryMutation,
+  useUpdateCategoryMutation,
+} from '@/hooks/queries/useEditorCategories';
+import {
+  useCreateRoadmapMutation,
+  useUpdateRoadmapMutation,
+} from '@/hooks/queries/useEditorRoadmap';
 
 export type DialogType =
   | 'add-category'
@@ -18,7 +24,12 @@ export interface DialogFormData {
   description: string;
 }
 
-export function useEditorDialogService(store: EditorStore) {
+export function useEditorDialogService() {
+  const ui = useEditorStore();
+  const createCategory = useCreateCategoryMutation();
+  const updateCategory = useUpdateCategoryMutation();
+  const createRoadmap = useCreateRoadmapMutation();
+  const updateRoadmap = useUpdateRoadmapMutation();
   const [dialogType, setDialogType] = useState<DialogType>(null);
   const [editingItem, setEditingItem] = useState<Category | Roadmap | null>(null);
   const [formData, setFormData] = useState<DialogFormData>({
@@ -69,23 +80,44 @@ export function useEditorDialogService(store: EditorStore) {
     if (!dialogType) return;
 
     if (dialogType === 'add-category') {
-      store.addCategory(formData.name, formData.icon);
-    } else if (dialogType === 'edit-category' && editingItem) {
-      store.updateCategory(editingItem.id, {
+      createCategory.mutate({
         name: formData.name,
         icon: formData.icon,
+        description: formData.description,
       });
-    } else if (dialogType === 'add-roadmap' && store.state.selectedCategoryId) {
-      store.addRoadmap(store.state.selectedCategoryId, formData.name, formData.description);
+    } else if (dialogType === 'edit-category' && editingItem) {
+      updateCategory.mutate({
+        id: editingItem.id,
+        name: formData.name,
+        icon: formData.icon,
+        description: formData.description,
+      });
+    } else if (dialogType === 'add-roadmap' && ui.selectedCategoryId) {
+      createRoadmap.mutate({
+        categoryId: ui.selectedCategoryId,
+        title: formData.name,
+        description: formData.description,
+      });
     } else if (dialogType === 'edit-roadmap' && editingItem) {
-      store.updateRoadmap(editingItem.id, {
+      updateRoadmap.mutate({
+        id: editingItem.id,
         title: formData.name,
         description: formData.description,
       });
     }
 
     closeDialog();
-  }, [closeDialog, dialogType, editingItem, formData, store]);
+  }, [
+    closeDialog,
+    dialogType,
+    editingItem,
+    formData,
+    ui.selectedCategoryId,
+    createCategory,
+    updateCategory,
+    createRoadmap,
+    updateRoadmap,
+  ]);
 
   const dialogTitle = useMemo(() => {
     switch (dialogType) {

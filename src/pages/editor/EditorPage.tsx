@@ -12,16 +12,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { useEditorCategories, useDeleteCategoryMutation } from '@/hooks/queries/useEditorCategories';
 
 const EMOJI_OPTIONS = ["💻", "📚", "🎨", "🔬", "📐", "🌍", "💼", "🎵", "⚽", "🍳", "📜", "🧠"];
 
 const EditorPage = () => {
-  const store = useEditorStore();
+  const ui = useEditorStore();
   const navigate = useNavigate();
-  const dialog = useEditorDialogService(store);
+  const dialog = useEditorDialogService();
+  const { data: categories = [] } = useEditorCategories();
+  const deleteCategory = useDeleteCategoryMutation();
 
   // Wyszukiwanie kategorii
-  const { searchQuery, setSearchQuery, filteredCategories } = useCategorySearch(store.state.categories || []);
+  const { searchQuery, setSearchQuery, filteredCategories } = useCategorySearch(categories || []);
 
   return (
     <MainLayout>
@@ -47,7 +50,7 @@ const EditorPage = () => {
           categories={filteredCategories}
           onSelectCategory={(id) => navigate(`/editor/roadmap/${id}`)}
           onEditCategory={(category) => dialog.openDialog('edit-category', category)}
-          onDeleteCategory={store.deleteCategory}
+          onDeleteCategory={(id) => deleteCategory.mutate({ id })}
           onAddCategory={() => dialog.openDialog('add-category')}
         />
       </div>

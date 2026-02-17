@@ -9,23 +9,27 @@ import { useEditorDialogService } from '@/pages/editor/hooks/editorDialogService
 import { EditorRoadmapGrid } from '@/pages/editor/components/EditorRoadmapGrid';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { useEditorCategories } from '@/hooks/queries/useEditorCategories';
+import { useDeleteRoadmapMutation } from '@/hooks/queries/useEditorRoadmap';
 
 const EditorRoadmapPage = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
   const navigate = useNavigate();
-  const store = useEditorStore();
-  const dialog = useEditorDialogService(store);
+  const ui = useEditorStore();
+  const dialog = useEditorDialogService();
+  const { data: categories = [] } = useEditorCategories();
+  const deleteRoadmap = useDeleteRoadmapMutation();
 
-  const category = useMemo(() =>
-    store.state.categories.find(c => c.id === categoryId),
-    [store.state.categories, categoryId]
+  const category = useMemo(
+    () => categories.find((c) => c.id === categoryId),
+    [categories, categoryId],
   );
 
   useEffect(() => {
-    if (categoryId && store.state.selectedCategoryId !== categoryId) {
-      store.selectCategory(categoryId);
+    if (categoryId && ui.selectedCategoryId !== categoryId) {
+      ui.setSelectedCategoryId(categoryId);
     }
-  }, [categoryId, store.state.selectedCategoryId]);
+  }, [categoryId, ui.selectedCategoryId]);
 
   if (!category) {
     return (
@@ -56,7 +60,7 @@ const EditorRoadmapPage = () => {
           category={category}
           onSelectRoadmap={(roadmapId) => navigate(`/editor/topic/${roadmapId}`)}
           onEditRoadmap={(roadmap) => dialog.openDialog('edit-roadmap', roadmap)}
-          onDeleteRoadmap={store.deleteRoadmap}
+          onDeleteRoadmap={(roadmapId) => deleteRoadmap.mutate({ id: roadmapId })}
           onAddRoadmap={() => dialog.openDialog('add-roadmap')}
         />
       </div>
