@@ -79,7 +79,7 @@ export const EditorRoadmapGrid = ({
                 Edytuj
               </Button>
               <Button
-                variant="destructive"
+                variant="outline"
                 className="flex-1"
                 onClick={() => onDeleteRoadmap(roadmap.id)}
               >
