@@ -109,6 +109,17 @@ const StudyPage = () => {
     setLlmFeedback(null);
   };
 
+
+  // Poprawiona minimalnie definicja funkcji skipQuestion (wcześniej brakowało "=" itp.)
+  const skipQuestion = () => {
+    // np. await api.saveReview(questions[0].id, rating);
+    setQuestions(prev => {
+      const [, ...rest] = prev;
+      return rest;
+    });
+    resetQuestionState();
+  }
+
   // --- NOWA LOGIKA OCENIANIA ---
   const handleRate = (rating: number) => {
     if (questions.length === 0) return;
@@ -270,8 +281,16 @@ const StudyPage = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="rounded-2xl border border-border bg-card p-6 md:p-8 shadow-lg mb-6"
+              className="relative rounded-2xl border bg-card p-8 shadow-lg mb-6"
             >
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={skipQuestion}
+                className="absolute right-4 top-4 text-xs  hover:text-foreground"
+              >
+                Pomiń
+              </Button>
               {/* Question Meta */}
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 <span className={cn(
