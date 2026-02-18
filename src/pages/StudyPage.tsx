@@ -58,6 +58,13 @@ const StudyPage = () => {
   // Używamy useRef, aby zmiana tych wartości nie powodowała re-renderów
   const startTimeRef = useRef<string | undefined>(undefined);
   const answerShownTimeRef = useRef<string | undefined>(undefined);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  const formatTime = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -122,6 +129,17 @@ const StudyPage = () => {
     }
   }, [questions[0]?.id]);
 
+  // Efekt licznika - uruchamia się, gdy dane są pobrane
+  useEffect(() => {
+    // Nie licz czasu, jeśli dane nie są pobrane lub sesja się skończyła (brak pytań)
+    if (!hasFetched || (questions.length === 0 && initialCount > 0)) return;
+
+    const interval = setInterval(() => {
+      setElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [hasFetched, questions.length, initialCount]);
 
   const resetQuestionState = () => {
     setUserAnswer('');
@@ -207,6 +225,9 @@ const StudyPage = () => {
             <h2 className="text-2xl font-bold text-foreground mb-2">Sesja ukończona!</h2>
             <p className="text-muted-foreground mb-8">
               Przerobiłeś wszystkie {initialCount} zaplanowanych kart.
+            </p>
+            <p className="mt-4">
+                Twój czas nauki: <span className="font-semibold text-foreground">{formatTime(elapsedSeconds)}</span>
             </p>
             <Button onClick={() => navigate(-1)} size="lg" className="w-full">
               Wróć do listy
@@ -299,7 +320,9 @@ const StudyPage = () => {
             <div className="flex items-center gap-3 md:gap-4 shrink-0">
               <div className="hidden sm:flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">00:00</span>
+                <span className="text-sm text-muted-foreground font-mono">
+                  {formatTime(elapsedSeconds)}
+                </span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-foreground font-semibold">
