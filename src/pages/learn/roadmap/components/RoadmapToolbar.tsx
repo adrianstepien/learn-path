@@ -62,10 +62,6 @@ export const RoadmapToolbar = ({
           <RotateCcw className="h-4 w-4" />
         </Button>
         <div className="h-6 w-px bg-border mx-2 hidden md:block" />
-        <Button variant="outline" size="sm" className="hidden md:flex">
-          <Filter className="h-4 w-4 mr-2" />
-          Filtruj
-        </Button>
         <Button size="sm" onClick={() => navigate(`/learn/study?roadmap=${roadmapId}`)}>
           <Play className="h-4 w-4 mr-2" />
           <span className="hidden md:inline">Tryb nauki</span>

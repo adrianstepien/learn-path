@@ -87,6 +87,7 @@ export const TopicEditPanel = ({
 }: TopicEditPanelProps) => {
   const [editingTitle, setEditingTitle] = useState(false);
   const [title, setTitle] = useState(topic.title);
+  const [description, setDescription] = useState(topic.description);
   const [expandedSections, setExpandedSections] = useState<string[]>(['own_materials', 'articles', 'videos', 'questions']);
 
   const ownMaterials = topic.resources.filter(r => r.type === 'note'); // pamiętaj o zmianie typu na 'note'
@@ -109,6 +110,10 @@ export const TopicEditPanel = ({
     setEditingTitle(false);
   }, [topic.id, topic.title]);
 
+  useEffect(() => {
+    setDescription(topic.description);
+  }, [topic.id, topic.description]);
+
   const questions = topic.questions;
 
   const toggleSection = (section: string) => {
@@ -117,6 +122,10 @@ export const TopicEditPanel = ({
         ? prev.filter(s => s !== section)
         : [...prev, section]
     );
+  };
+
+  const handleSaveDescription = () => {
+    onUpdateTopic({ description: description.trim() });
   };
 
   const handleSaveTitle = () => {
@@ -283,8 +292,9 @@ export const TopicEditPanel = ({
                         <label className="text-sm font-medium text-foreground">Opis tematu</label>
                         <Textarea
                           // Prioritize topic.description (for optimistic UI on edit), then fetched details
-                          value={topic.description || ''}
-                          onChange={(e) => onUpdateTopic({ description: e.target.value })}
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          onBlur={handleSaveDescription}
                           placeholder="Dodaj opis tematu..."
                           rows={3}
                         />
