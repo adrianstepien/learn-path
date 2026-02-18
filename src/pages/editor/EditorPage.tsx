@@ -60,15 +60,16 @@ const EditorPage = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>{dialog.dialogTitle}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
-             <div className="flex gap-3 items-center">
-                <div className="w-20">
-                  <Select value={dialog.formData.icon} onValueChange={(val) => dialog.setFormData(prev => ({ ...prev, icon: val }))}>
-                    <SelectTrigger className="h-10"><SelectValue placeholder="Ikona" /></SelectTrigger>
-                    <SelectContent>{EMOJI_OPTIONS.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <Input placeholder="Nazwa kategorii" value={dialog.formData.name} onChange={(e) => dialog.setFormData(prev => ({ ...prev, name: e.target.value }))} />
-             </div>
+            <div className="flex gap-3 items-center">
+              <div className="w-20 flex-shrink-0">
+                <Select value={dialog.formData.icon} onValueChange={(val) => dialog.setFormData(prev => ({ ...prev, icon: val }))}>
+                  <SelectTrigger className="h-10 justify-center text-lg"><SelectValue placeholder="Ikona" /></SelectTrigger>
+                  <SelectContent>{EMOJI_OPTIONS.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <Input className="flex-1" placeholder="Nazwa kategorii" value={dialog.formData.name} onChange={(e) => dialog.setFormData(prev => ({ ...prev, name: e.target.value }))}/>
+            </div>
+            <Input placeholder="Opis kategorii" value={dialog.formData.description} onChange={(e) => dialog.setFormData(prev => ({ ...prev, description: e.target.value }))}/>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={dialog.closeDialog}>Anuluj</Button>
