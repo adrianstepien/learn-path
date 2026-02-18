@@ -16,7 +16,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { TiptapRenderer } from '@/components/study/TiptapRenderer';
-import { getCardsToRepeatByCategory, getCardsToRepeatByRoadmap, getCardsToRepeatByTopic } from '@/lib/api/cards';
+import { getCardsToRepeatByCategory, getCardsToRepeatByRoadmap, getCardsToRepeatByTopic, getCardsToRepeat } from '@/lib/api/cards';
 import { cn } from '@/lib/utils';
 import { Question } from '@/types/learning';
 
@@ -71,6 +71,12 @@ const StudyPage = () => {
             collectedQuestions = data;
             studyTitle = "Powtórka kategorii";
         }
+      } else {
+          const data = await getCardsToRepeat();
+            if (data) {
+              collectedQuestions = data;
+              studyTitle = "Powtórka w systemie";
+          }
       }
 
       const finalQuestions = collectedQuestions.map(q => ({
