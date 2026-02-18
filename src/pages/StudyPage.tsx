@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
@@ -9,16 +9,15 @@ import {
   Star,
   BookOpen,
   Mic,
-  CheckCircle, // Dodane dla ekranu końcowego
-  Trophy       // Dodane dla ekranu końcowego
+  Trophy
 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { TiptapRenderer } from '@/components/study/TiptapRenderer';
-import { getCardsToRepeatByCategory, getCardsToRepeatByRoadmap, getCardsToRepeatByTopic, getCardsToRepeat, getCardForStudy, StudyMode } from '@/lib/api/cards';
+import { createReview, getCardsToRepeatByCategory, getCardsToRepeatByRoadmap, getCardsToRepeatByTopic, getCardsToRepeat, getCardForStudy, StudyMode } from '@/lib/api/cards';
 import { cn } from '@/lib/utils';
-import { Question } from '@/types/learning';
+import { QuestionWithReview } from '@/types/learning';
 
 const difficultyColors = {
   beginner: 'bg-green-500/20 text-green-600',
@@ -37,9 +36,8 @@ const StudyPage = () => {
   const roadmapId = searchParams.get('roadmap');
   const questionId = searchParams.get('question');
 
-  // ZMIANA: Zamiast indeksu, trzymamy tablicę i "zjadamy" ją od początku
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [initialCount, setInitialCount] = useState(0); // Do paska postępu
+  const [questions, setQuestions] = useState<QuestionWithReview[]>([]);
+  const [initialCount, setInitialCount] = useState(0);
   const [hasFetched, setHasFetched] = useState(false);
 
   const [userAnswer, setUserAnswer] = useState('');
@@ -49,7 +47,11 @@ const StudyPage = () => {
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
   const [title, setTitle] = useState('');
 
-  // Collect all questions based on mode
+  // --- NOWE ZMIENNE DO CZASU ---
+  // Używamy useRef, aby zmiana tych wartości nie powodowała re-renderów
+  const startTimeRef = useRef<string | undefined>(undefined);
+  const answerShownTimeRef = useRef<string | undefined>(undefined);
+
   useEffect(() => {
     const fetchData = async () => {
       let collectedQuestions: any[] = [];
@@ -104,16 +106,32 @@ const StudyPage = () => {
     fetchData();
   }, [topicId, categoryId, roadmapId, questionId]);
 
+  // --- LOGIKA CZASU STARTU (reviewStartedAt) ---
+  // Uruchamia się za każdym razem, gdy zmienia się pierwsze pytanie w tablicy (czyli nowe pytanie wchodzi na ekran)
+  useEffect(() => {
+    if (questions.length > 0) {
+      startTimeRef.current = new Date().toISOString();
+      answerShownTimeRef.current = undefined; // Resetujemy czas pokazania odpowiedzi dla nowego pytania
+    }
+  }, [questions[0]?.id]);
+
+
   const resetQuestionState = () => {
     setUserAnswer('');
     setShowAnswer(false);
     setLlmFeedback(null);
   };
 
+  const skipQuestion = async () => {
+    const currentQuestion = questions[0];
+    const reviewCardDTO: ReviewRequestDTO = {
+        cardId: currentQuestion.id,
+        rating: 0
+    };
 
-  // Poprawiona minimalnie definicja funkcji skipQuestion (wcześniej brakowało "=" itp.)
-  const skipQuestion = () => {
-    // np. await api.saveReview(questions[0].id, rating);
+    console.log("a to jest skip do API:", reviewCardDTO);
+    await createReview(reviewCardDTO);
+
     setQuestions(prev => {
       const [, ...rest] = prev;
       return rest;
@@ -121,12 +139,33 @@ const StudyPage = () => {
     resetQuestionState();
   }
 
-  // --- NOWA LOGIKA OCENIANIA ---
-  const handleRate = (rating: number) => {
+  // --- LOGIKA POKAZANIA ODPOWIEDZI (answerShownAt) ---
+  const handleShowAnswer = () => {
+      console.log('o to to')
+    if (!answerShownTimeRef.current) {
+        answerShownTimeRef.current = new Date().toISOString(); // answerShownAt: now()
+    }
+    setShowAnswer(true);
+  };
+
+  // --- LOGIKA OCENIANIA (rating) ---
+  const handleRate = async (rating: number) => {
     if (questions.length === 0) return;
 
-    // Tutaj możesz dodać wywołanie API do zapisu wyniku (SRS)
-    // np. await api.saveReview(questions[0].id, rating);
+    const currentQuestion = questions[0];
+
+    // Tworzymy pełny obiekt z uzupełnionymi parametrami
+    const reviewCardDTO: ReviewRequestDTO = {
+        cardId: currentQuestion.id,
+        rating: rating,
+        reviewStartedAt: startTimeRef.current,      // Czas wejścia pytania na ekran
+        answerShownAt: answerShownTimeRef.current  // Czas kliknięcia "Pokaż odpowiedź" (może być undefined, jeśli nie kliknął)
+    };
+
+    console.log("Wysyłanie do API:", reviewCardDTO);
+
+    // Tutaj wywołanie API, np.:
+    await createReview(reviewCardDTO);
 
     if (rating === 1) {
       // Jeśli "Nie znam" (1) -> przenieś na koniec kolejki
@@ -135,7 +174,7 @@ const StudyPage = () => {
         return [...rest, current];
       });
     } else {
-      // Każda inna ocena -> usuń z kolejki (zaliczone w tej sesji)
+      // Każda inna ocena -> usuń z kolejki
       setQuestions(prev => {
         const [, ...rest] = prev;
         return rest;
@@ -211,7 +250,10 @@ const StudyPage = () => {
 
   const handleVerifyWithLLM = async () => {
     setIsLoadingFeedback(true);
-    // Simulate LLM response
+    // Opcjonalnie: Jeśli weryfikacja LLM też powinna liczyć się jako "pokazanie odpowiedzi",
+    // odkomentuj poniższą linię:
+    // if (!answerShownTimeRef.current) answerShownTimeRef.current = new Date().toISOString();
+
     await new Promise(resolve => setTimeout(resolve, 1500));
     setLlmFeedback(
       `**Analiza odpowiedzi:**\n\nTwoja odpowiedź jest weryfikowana przez AI. (To jest mockup).\n\n**Sugestia:** Sprawdź poprawność w oparciu o wzorcową odpowiedź.`
@@ -363,7 +405,7 @@ const StudyPage = () => {
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => setShowAnswer(true)}
+                    onClick={handleShowAnswer}
                     size="lg"
                   >
                     Pokaż odpowiedź
@@ -438,8 +480,6 @@ const StudyPage = () => {
             )}
           </div>
         </div>
-
-        {/* Footer Navigation - USUNIĘTO - Oceny sterują przepływem */}
       </div>
     </MainLayout>
   );

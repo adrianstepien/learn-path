@@ -99,13 +99,11 @@ export interface FsrsCardDto {
   importance: number;
 }
 
-export type ReviewRating = 'AGAIN' | 'HARD' | 'GOOD' | 'EASY';
+export type ReviewRating = 'SKIP' | 'AGAIN' | 'HARD' | 'GOOD' | 'EASY';
 
-export interface ReviewRequestDTO {
+export interface ReviewCardDTO {
   cardId: number;
   rating: ReviewRating;
   reviewStartedAt?: string;
   answerShownAt?: string;
-  submittedAt?: string;
-  responseTimeMs?: number;
 }

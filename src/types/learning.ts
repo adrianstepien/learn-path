@@ -33,6 +33,12 @@ export interface Question {
   repetitions: number;       // Number of successful reviews
 }
 
+interface QuestionWithReview extends Question {
+  rating: ReviewRating;
+  reviewStartedAt?: string;
+  answerShownAt?: string;
+}
+
 export interface QuestionAttempt {
   id: string;
   questionId: string;
