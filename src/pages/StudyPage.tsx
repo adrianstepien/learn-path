@@ -154,7 +154,6 @@ const StudyPage = () => {
         rating: ReviewRating.SKIP
     };
 
-    console.log("a to jest skip do API:", reviewCardDTO);
     await createReview(reviewCardDTO);
 
     setQuestions(prev => {
@@ -166,7 +165,6 @@ const StudyPage = () => {
 
   // --- LOGIKA POKAZANIA ODPOWIEDZI (answerShownAt) ---
   const handleShowAnswer = () => {
-      console.log('o to to')
     if (!answerShownTimeRef.current) {
         answerShownTimeRef.current = new Date().toISOString(); // answerShownAt: now()
     }
@@ -186,8 +184,6 @@ const StudyPage = () => {
         reviewStartedAt: startTimeRef.current,      // Czas wejścia pytania na ekran
         answerShownAt: answerShownTimeRef.current  // Czas kliknięcia "Pokaż odpowiedź" (może być undefined, jeśli nie kliknął)
     };
-
-    console.log("Wysyłanie do API:", reviewCardDTO);
 
     // Tutaj wywołanie API, np.:
     await createReview(reviewCardDTO);
