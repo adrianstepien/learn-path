@@ -59,32 +59,6 @@ export const EditorCanvasLayout = ({
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1 md:gap-2 shrink-0">
-          <Button
-            variant="outline"
-            size="icon"
-            disabled
-            className="h-8 w-8 md:h-9 md:w-9 hidden sm:flex"
-          >
-            <Undo className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            disabled
-            className="h-8 w-8 md:h-9 md:w-9 hidden sm:flex"
-          >
-            <Redo className="h-4 w-4" />
-          </Button>
-          <Button
-            onClick={canvas.handleSave}
-            size="sm"
-            className="gap-1 md:gap-2 h-8 md:h-9 px-2 md:px-4"
-          >
-            <Save className="h-4 w-4" />
-            <span className="hidden sm:inline">Zapisz</span>
-          </Button>
-        </div>
       </motion.div>
 
       {/* Canvas */}
