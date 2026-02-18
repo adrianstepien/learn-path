@@ -16,7 +16,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { TiptapRenderer } from '@/components/study/TiptapRenderer';
-import { getCardsToRepeatByCategory, getCardsToRepeatByRoadmap, getCardsToRepeatByTopic, getCardsToRepeat } from '@/lib/api/cards';
+import { getCardsToRepeatByCategory, getCardsToRepeatByRoadmap, getCardsToRepeatByTopic, getCardsToRepeat, getCardForStudy } from '@/lib/api/cards';
 import { cn } from '@/lib/utils';
 import { Question } from '@/types/learning';
 
@@ -34,6 +34,7 @@ const StudyPage = () => {
 
   const categoryId = searchParams.get('category');
   const roadmapId = searchParams.get('roadmap');
+  const questionId = searchParams.get('question');
 
   // ZMIANA: Zamiast indeksu, trzymamy tablicę i "zjadamy" ją od początku
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -53,7 +54,13 @@ const StudyPage = () => {
       let collectedQuestions: any[] = [];
       let studyTitle = '';
 
-      if (topicId) {
+      if (questionId) {
+          const data = await getCardForStudy(questionId);
+          if (data) {
+              collectedQuestions = [data];
+              studyTitle = "Powtórka pytania";
+          }
+      } else if (topicId) {
           const data = await getCardsToRepeatByTopic(topicId);
           if (data) {
               collectedQuestions = data;
@@ -94,7 +101,7 @@ const StudyPage = () => {
     };
 
     fetchData();
-  }, [topicId, categoryId, roadmapId]);
+  }, [topicId, categoryId, roadmapId, questionId]);
 
   const resetQuestionState = () => {
     setUserAnswer('');
