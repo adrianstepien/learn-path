@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { TiptapRenderer } from '@/components/study/TiptapRenderer';
 import { createReview, getCardsToRepeatByCategory, getCardsToRepeatByRoadmap, getCardsToRepeatByTopic, getCardsToRepeat, getCardForStudy, StudyMode } from '@/lib/api/cards';
 import { cn } from '@/lib/utils';
-import { QuestionWithReview } from '@/types/learning';
+import { QuestionWithReview, ReviewRating } from '@/types/learning';
 
 const difficultyColors = {
   beginner: 'bg-green-500/20 text-green-600',
@@ -25,6 +25,13 @@ const difficultyColors = {
   advanced: 'bg-orange-500/20 text-orange-600',
   expert: 'bg-red-500/20 text-red-600',
 };
+
+const ratingButtons = [
+  { value: ReviewRating.AGAIN, label: 'Nie znam (Powtórz)', stars: 1 },
+  { value: ReviewRating.HARD, label: 'Trudne', stars: 2 },
+  { value: ReviewRating.GOOD, label: 'Dobre', stars: 3 },
+  { value: ReviewRating.EASY, label: 'Łatwe', stars: 4 },
+];
 
 const StudyPage = () => {
   const { topicId } = useParams();
@@ -126,7 +133,7 @@ const StudyPage = () => {
     const currentQuestion = questions[0];
     const reviewCardDTO: ReviewRequestDTO = {
         cardId: currentQuestion.id,
-        rating: 0
+        rating: ReviewRating.SKIP
     };
 
     console.log("a to jest skip do API:", reviewCardDTO);
@@ -149,7 +156,7 @@ const StudyPage = () => {
   };
 
   // --- LOGIKA OCENIANIA (rating) ---
-  const handleRate = async (rating: number) => {
+  const handleRate = async (rating: ReviewRating) => {
     if (questions.length === 0) return;
 
     const currentQuestion = questions[0];
@@ -167,7 +174,7 @@ const StudyPage = () => {
     // Tutaj wywołanie API, np.:
     await createReview(reviewCardDTO);
 
-    if (rating === 1) {
+    if (rating === ReviewRating.AGAIN) {
       // Jeśli "Nie znam" (1) -> przenieś na koniec kolejki
       setQuestions(prev => {
         const [current, ...rest] = prev;
@@ -456,22 +463,20 @@ const StudyPage = () => {
               >
                 <h3 className="font-medium text-foreground mb-4 text-center">Jak oceniasz swoją odpowiedź?</h3>
                 <div className="grid grid-cols-4 gap-2">
-                  {[1, 2, 3, 4].map(rating => (
+                  {ratingButtons.map((btn) => (
                     <button
-                      key={rating}
-                      onClick={() => handleRate(rating)}
+                      key={btn.value}
+                      onClick={() => handleRate(btn.value)}
                       className="rounded-xl border border-border p-2 md:p-3 text-center transition-all hover:border-primary hover:bg-primary/10 hover:scale-105"
                     >
                       <div className="flex justify-center mb-1">
-                        {[...Array(rating)].map((_, i) => (
+                        {/* Generowanie gwiazdek na podstawie konfiguracji */}
+                        {[...Array(btn.stars)].map((_, i) => (
                           <Star key={i} className="h-3 w-3 md:h-4 md:w-4 fill-warning text-warning" />
                         ))}
                       </div>
                       <span className="text-[10px] md:text-xs text-muted-foreground block font-semibold mt-1">
-                        {rating === 1 && 'Nie znam (Powtórz)'}
-                        {rating === 2 && 'Trudne'}
-                        {rating === 3 && 'Dobre'}
-                        {rating === 4 && 'Łatwe'}
+                        {btn.label}
                       </span>
                     </button>
                   ))}

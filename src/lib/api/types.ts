@@ -99,8 +99,6 @@ export interface FsrsCardDto {
   importance: number;
 }
 
-export type ReviewRating = 'SKIP' | 'AGAIN' | 'HARD' | 'GOOD' | 'EASY';
-
 export interface ReviewCardDTO {
   cardId: number;
   rating: ReviewRating;

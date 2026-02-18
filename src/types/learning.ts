@@ -130,3 +130,11 @@ export interface EditorConnection {
   to: string;
   type: TopicConnection['type'];
 }
+
+export enum ReviewRating {
+  SKIP = 'SKIP',
+  AGAIN = 'AGAIN',
+  HARD = 'HARD',
+  GOOD = 'GOOD',
+  EASY = 'EASY'
+}
