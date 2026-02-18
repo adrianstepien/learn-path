@@ -1,6 +1,8 @@
 import { apiRequest } from './config';
 import { CardDto, ReviewRequestDTO } from './types';
 
+export type StudyMode = 'SRS' | 'FUTURE';
+
 // GET /cards - Get all cards
 export async function getCards(): Promise<CardDto[]> {
   return apiRequest<CardDto[]>('/cards');
@@ -42,18 +44,18 @@ export async function getCardsToRepeat(): Promise<CardDto[]> {
 }
 
 // GET /spaced-repetitions/category/{categoryId} - Get cards to repeat in category
-export async function getCardsToRepeatByCategory(categoryId: number): Promise<CardDto[]> {
-  return apiRequest<CardDto[]>(`/spaced-repetitions/category/${categoryId}`);
+export async function getCardsToRepeatByCategory(categoryId: number, mode: StudyMode = 'SRS'): Promise<CardDto[]> {
+   return apiRequest<CardDto[]>(`/spaced-repetitions/category/${categoryId}`, { params: { mode }});
 }
 
 // GET /spaced-repetitions/roadmap/{roadmapId} - Get cards to repeat in roadmap
-export async function getCardsToRepeatByRoadmap(roadmapId: number): Promise<CardDto[]> {
-  return apiRequest<CardDto[]>(`/spaced-repetitions/roadmap/${roadmapId}`);
+export async function getCardsToRepeatByRoadmap(roadmapId: number, mode: StudyMode = 'SRS'): Promise<CardDto[]> {
+  return apiRequest<CardDto[]>(`/spaced-repetitions/roadmap/${roadmapId}`, { params: { mode }});
 }
 
 // GET /spaced-repetitions/topic/{topicId} - Get cards to repeat in topic
-export async function getCardsToRepeatByTopic(topicId: number): Promise<CardDto[]> {
-  return apiRequest<CardDto[]>(`/spaced-repetitions/topic/${topicId}`);
+export async function getCardsToRepeatByTopic(topicId: number, mode: StudyMode = 'SRS'): Promise<CardDto[]> {
+  return apiRequest<CardDto[]>(`/spaced-repetitions/topic/${topicId}`, { params: { mode }});
 }
 
 // GET /spaced-repetitions/card/{cardId} - Get specific card for study

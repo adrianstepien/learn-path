@@ -16,7 +16,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { TiptapRenderer } from '@/components/study/TiptapRenderer';
-import { getCardsToRepeatByCategory, getCardsToRepeatByRoadmap, getCardsToRepeatByTopic, getCardsToRepeat, getCardForStudy } from '@/lib/api/cards';
+import { getCardsToRepeatByCategory, getCardsToRepeatByRoadmap, getCardsToRepeatByTopic, getCardsToRepeat, getCardForStudy, StudyMode } from '@/lib/api/cards';
 import { cn } from '@/lib/utils';
 import { Question } from '@/types/learning';
 
@@ -32,6 +32,7 @@ const StudyPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
+  const studyModeParam = (searchParams.get('mode') || 'SRS').toUpperCase() as StudyMode;
   const categoryId = searchParams.get('category');
   const roadmapId = searchParams.get('roadmap');
   const questionId = searchParams.get('question');
@@ -58,25 +59,25 @@ const StudyPage = () => {
           const data = await getCardForStudy(questionId);
           if (data) {
               collectedQuestions = [data];
-              studyTitle = "Powtórka pytania";
+              studyTitle = "Nauka pytania";
           }
       } else if (topicId) {
-          const data = await getCardsToRepeatByTopic(topicId);
+          const data = await getCardsToRepeatByTopic(topicId, studyModeParam);
           if (data) {
               collectedQuestions = data;
-              studyTitle = "Powtórka tematu";
+              studyTitle = "Nauka tematu";
           }
       } else if (roadmapId) {
-          const data = await getCardsToRepeatByRoadmap(roadmapId);
+          const data = await getCardsToRepeatByRoadmap(roadmapId, studyModeParam);
           if (data) {
               collectedQuestions = data;
-              studyTitle = "Powtórka roadmapy";
+              studyTitle = "Nauka roadmapy";
           }
       } else if (categoryId) {
-          const data = await getCardsToRepeatByCategory(categoryId);
+          const data = await getCardsToRepeatByCategory(categoryId, studyModeParam);
           if (data) {
             collectedQuestions = data;
-            studyTitle = "Powtórka kategorii";
+            studyTitle = "Nauka kategorii";
         }
       } else {
           const data = await getCardsToRepeat();

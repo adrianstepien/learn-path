@@ -33,10 +33,19 @@ export function resetApiAvailability() {
 // Helper for making API requests
 export async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit & { params?: Record<string, any> } = {}
 ): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-  
+  const url = new URL(`${API_BASE_URL}${endpoint}`);
+
+  // Jeśli są parametry, dodaj je do URL
+  if (options.params) {
+      Object.entries(options.params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          url.searchParams.append(key, value.toString());
+        }
+      });
+    }
+
   const headers = new Headers(options.headers);
 
   if (options.body && !(options.body instanceof FormData)) {

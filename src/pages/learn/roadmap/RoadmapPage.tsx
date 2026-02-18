@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Search, ChevronRight, Play } from 'lucide-react';
+import { ArrowLeft, Search, ChevronRight, Play, RotateCcw } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ const RoadmapCard = ({ roadmap, categoryId, delay }: { roadmap: Roadmap; categor
       className="group rounded-2xl border border-border bg-card shadow-card transition-all hover:shadow-lg hover:border-primary/20 overflow-hidden"
     >
       {/* Header - clickable to navigate to roadmap view */}
-      <div 
+      <div
         onClick={() => navigate(`/learn/${categoryId}/topic/${roadmap.id}`)}
         className="cursor-pointer p-6 pb-4 transition-all hover:bg-gradient-to-br hover:from-secondary/50 hover:to-transparent"
       >
@@ -34,14 +34,14 @@ const RoadmapCard = ({ roadmap, categoryId, delay }: { roadmap: Roadmap; categor
         </div>
         <h3 className="mb-2 text-lg font-bold text-foreground">{roadmap.title}</h3>
         <p className="mb-4 text-sm text-muted-foreground line-clamp-2">{roadmap.description}</p>
-        
+
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
             {(roadmap.topics?.length || 0)} tematów • {(roadmap.totalQuestions || 0)} pytań
           </span>
           <div className="flex items-center gap-2">
             <div className="h-2 w-20 rounded-full bg-secondary overflow-hidden">
-              <div 
+              <div
                 className="h-2 rounded-full gradient-primary transition-all duration-500"
                 style={{ width: `${roadmap.progress}%` }}
               />
@@ -51,18 +51,31 @@ const RoadmapCard = ({ roadmap, categoryId, delay }: { roadmap: Roadmap; categor
         </div>
       </div>
 
-      {/* Study Button */}
       <div className="border-t border-border/50 px-6 py-4 bg-gradient-to-b from-secondary/30 to-secondary/10">
-        <Button 
-          className="w-full"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/learn/study?roadmap=${roadmap.id}`);
-          }}
-        >
-          <Play className="h-4 w-4 mr-2" />
-          Ucz się w roadmapie
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            className="flex-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/learn/study?roadmap=${roadmap.id}&mode=SRS`);
+            }}
+          >
+            <Play className="h-4 w-4 mr-2" />
+            Ucz się w roadmapie
+          </Button>
+
+          <Button
+            variant="outline"
+            className="shrink-0 px-3 transition-colors hover:bg-background hover:text-primary hover:border-primary/20 border border-transparent"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/learn/study?roadmap=${roadmap.id}&mode=FUTURE`);
+            }}
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            <span>Powtórz</span>
+          </Button>
+        </div>
       </div>
     </motion.div>
   );

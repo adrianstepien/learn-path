@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Play, Loader2 } from 'lucide-react';
+import { ChevronRight, Play, Loader2, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Category, Roadmap } from '@/types/learning';
@@ -44,7 +44,12 @@ export const CategoryCard = ({
 
   const handleStartCategoryStudy = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(`/learn/study?category=${category.id}`);
+    navigate(`/learn/study?category=${category.id}&mode=SRS`);
+  };
+
+  const handleReviewCategory = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/learn/study?category=${category.id}&mode=FUTURE`);
   };
 
   const handleToggleExpand = (e: React.MouseEvent) => {
@@ -98,55 +103,25 @@ export const CategoryCard = ({
       </div>
 
       {/* Study Button */}
-      <div className="border-t border-border px-4 md:px-6 py-4 bg-secondary/30">
+      <div className="border-t border-border/50 px-6 py-4 bg-gradient-to-b from-secondary/30 to-secondary/10">
         <div className="flex items-center gap-2">
-          <Button className="flex-1" onClick={handleStartCategoryStudy}>
+          <Button
+            className="flex-1"
+            onClick={handleStartCategoryStudy}
+          >
             <Play className="h-4 w-4 mr-2" />
             Ucz się w kategorii
           </Button>
+
           <Button
             variant="outline"
-            size="icon"
-            onClick={handleToggleExpand}
-            className="shrink-0"
-            aria-label={isExpanded ? 'Zwiń roadmapy' : 'Rozwiń roadmapy'}
+            className="shrink-0 px-3 transition-colors hover:bg-background hover:text-primary hover:border-primary/20 border border-transparent"
+            onClick={handleReviewCategory}
           >
-            {isLoadingRoadmaps ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <ChevronRight
-                className={`h-4 w-4 transition-transform ${
-                  isExpanded ? 'rotate-90' : ''
-                }`}
-              />
-            )}
+            <RotateCcw className="h-4 w-4 mr-2" />
+            <span>Powtórz</span>
           </Button>
         </div>
-
-        {/* Expandable roadmaps list */}
-        {isExpanded && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mt-4 space-y-2"
-          >
-            {isLoadingRoadmaps ? (
-              <div className="space-y-2">
-                <Skeleton className="h-14 w-full" />
-                <Skeleton className="h-14 w-full" />
-              </div>
-            ) : roadmaps.length > 0 ? (
-              roadmaps.map(roadmap => (
-                <RoadmapMiniCard key={roadmap.id} roadmap={roadmap} />
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Brak roadmap w tej kategorii
-              </p>
-            )}
-          </motion.div>
-        )}
       </div>
     </motion.div>
   );

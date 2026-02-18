@@ -58,13 +58,15 @@ export const RoadmapToolbar = ({
         <Button variant="outline" size="sm" onClick={onZoomIn}>
           <ZoomIn className="h-4 w-4" />
         </Button>
-        <Button variant="outline" size="sm" onClick={onResetView}>
-          <RotateCcw className="h-4 w-4" />
-        </Button>
         <div className="h-6 w-px bg-border mx-2 hidden md:block" />
-        <Button size="sm" onClick={() => navigate(`/learn/study?roadmap=${roadmapId}`)}>
+        <Button size="sm" onClick={() => navigate(`/learn/study?roadmap=${roadmapId}&mode=SRS`)}>
           <Play className="h-4 w-4 mr-2" />
           <span className="hidden md:inline">Tryb nauki</span>
+          <span className="md:hidden">Ucz się</span>
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => navigate(`/learn/study?roadmap=${roadmapId}&mode=FUTURE`)}>
+          <RotateCcw className="h-4 w-4 mr-2" />
+          <span className="hidden md:inline">Powtórz</span>
           <span className="md:hidden">Ucz się</span>
         </Button>
       </div>

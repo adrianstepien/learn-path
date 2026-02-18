@@ -13,7 +13,8 @@ import {
   ChevronRight,
   ExternalLink,
   ChevronDown,
-  Loader2
+  Loader2,
+  RotateCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Topic } from '@/types/learning';
@@ -174,7 +175,11 @@ export const TopicSlidePanel = ({ topic, onClose }: TopicSlidePanelProps) => {
 
 
   const handleStartLearning = () => {
-    navigate(`/learn/study/${topic.id}`);
+    navigate(`/learn/study/${topic.id}?mode=SRS`);
+  };
+
+  const handleStartRepeating = () => {
+    navigate(`/learn/study/${topic.id}?mode=FUTURE`);
   };
 
   const toggleSection = (section: string) => {
@@ -269,16 +274,10 @@ export const TopicSlidePanel = ({ topic, onClose }: TopicSlidePanelProps) => {
                 <Play className="mr-2 h-5 w-5" />
                 Ucz się w ramach tematu
               </Button>
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" size="sm">
-                  <Clock className="mr-2 h-4 w-4" />
-                  Do powtórki
-                </Button>
-                <Button variant="outline" className="flex-1" size="sm">
-                  <Shuffle className="mr-2 h-4 w-4" />
-                  Losowe
-                </Button>
-              </div>
+            <Button onClick={handleStartRepeating} variant="outline" className="w-full mb-3 transition-colors hover:bg-background hover:text-primary hover:border-primary/20 border border-transparent" size="sm">
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Powtórz
+            </Button>
             </div>
 
             {/* Content Sections */}
