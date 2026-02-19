@@ -4,7 +4,6 @@ export interface CategoryDto {
   id?: number;
   title: string;
   description?: string;
-  iconType?: string;
   iconData?: string;
 }
 
@@ -12,7 +11,6 @@ export interface RoadmapDto {
   id?: number;
   title: string;
   description?: string;
-  iconType?: string;
   iconData?: string;
   categoryId: number;
 }
