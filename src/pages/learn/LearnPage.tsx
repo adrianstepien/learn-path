@@ -1,5 +1,5 @@
 import { MainLayout } from '@/components/layout/MainLayout';
-import { useLearnData } from '@/hooks/useLearnData';
+import { useLearnCategory } from '@/hooks/queries/useLearnCategory';
 import { useCategorySearch } from '@/pages/learn/hooks/useCategorySearch';
 import { LearnPageHeader } from '@/pages/learn/components/LearnPageHeader';
 import { SearchBar } from '@/pages/learn/components/SearchBar';
@@ -20,7 +20,7 @@ import { CategoryGrid } from '@/pages/learn/components/CategoryGrid';
  */
 const LearnPage = () => {
   // Data fetching layer
-  const { categories, isLoading, loadRoadmaps, roadmaps } = useLearnData();
+  const { categories, isLoading } = useLearnCategory();
 
   // Business logic layer - Search filtering
   const {

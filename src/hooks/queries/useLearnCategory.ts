@@ -19,7 +19,7 @@ const mapCategoryDtoToCategory = (dto: CategoryDto): Category => ({
     : 0,
 });
 
-interface UseLearnDataReturn {
+interface UseLearnCategoryReturn {
   categories: Category[];
   isLoading: boolean;
   error: string | null;
@@ -27,7 +27,7 @@ interface UseLearnDataReturn {
   loadCategories: () => Promise<void>;
 }
 
-export const useLearnData = (): UseLearnDataReturn => {
+export const useLearnCategory = (): UseLearnCategoryReturn => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
