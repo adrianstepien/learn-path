@@ -3,6 +3,17 @@ import { motion } from 'framer-motion';
 import { Link2, Trash2, GripVertical } from 'lucide-react';
 import { EditorNode } from '@/stores/editorStore';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface CanvasNodeProps {
   node: EditorNode;
@@ -185,16 +196,35 @@ export const CanvasNode = ({
         >
           <Link2 className="h-4 w-4 text-primary" />
         </button>
-        <button
-          className="node-action flex h-8 w-8 items-center justify-center rounded-lg hover:bg-destructive/10 transition-colors"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          title="Usuń węzeł"
-        >
-          <Trash2 className="h-4 w-4 text-destructive" />
-        </button>
+
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <button
+              className="node-action flex h-8 w-8 items-center justify-center rounded-lg hover:bg-destructive/10 transition-colors"
+              onClick={(e) => e.stopPropagation()}
+              title="Usuń węzeł"
+            >
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="node-action" onClick={(e) => e.stopPropagation()}>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Czy na pewno chcesz usunąć?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Ta akcja jest nieodwracalna. Węzeł "{node.title}" zostanie trwale usunięty.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Anuluj</AlertDialogCancel>
+              <AlertDialogAction onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}>
+                Tak, usuń
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       {/* Connection ports */}

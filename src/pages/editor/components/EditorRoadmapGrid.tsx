@@ -1,5 +1,16 @@
 import { motion } from 'framer-motion';
 import { ChevronRight, Map, Pencil, Plus, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 import { Button } from '@/components/ui/button';
 import type { Category, Roadmap } from '@/types/learning';
@@ -78,14 +89,33 @@ export const EditorRoadmapGrid = ({
                 <Pencil className="h-4 w-4 mr-2" />
                 Edytuj
               </Button>
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => onDeleteRoadmap(roadmap.id)}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Usuń
-              </Button>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Usuń
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Czy na pewno chcesz usunąć?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Ta akcja jest nieodwracalna. Spowoduje trwałe usunięcie roadmapy "{roadmap.title}".
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => onDeleteRoadmap(roadmap.id)}>
+                      Tak, usuń
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         </motion.div>
