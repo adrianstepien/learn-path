@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { getCategoryById } from '@/data/mockData';
 import { Roadmap } from '@/types/learning';
-import { useRoadmaps } from '@/hooks/queries/useRoadmaps';
+import { useLearnRoadmap } from '@/hooks/queries/useLearnRoadmap';
 import * as api from '@/lib/api';
 
 const RoadmapCard = ({ roadmap, categoryId, delay }: { roadmap: Roadmap; categoryId: string; delay: number }) => {
@@ -37,7 +37,7 @@ const RoadmapCard = ({ roadmap, categoryId, delay }: { roadmap: Roadmap; categor
 
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
-            {(roadmap.topics?.length || 0)} tematów • {(roadmap.totalQuestions || 0)} pytań
+            {`Do nauki: ${roadmap.dueCards} / ${roadmap.totalCards} pytań`}
           </span>
           <div className="flex items-center gap-2">
             <div className="h-2 w-20 rounded-full bg-secondary overflow-hidden">
@@ -87,7 +87,7 @@ const RoadmapPage = () => {
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const { data: roadmaps = [], isLoading } = useRoadmaps(categoryId);
+  const { data: roadmaps = [], isLoading } = useLearnRoadmap(categoryId);
 
   const filteredRoadmaps = roadmaps.filter(roadmap =>
     roadmap.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

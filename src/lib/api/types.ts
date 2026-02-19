@@ -14,6 +14,8 @@ export interface LearnRoadmapDto {
   title: string;
   description: string;
   iconData?: string;
+  totalCards: number;
+  dueCards: number;
   categoryId: number;
 }
 
