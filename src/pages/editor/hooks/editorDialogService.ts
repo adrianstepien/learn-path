@@ -99,9 +99,10 @@ export function useEditorDialogService() {
         icon: formData.icon,
         description: formData.description,
       });
-    } else if (dialogType === 'edit-roadmap' && editingItem) {
+    } else if (dialogType === 'edit-roadmap' && editingItem && ui.selectedCategoryId) {
       updateRoadmap.mutate({
         id: editingItem.id,
+        categoryId: ui.selectedCategoryId,
         title: formData.name,
         icon: formData.icon,
         description: formData.description,

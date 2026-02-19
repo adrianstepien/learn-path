@@ -258,6 +258,7 @@ export const useCreateRoadmapMutation = () => {
 
 interface UpdateRoadmapPayload {
   id: string;
+  categoryId: string;
   title?: string;
   icon?: string;
   description?: string;
@@ -267,34 +268,26 @@ export const useUpdateRoadmapMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, title, icon, description }: UpdateRoadmapPayload) => {
-      // Get roadmap from cache before mutation
-      const roadmap = queryClient.getQueryData<Roadmap | null>(
-        queryKeys.roadmap(id),
-      );
-      
-      if (!roadmap) {
-        throw new Error('Roadmap not found in cache');
-      }
+    mutationFn: async ({ id, categoryId, title, icon, description }: UpdateRoadmapPayload) => {
 
       const dto: RoadmapDto = {
         id: parseNumericId(id),
-        title: title || roadmap.title,
-        description: description ?? roadmap.description,
-        iconData: icon ?? roadmap.icon,
-        categoryId: parseNumericId(roadmap.categoryId),
+        title: title,
+        description: description,
+        iconData: icon,
+        categoryId: parseNumericId(categoryId),
       };
 
       await api.updateRoadmap(dto.id!, dto);
       
-      return { categoryId: roadmap.categoryId };
+      return { categoryId };
     },
     onSuccess: (_data, variables) => {
       // Invalidate the specific roadmap
       queryClient.invalidateQueries({ queryKey: queryKeys.roadmap(variables.id) });
       // Invalidate the category's roadmaps list
       if (_data?.categoryId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.roadmaps(_data.categoryId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.roadmaps(_data?.categoryId || variables.categoryId) });
       }
     },
     onError: (error) => {
@@ -306,19 +299,14 @@ export const useUpdateRoadmapMutation = () => {
 
 interface DeleteRoadmapPayload {
   id: string;
+  categoryId: string;
 }
 
 export const useDeleteRoadmapMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id }: DeleteRoadmapPayload) => {
-      // Get roadmap to know which category to invalidate before deletion
-      const roadmap = queryClient.getQueryData<Roadmap | null>(
-        queryKeys.roadmap(id),
-      );
-      const categoryId = roadmap?.categoryId;
-
+    mutationFn: async ({ id, categoryId }: DeleteRoadmapPayload) => {
       await api.deleteRoadmap(parseNumericId(id));
 
       return { categoryId };
