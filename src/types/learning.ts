@@ -74,9 +74,10 @@ export interface Topic {
   position: { x: number; y: number };
   status: ProgressStatus;
   questions: Question[];
-  totalCards: number;
-  dueCards: number;
-  progress: number;
+  relatedTopicIds?: string[];
+  totalCards?: number;
+  dueCards?: number;
+  progress?: number;
   resources: Resource[];
   parentTopicId?: string;    // For hierarchical structure
   childTopicIds: string[];
@@ -96,14 +97,17 @@ export interface Roadmap {
   categoryId: string;
   title: string;
   description?: string;
+  icon?: string;
   color?: string;
-  totalCards: number;
-  dueCards: number;
-  progress: number;
-  totalQuestions: number;
-  masteredQuestions: number;
-  createdAt: Date;
-  updatedAt: Date;
+  topics?: Topic[];
+  connections?: TopicConnection[];
+  totalCards?: number;
+  dueCards?: number;
+  progress?: number;
+  totalQuestions?: number;
+  masteredQuestions?: number;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface Category {
@@ -112,9 +116,10 @@ export interface Category {
   description?: string;
   icon?: string;
   color?: string;
-  totalCards: number;
-  dueCards: number;
-  progress: number;
+  roadmaps?: Roadmap[];
+  totalCards?: number;
+  dueCards?: number;
+  progress?: number;
   createdAt?: Date;
 }
 

@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { useEditorCategories } from '@/hooks/queries/useEditorCategories';
+import { useEditorRoadmaps } from '@/hooks/queries/useEditorRoadmaps';
 import { useDeleteRoadmapMutation } from '@/hooks/queries/useEditorRoadmap';
 import { EMOJI_OPTIONS } from '@/types/learning';
 
@@ -19,12 +20,13 @@ const EditorRoadmapPage = () => {
   const navigate = useNavigate();
   const ui = useEditorStore();
   const dialog = useEditorDialogService();
-  const { data: categories = [] } = useEditorCategories();
+  const categoriesQuery = useEditorCategories();
+  const roadmapsQuery = useEditorRoadmaps(categoryId);
   const deleteRoadmap = useDeleteRoadmapMutation();
 
   const category = useMemo(
-    () => categories.find((c) => c.id === categoryId),
-    [categories, categoryId],
+    () => (categoriesQuery.data || []).find((c) => c.id === categoryId),
+    [categoriesQuery.data, categoryId],
   );
 
   useEffect(() => {
@@ -33,17 +35,32 @@ const EditorRoadmapPage = () => {
     }
   }, [categoryId, ui.selectedCategoryId]);
 
+  if (categoriesQuery.isLoading) {
+    return (
+      <MainLayout>
+        <div className="flex flex-col items-center justify-center h-[50vh] text-center p-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-primary" />
+        </div>
+      </MainLayout>
+    );
+  }
+
   if (!category) {
     return (
       <MainLayout>
         <div className="flex flex-col items-center justify-center h-[50vh] text-center p-4">
             <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-            <h2 className="text-xl font-bold">Kategoria nie znaleziona</h2>
+            <h2 className="text-xl font-bold">Roadmapa nie znaleziona</h2>
             <Button variant="link" onClick={() => navigate('/editor')}>Wróć do listy kategorii</Button>
         </div>
       </MainLayout>
     );
   }
+
+  const categoryWithRoadmaps = {
+    ...category,
+    roadmaps: roadmapsQuery.data || [],
+  };
 
   return (
     <MainLayout>
@@ -58,8 +75,14 @@ const EditorRoadmapPage = () => {
             </div>
         </motion.div>
 
+        {roadmapsQuery.isLoading && (
+          <div className="flex items-center justify-center py-10">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-primary" />
+          </div>
+        )}
+
         <EditorRoadmapGrid
-          category={category}
+          category={categoryWithRoadmaps}
           onSelectRoadmap={(roadmapId) => navigate(`/editor/topic/${roadmapId}`)}
           onEditRoadmap={(roadmap) => dialog.openDialog('edit-roadmap', roadmap)}
           onDeleteRoadmap={(roadmapId) => deleteRoadmap.mutate({ id: roadmapId })}

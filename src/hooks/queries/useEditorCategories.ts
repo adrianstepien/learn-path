@@ -3,58 +3,18 @@ import { toast } from 'sonner';
 
 import * as api from '@/lib/api';
 import type { Category } from '@/types/learning';
-import type { CategoryDto, RoadmapDto, TopicDto } from '@/lib/api/types';
+import type { CategoryDto } from '@/lib/api/types';
 import { queryKeys } from './queryKeys';
-import {
-  mapCategoryDtoToCategory,
-  mapRoadmapDtoToRoadmap,
-  mapTopicDtoToTopic,
-  parseNumericId,
-} from '@/domain/editorMappers';
+import { mapCategoryDtoToCategory, parseNumericId } from '@/domain/editorMappers';
 
-// Core query: categories with nested roadmaps and topics
+// Core query: categories only (roadmaps/topics fetched per screen)
 export const useEditorCategories = () => {
   return useQuery<Category[]>({
     queryKey: queryKeys.categories(),
     queryFn: async () => {
       try {
         const categoryDtos = await api.getCategories();
-
-        const categoriesWithRoadmaps = await Promise.all(
-          categoryDtos.map(async (catDto: CategoryDto) => {
-            if (!catDto.id) return mapCategoryDtoToCategory(catDto, []);
-
-            try {
-              const roadmapDtos: RoadmapDto[] = await api.getRoadmaps(catDto.id);
-
-              const roadmapsWithTopics = await Promise.all(
-                roadmapDtos.map(async (roadmapDto: RoadmapDto) => {
-                  if (!roadmapDto.id) {
-                    return mapRoadmapDtoToRoadmap(roadmapDto, []);
-                  }
-
-                  try {
-                    const topicDtos: TopicDto[] = await api.getTopics(
-                      roadmapDto.id,
-                    );
-                    const topics = topicDtos.map((t) =>
-                      mapTopicDtoToTopic(t, String(roadmapDto.id)),
-                    );
-                    return mapRoadmapDtoToRoadmap(roadmapDto, topics);
-                  } catch {
-                    return mapRoadmapDtoToRoadmap(roadmapDto, []);
-                  }
-                }),
-              );
-
-              return mapCategoryDtoToCategory(catDto, roadmapsWithTopics);
-            } catch {
-              return mapCategoryDtoToCategory(catDto, []);
-            }
-          }),
-        );
-
-        return categoriesWithRoadmaps;
+        return categoryDtos.map((dto: CategoryDto) => mapCategoryDtoToCategory(dto, []));
       } catch (error) {
         console.error('Failed to load categories', error);
         toast.error('Nie udało się załadować kategorii');

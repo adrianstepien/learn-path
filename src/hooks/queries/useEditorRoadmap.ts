@@ -2,19 +2,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import * as api from '@/lib/api';
-import type { Roadmap, Topic, Category } from '@/types/learning';
+import type { Roadmap, Topic } from '@/types/learning';
 import type {
   RoadmapDto,
-  TopicDto,
   CreateTopicDto,
 } from '@/lib/api/types';
 import { queryKeys } from './queryKeys';
 import {
   mapRoadmapDtoToRoadmap,
-  mapTopicDtoToTopic,
   parseNumericId,
 } from '@/domain/editorMappers';
 import { computeConnectionsFromTopics } from '@/domain/canvas/connections';
+import { useEditorTopics } from './useEditorTopics';
 
 interface RoadmapWithGraph {
   roadmap: Roadmap | null;
@@ -30,21 +29,9 @@ export const useEditorRoadmap = (roadmapId: string | undefined) => {
     queryKey: queryKeys.roadmap(roadmapId || 'unknown'),
     enabled: !!numericRoadmapId,
     queryFn: async () => {
-      // Fallback: search roadmap through categories if a direct endpoint is missing
       try {
-        const categories = await api.getCategories();
-        for (const cat of categories) {
-          const roadmaps: RoadmapDto[] = await api.getRoadmaps(cat.id!);
-          const found = roadmaps.find((r) => String(r.id) === roadmapId);
-          if (found) {
-            const topicsDtos: TopicDto[] = await api.getTopics(found.id!);
-            const topics = topicsDtos.map((t) =>
-              mapTopicDtoToTopic(t, String(found.id)),
-            );
-            return mapRoadmapDtoToRoadmap(found, topics);
-          }
-        }
-        return null;
+        const dto: RoadmapDto = await api.getRoadmapById(numericRoadmapId);
+        return mapRoadmapDtoToRoadmap(dto, []);
       } catch (error) {
         console.error('Failed to load roadmap', error);
         toast.error('Nie udało się załadować roadmapy');
@@ -53,20 +40,7 @@ export const useEditorRoadmap = (roadmapId: string | undefined) => {
     },
   });
 
-  const topicsQuery = useQuery<Topic[]>({
-    queryKey: queryKeys.topics(roadmapId || 'unknown'),
-    enabled: !!numericRoadmapId,
-    queryFn: async () => {
-      try {
-        const dtos: TopicDto[] = await api.getTopics(numericRoadmapId);
-        return dtos.map((dto) => mapTopicDtoToTopic(dto, roadmapId!));
-      } catch (error) {
-        console.error('Failed to load topics', error);
-        toast.error('Nie udało się załadować tematów');
-        throw error;
-      }
-    },
-  });
+  const topicsQuery = useEditorTopics(roadmapId);
 
   const connections = topicsQuery.data
     ? computeConnectionsFromTopics(topicsQuery.data)
@@ -271,8 +245,9 @@ export const useCreateRoadmapMutation = () => {
       };
       await api.createRoadmap(dto);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.categories() });
+    onSuccess: (_data, variables) => {
+      // Invalidate the roadmaps list for this category
+      queryClient.invalidateQueries({ queryKey: queryKeys.roadmaps(variables.categoryId) });
     },
     onError: (error) => {
       console.error('Failed to create roadmap', error);
@@ -293,30 +268,34 @@ export const useUpdateRoadmapMutation = () => {
 
   return useMutation({
     mutationFn: async ({ id, title, icon, description }: UpdateRoadmapPayload) => {
-      const categories =
-        queryClient.getQueryData<Category[]>(queryKeys.categories()) || [];
-      let foundRoadmap: Roadmap | undefined;
-      for (const cat of categories) {
-        const r = cat.roadmaps.find((roadmap) => roadmap.id === id);
-        if (r) {
-          foundRoadmap = r;
-          break;
-        }
+      // Get roadmap from cache before mutation
+      const roadmap = queryClient.getQueryData<Roadmap | null>(
+        queryKeys.roadmap(id),
+      );
+      
+      if (!roadmap) {
+        throw new Error('Roadmap not found in cache');
       }
-      if (!foundRoadmap) return;
 
       const dto: RoadmapDto = {
         id: parseNumericId(id),
-        title: title || foundRoadmap.title,
-        description: description ?? foundRoadmap.description,
-        iconData: icon ?? existing?.icon,
-        categoryId: parseNumericId(foundRoadmap.categoryId),
+        title: title || roadmap.title,
+        description: description ?? roadmap.description,
+        iconData: icon ?? roadmap.icon,
+        categoryId: parseNumericId(roadmap.categoryId),
       };
 
       await api.updateRoadmap(dto.id!, dto);
+      
+      return { categoryId: roadmap.categoryId };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.categories() });
+    onSuccess: (_data, variables) => {
+      // Invalidate the specific roadmap
+      queryClient.invalidateQueries({ queryKey: queryKeys.roadmap(variables.id) });
+      // Invalidate the category's roadmaps list
+      if (_data?.categoryId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.roadmaps(_data.categoryId) });
+      }
     },
     onError: (error) => {
       console.error('Failed to update roadmap', error);
@@ -334,10 +313,23 @@ export const useDeleteRoadmapMutation = () => {
 
   return useMutation({
     mutationFn: async ({ id }: DeleteRoadmapPayload) => {
+      // Get roadmap to know which category to invalidate before deletion
+      const roadmap = queryClient.getQueryData<Roadmap | null>(
+        queryKeys.roadmap(id),
+      );
+      const categoryId = roadmap?.categoryId;
+
       await api.deleteRoadmap(parseNumericId(id));
+
+      return { categoryId };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.categories() });
+    onSuccess: (_data, variables) => {
+      // Invalidate the specific roadmap
+      queryClient.invalidateQueries({ queryKey: queryKeys.roadmap(variables.id) });
+      // Invalidate the category's roadmaps list
+      if (_data?.categoryId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.roadmaps(_data.categoryId) });
+      }
     },
     onError: (error) => {
       console.error('Failed to delete roadmap', error);

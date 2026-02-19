@@ -19,7 +19,7 @@ const EditorPage = () => {
   const ui = useEditorStore();
   const navigate = useNavigate();
   const dialog = useEditorDialogService();
-  const { data: categories = [] } = useEditorCategories();
+  const { data: categories = [], isLoading } = useEditorCategories();
   const deleteCategory = useDeleteCategoryMutation();
 
   // Wyszukiwanie kategorii
@@ -43,6 +43,12 @@ const EditorPage = () => {
 
         {/* Search */}
         <SearchBar value={searchQuery} onChange={setSearchQuery} />
+
+        {isLoading && (
+          <div className="flex items-center justify-center py-10">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-primary" />
+          </div>
+        )}
 
         {/* Grid Kategorii */}
         <EditorCategoryGrid
