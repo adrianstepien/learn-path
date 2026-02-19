@@ -93,10 +93,10 @@ export interface Roadmap {
   categoryId: string;
   title: string;
   description?: string;
-  thumbnail?: string;
-  topics: Topic[];
-  connections: TopicConnection[];
-  progress: number;          // 0-100 percentage
+  color?: string;
+  totalCards: number;
+  dueCards: number;
+  progress: number;
   totalQuestions: number;
   masteredQuestions: number;
   createdAt: Date;
