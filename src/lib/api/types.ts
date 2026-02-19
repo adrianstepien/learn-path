@@ -1,5 +1,33 @@
 // API DTOs matching OpenAPI specification
 
+export interface LearnCategoryDto {
+  categoryId: number;
+  title: string;
+  description: string;
+  iconData?: string;
+  totalCards: number;
+  dueCards: number;
+}
+
+export interface LearnRoadmapDto {
+  roadmapId: number;
+  title: string;
+  description: string;
+  iconData?: string;
+  categoryId: number;
+}
+
+export interface LearnTopicDto {
+  topicId: number;
+  title: string;
+  description: string;
+  canvasPositionX: number;
+  canvasPositionY: number;
+  relatedTopicIds: number[];
+  totalCards: number;
+  dueCards: number;
+}
+
 export interface CategoryDto {
   id?: number;
   title: string;

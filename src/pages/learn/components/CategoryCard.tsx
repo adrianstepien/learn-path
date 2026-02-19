@@ -11,7 +11,6 @@ interface CategoryCardProps {
   delay: number;
   onExpand: () => void;
   isExpanded: boolean;
-  roadmaps: Roadmap[];
   isLoadingRoadmaps: boolean;
 }
 
@@ -24,13 +23,12 @@ export const CategoryCard = ({
   delay,
   onExpand,
   isExpanded,
-  roadmaps,
   isLoadingRoadmaps,
 }: CategoryCardProps) => {
   const navigate = useNavigate();
 
-  const totalTopics = roadmaps.reduce((sum, r) => sum + r.topics.length, 0);
-  const displayRoadmapCount = isExpanded ? roadmaps.length : category.roadmaps.length;
+  const totalTopics =1;
+  const displayRoadmapCount = 1;
 
   const handleNavigateToCategory = () => {
     navigate(`/learn/roadmap/${category.id}`, {
@@ -85,8 +83,7 @@ export const CategoryCard = ({
 
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
-            {displayRoadmapCount} roadmap{displayRoadmapCount !== 1 ? 'y' : 'a'}{' '}
-            {isExpanded && `• ${totalTopics} tematów`}
+            {`Do nauki: ${category.dueCards} / ${category.totalCards} pytań`}
           </span>
           <div className="flex items-center gap-2">
             <div className="h-2 w-16 md:w-20 rounded-full bg-secondary overflow-hidden">

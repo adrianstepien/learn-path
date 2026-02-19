@@ -2,18 +2,21 @@ import { useState, useEffect, useCallback } from 'react';
 import { Category, Roadmap, Topic } from '@/types/learning';
 import { mockCategories } from '@/data/mockData';
 import * as api from '@/lib/api';
-import { CategoryDto, RoadmapDto, TopicDto } from '@/lib/api/types';
+import { getCategoriesWithProgress, getRoadmapsWithProgress, getTopicsWithProgress } from '@/lib/api/learnProgress';
+import { CategoryDto, RoadmapDto, TopicDto, LearnCategoryDto } from '@/lib/api/types';
 
 // ===== DTO to Domain Mappers =====
 
 const mapCategoryDtoToCategory = (dto: CategoryDto): Category => ({
-  id: String(dto.id),
+  id: String(dto.categoryId),
   name: dto.title,
   description: dto.description,
   icon: dto.iconData || '📁',
-  roadmaps: [],
-  progress: 0,
-  createdAt: new Date(),
+  totalCards: dto.totalCards,
+  dueCards: dto.dueCards,
+  progress: dto.totalCards > 0
+    ? Math.round(((dto.totalCards - dto.dueCards) / dto.totalCards) * 100)
+    : 0,
 });
 
 const mapRoadmapDtoToRoadmap = (dto: RoadmapDto, topics: Topic[] = []): Roadmap => ({
@@ -57,8 +60,9 @@ export const useLearnData = (): UseLearnDataReturn => {
     setError(null);
 
     try {
-        const categoryDtos = await api.getCategories();
+        const categoryDtos = await getCategoriesWithProgress();
         const mappedCategories = categoryDtos.map(dto => mapCategoryDtoToCategory(dto));
+        console.log(mappedCategories)
         setCategories(mappedCategories);
     } catch (err) {
       console.error('Failed to load categories:', err);

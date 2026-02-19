@@ -109,9 +109,10 @@ export interface Category {
   description?: string;
   icon?: string;
   color?: string;
-  roadmaps: Roadmap[];
+  totalCards: number;
+  dueCards: number;
   progress: number;
-  createdAt: Date;
+  createdAt?: Date;
 }
 
 export interface UserStats {

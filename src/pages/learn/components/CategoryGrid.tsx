@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Category, Roadmap } from '@/types/learning';
+import { Category } from '@/types/learning';
 import { CategoryCard } from './CategoryCard';
 
 interface CategoryGridProps {
@@ -8,7 +8,6 @@ interface CategoryGridProps {
   isLoading: boolean;
   isExpanded: (categoryId: string) => boolean;
   onExpand: (categoryId: string) => void;
-  getRoadmaps: (categoryId: string, fallback: Roadmap[]) => Roadmap[];
   isLoadingCategory: (categoryId: string) => boolean;
 }
 
@@ -46,7 +45,6 @@ export const CategoryGrid = ({
   isLoading,
   isExpanded,
   onExpand,
-  getRoadmaps,
   isLoadingCategory,
 }: CategoryGridProps) => {
   if (isLoading) {
@@ -72,7 +70,6 @@ export const CategoryGrid = ({
           delay={index * 0.05}
           isExpanded={isExpanded(category.id)}
           onExpand={() => onExpand(category.id)}
-          roadmaps={getRoadmaps(category.id, category.roadmaps)}
           isLoadingRoadmaps={isLoadingCategory(category.id)}
         />
       ))}
