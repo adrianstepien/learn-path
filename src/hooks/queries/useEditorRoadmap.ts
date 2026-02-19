@@ -214,6 +214,10 @@ export const useEditorRoadmap = (roadmapId: string | undefined) => {
 
       await api.updateTopic(parseNumericId(payload.from), {
         id: parseNumericId(payload.from),
+        title: sourceTopic.title,
+        canvasPositionX: sourceTopic.position.x,
+        canvasPositionY: sourceTopic.position.y,
+        roadmapId: sourceTopic.roadmapId,
         relatedTopicIds: relatedNumericIds,
       });
     },
