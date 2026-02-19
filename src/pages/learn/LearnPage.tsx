@@ -1,6 +1,5 @@
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useLearnData } from '@/hooks/useLearnData';
-import { useCategoryExpansion } from '@/pages/learn/hooks/useCategoryExpansion';
 import { useCategorySearch } from '@/pages/learn/hooks/useCategorySearch';
 import { LearnPageHeader } from '@/pages/learn/components/LearnPageHeader';
 import { SearchBar } from '@/pages/learn/components/SearchBar';
@@ -23,17 +22,6 @@ const LearnPage = () => {
   // Data fetching layer
   const { categories, isLoading, loadRoadmaps, roadmaps } = useLearnData();
 
-  // Business logic layer - Category expansion
-  const {
-    toggleCategoryExpansion,
-    isExpanded,
-    getRoadmapsForCategory,
-    isLoadingCategory,
-  } = useCategoryExpansion({
-    loadRoadmaps,
-    roadmaps,
-  });
-
   // Business logic layer - Search filtering
   const {
     searchQuery,
@@ -55,10 +43,6 @@ const LearnPage = () => {
         <CategoryGrid
           categories={filteredCategories}
           isLoading={isLoading}
-          isExpanded={isExpanded}
-          onExpand={toggleCategoryExpansion}
-          getRoadmaps={getRoadmapsForCategory}
-          isLoadingCategory={isLoadingCategory}
         />
       </div>
     </MainLayout>

@@ -6,8 +6,6 @@ import { CategoryCard } from './CategoryCard';
 interface CategoryGridProps {
   categories: Category[];
   isLoading: boolean;
-  isExpanded: (categoryId: string) => boolean;
-  onExpand: (categoryId: string) => void;
   isLoadingCategory: (categoryId: string) => boolean;
 }
 
@@ -43,9 +41,6 @@ const EmptyState = () => (
 export const CategoryGrid = ({
   categories,
   isLoading,
-  isExpanded,
-  onExpand,
-  isLoadingCategory,
 }: CategoryGridProps) => {
   if (isLoading) {
     return (
@@ -68,9 +63,6 @@ export const CategoryGrid = ({
           key={category.id}
           category={category}
           delay={index * 0.05}
-          isExpanded={isExpanded(category.id)}
-          onExpand={() => onExpand(category.id)}
-          isLoadingRoadmaps={isLoadingCategory(category.id)}
         />
       ))}
     </div>
