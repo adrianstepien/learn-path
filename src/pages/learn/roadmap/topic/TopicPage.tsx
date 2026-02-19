@@ -7,7 +7,7 @@ import { TopicSlidePanel } from '@/components/learn/TopicSlidePanel';
 import { Topic } from '@/types/learning';
 import { useZoomPan } from '@/pages/learn/roadmap/hooks/useZoomPan';
 import { useTouchGestures } from '@/pages/learn/roadmap/hooks/useTouchGestures';
-import { useRoadmapData } from '@/pages/learn/roadmap/hooks/useRoadmapData';
+import { useLearnTopic } from '@/hooks/queries/useLearnTopic';
 import { computeConnectionsFromTopics } from '@/domain/canvas/connections';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,7 +23,7 @@ const TopicPage = () => {
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
 
   // Roadmap data - fetch using both categoryId and roadmapId
-  const { roadmap, isLoading, isError, getTopicPosition } = useRoadmapData(categoryId, roadmapId);
+  const { roadmap, isLoading, isError, getTopicPosition } = useLearnTopic(roadmapId);
 
   // Zoom and pan logic
   const {

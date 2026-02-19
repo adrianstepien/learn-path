@@ -74,6 +74,9 @@ export interface Topic {
   position: { x: number; y: number };
   status: ProgressStatus;
   questions: Question[];
+  totalCards: number;
+  dueCards: number;
+  progress: number;
   resources: Resource[];
   parentTopicId?: string;    // For hierarchical structure
   childTopicIds: string[];

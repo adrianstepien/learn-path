@@ -51,8 +51,8 @@ export const TopicNode = ({
       {/* Progress bar */}
       <div className="mb-2">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs text-muted-foreground">Postęp</span>
-          <span className="text-xs font-medium text-foreground">{progress}%</span>
+          <span className="text-xs text-muted-foreground">{`Do nauki: ${topic.dueCards} / ${topic.totalCards} pytań`}</span>
+          <span className="text-xs font-medium text-foreground">{topic.progress}%</span>
         </div>
         <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
           <div

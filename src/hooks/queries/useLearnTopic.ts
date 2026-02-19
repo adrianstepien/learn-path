@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import * as api from '@/lib/api';
+import { getRoadmapById } from '@/lib/api/roadmaps';
 import { Roadmap, Topic } from '@/types/learning';
 import { RoadmapDto, TopicDto } from '@/lib/api/types';
+import { getTopicsWithProgress } from '@/lib/api/learnProgress';
 
-interface UseRoadmapDataReturn {
+interface UseLearnTopicReturn {
   roadmap: Roadmap | undefined;
   isLoading: boolean;
   isError: boolean;
@@ -14,32 +15,25 @@ interface UseRoadmapDataReturn {
  * Custom hook to fetch roadmap data using TanStack Query
  * Accepts categoryId and roadmapId, fetches roadmaps and topics from API
  */
-export const useRoadmapData = (
-  categoryId: string | undefined,
+export const useLearnTopic = (
   roadmapId: string | undefined
-): UseRoadmapDataReturn => {
+): UseLearnTopicReturn => {
   // Parse categoryId to number for API call
-  const numericCategoryId = categoryId ? parseInt(categoryId.replace(/\D/g, '')) : undefined;
+  const numericRoadmapId = roadmapId ? Number(roadmapId) : undefined;
 
   // Fetch all roadmaps for the category
   const {
-    data: roadmapDtos = [],
+    data: roadmapDto,
     isLoading: isLoadingRoadmaps,
     isError: isErrorRoadmaps,
-  } = useQuery<RoadmapDto[]>({
-    queryKey: ['roadmaps', categoryId],
+  } = useQuery<RoadmapDto>({
+    queryKey: ['roadmaps', roadmapId],
     queryFn: async () => {
-      if (!numericCategoryId) return [];
-      return api.getRoadmaps(numericCategoryId);
+      if (!roadmapId) return [];
+      return getRoadmapById(roadmapId);
     },
-    enabled: !!numericCategoryId,
+    enabled: !!roadmapId,
   });
-
-  // Find the specific roadmap by roadmapId
-  const roadmapDto = roadmapDtos.find(dto => String(dto.id) === roadmapId);
-
-  // Parse roadmapId to number for topics API call
-  const numericRoadmapId = roadmapId ? parseInt(roadmapId.replace(/\D/g, '')) : undefined;
 
   // Fetch topics for the roadmap
   const {
@@ -50,14 +44,14 @@ export const useRoadmapData = (
     queryKey: ['topics', roadmapId],
     queryFn: async () => {
       if (!numericRoadmapId) return [];
-      return api.getTopics(numericRoadmapId);
+      return getTopicsWithProgress(numericRoadmapId);
     },
     enabled: !!numericRoadmapId && !!roadmapDto,
   });
 
   // Map TopicDto to Topic
   const topics: Topic[] = topicDtos.map(dto => ({
-    id: String(dto.id),
+    id: String(dto.topicId),
     roadmapId: roadmapId!,
     title: dto.title,
     description: dto.description,
@@ -70,6 +64,11 @@ export const useRoadmapData = (
     questions: [],
     resources: [],
     childTopicIds: [],
+    totalCards: dto.totalCards,
+    dueCards: dto.dueCards,
+    progress: dto.totalCards > 0
+        ? Math.round(((dto.totalCards - dto.dueCards) / dto.totalCards) * 100)
+        : 0,
     createdAt: new Date(),
     updatedAt: new Date(),
   }));

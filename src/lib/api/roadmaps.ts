@@ -6,6 +6,11 @@ export async function getRoadmaps(categoryId: number): Promise<RoadmapDto[]> {
   return apiRequest<RoadmapDto[]>(`/categories/${categoryId}/roadmaps`);
 }
 
+// GET /roadmaps - Get roadmap by id
+export async function getRoadmapById(roadmapId: number): Promise<RoadmapDto> {
+  return apiRequest<RoadmapDto>(`/roadmaps/${roadmapId}`);
+}
+
 // POST /roadmaps - Create a new roadmap
 export async function createRoadmap(roadmap: RoadmapDto): Promise<void> {
   return apiRequest<void>('/roadmaps', {
