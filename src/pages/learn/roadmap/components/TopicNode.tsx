@@ -2,9 +2,8 @@ import { motion } from 'framer-motion';
 import { Topic } from '@/types/learning';
 import { cn } from '@/lib/utils';
 import {
-  getTopicProgress,
+  getProgressStatus,
   statusColors,
-  getStatusIndicatorColor
 } from '@/pages/learn/roadmap/utils/topicProgress';
 
 interface TopicNodeProps {
@@ -24,9 +23,8 @@ export const TopicNode = ({
   onClick,
   isSelected
 }: TopicNodeProps) => {
-  const questionsCount = topic.questions.length;
   const resourcesCount = topic.resources.length;
-  const progress = getTopicProgress(topic);
+  const displayStatus = getProgressStatus(topic.progress);
 
   return (
     <motion.div
@@ -41,7 +39,7 @@ export const TopicNode = ({
       }}
       className={cn(
         'topic-node min-w-[180px] w-[180px] cursor-pointer rounded-xl border-2 bg-card p-4 shadow-md transition-all',
-        statusColors[topic.status],
+        statusColors[displayStatus],
         isSelected && 'ring-2 ring-primary ring-offset-2 ring-offset-background'
       )}
     >
@@ -57,28 +55,9 @@ export const TopicNode = ({
         <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
           <div
             className="h-full rounded-full gradient-primary transition-all duration-500"
-            style={{ width: `${progress}%` }}
+            style={{ width: `${topic.progress}%` }}
           />
         </div>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div className="flex gap-2">
-          {questionsCount > 0 && (
-            <span className="inline-flex items-center rounded bg-secondary px-1.5 py-0.5 text-xs text-muted-foreground">
-              🎯 {questionsCount}
-            </span>
-          )}
-          {resourcesCount > 0 && (
-            <span className="inline-flex items-center rounded bg-secondary px-1.5 py-0.5 text-xs text-muted-foreground">
-              📚 {resourcesCount}
-            </span>
-          )}
-        </div>
-        <span className={cn(
-          'h-2 w-2 rounded-full',
-          getStatusIndicatorColor(topic.status)
-        )} />
       </div>
     </motion.div>
   );
