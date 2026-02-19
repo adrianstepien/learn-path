@@ -254,6 +254,7 @@ export const useEditorRoadmap = (roadmapId: string | undefined) => {
 interface CreateRoadmapPayload {
   categoryId: string;
   title: string;
+  icon: string;
   description?: string;
 }
 
@@ -261,10 +262,11 @@ export const useCreateRoadmapMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ categoryId, title, description }: CreateRoadmapPayload) => {
+    mutationFn: async ({ categoryId, title, icon, description }: CreateRoadmapPayload) => {
       const dto: RoadmapDto = {
         title,
         description,
+        iconData: icon,
         categoryId: parseNumericId(categoryId),
       };
       await api.createRoadmap(dto);
@@ -282,6 +284,7 @@ export const useCreateRoadmapMutation = () => {
 interface UpdateRoadmapPayload {
   id: string;
   title?: string;
+  icon?: string;
   description?: string;
 }
 
@@ -289,7 +292,7 @@ export const useUpdateRoadmapMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, title, description }: UpdateRoadmapPayload) => {
+    mutationFn: async ({ id, title, icon, description }: UpdateRoadmapPayload) => {
       const categories =
         queryClient.getQueryData<Category[]>(queryKeys.categories()) || [];
       let foundRoadmap: Roadmap | undefined;
@@ -306,6 +309,7 @@ export const useUpdateRoadmapMutation = () => {
         id: parseNumericId(id),
         title: title || foundRoadmap.title,
         description: description ?? foundRoadmap.description,
+        iconData: icon ?? existing?.icon,
         categoryId: parseNumericId(foundRoadmap.categoryId),
       };
 

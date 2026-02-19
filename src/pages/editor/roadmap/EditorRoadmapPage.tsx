@@ -9,8 +9,10 @@ import { useEditorDialogService } from '@/pages/editor/hooks/editorDialogService
 import { EditorRoadmapGrid } from '@/pages/editor/components/EditorRoadmapGrid';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { useEditorCategories } from '@/hooks/queries/useEditorCategories';
 import { useDeleteRoadmapMutation } from '@/hooks/queries/useEditorRoadmap';
+import { EMOJI_OPTIONS } from '@/types/learning';
 
 const EditorRoadmapPage = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
@@ -69,9 +71,17 @@ const EditorRoadmapPage = () => {
         <DialogContent>
           <DialogHeader><DialogTitle>{dialog.dialogTitle}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
-                <Input placeholder="Nazwa roadmapy" value={dialog.formData.name} onChange={(e) => dialog.setFormData(prev => ({ ...prev, name: e.target.value }))} />
-                <Input placeholder="Opis" value={dialog.formData.description} onChange={(e) => dialog.setFormData(prev => ({ ...prev, description: e.target.value }))} />
-          </div>
+              <div className="flex gap-3 items-center">
+                <div className="w-20 flex-shrink-0">
+                  <Select value={dialog.formData.icon} onValueChange={(val) => dialog.setFormData(prev => ({ ...prev, icon: val }))}>
+                    <SelectTrigger className="h-10 justify-center text-lg"><SelectValue placeholder="Ikona" /></SelectTrigger>
+                    <SelectContent>{EMOJI_OPTIONS.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <Input className="flex-1" placeholder="Nazwa roadmapy" value={dialog.formData.name} onChange={(e) => dialog.setFormData(prev => ({ ...prev, name: e.target.value }))}/>
+              </div>
+              <Input placeholder="Opis roadmapy" value={dialog.formData.description} onChange={(e) => dialog.setFormData(prev => ({ ...prev, description: e.target.value }))}/>
+            </div>
           <DialogFooter>
             <Button variant="outline" onClick={dialog.closeDialog}>Anuluj</Button>
             <Button onClick={dialog.submitDialog}>Zapisz</Button>

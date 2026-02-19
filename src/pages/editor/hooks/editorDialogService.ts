@@ -60,7 +60,7 @@ export function useEditorDialogService() {
           const roadmap = item as Roadmap;
           setFormData({
             name: roadmap.title,
-            icon: '',
+            icon: roadmap.icon || '📚',
             description: roadmap.description || '',
           });
         }
@@ -96,12 +96,14 @@ export function useEditorDialogService() {
       createRoadmap.mutate({
         categoryId: ui.selectedCategoryId,
         title: formData.name,
+        icon: formData.icon,
         description: formData.description,
       });
     } else if (dialogType === 'edit-roadmap' && editingItem) {
       updateRoadmap.mutate({
         id: editingItem.id,
         title: formData.name,
+        icon: formData.icon,
         description: formData.description,
       });
     }

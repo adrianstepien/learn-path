@@ -21,6 +21,7 @@ const mapRoadmapDtoToRoadmap = (dto: RoadmapDto, topics: Topic[] = []): Roadmap 
   categoryId: String(dto.categoryId),
   title: dto.title,
   description: dto.description,
+  icon: dto.iconData || '📁',
   topics,
   connections: [],
   progress: 0,

@@ -1,5 +1,7 @@
 // Core types for the learning application
 
+export const EMOJI_OPTIONS = ["💻", "📚", "🎨", "🔬", "📐", "🌍", "💼", "🎵", "⚽", "🍳", "📜", "🧠"];
+
 export type QuestionType = 
   | 'yes_no'           // Simple yes/no answer
   | 'single_answer'    // Single correct answer (e.g., "Capital of Poland" -> "Warsaw")

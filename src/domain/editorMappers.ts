@@ -49,6 +49,7 @@ export const mapRoadmapDtoToRoadmap = (
   categoryId: String(dto.categoryId),
   title: dto.title,
   description: dto.description,
+  icon: dto.iconData || '📁',
   topics,
   connections: [],
   progress: 0,

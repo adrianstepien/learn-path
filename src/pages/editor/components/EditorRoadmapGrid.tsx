@@ -51,7 +51,7 @@ export const EditorRoadmapGrid = ({
           >
             <div className="mb-3 md:mb-4 flex items-center justify-between">
               <div className="h-12 w-12 md:h-14 md:w-14 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
-                <Map className="h-6 w-6 md:h-7 md:w-7 text-primary" />
+                <span className="text-2xl md:text-3xl">{roadmap.icon}</span>
               </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
             </div>
