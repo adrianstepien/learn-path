@@ -6,6 +6,7 @@ const mapRoadmapDtoToRoadmap = (dto: RoadmapDto, topics: Topic[] = []): Roadmap 
   id: String(dto.roadmapId),
   categoryId: String(dto.categoryId),
   title: dto.title,
+  icon: dto.iconData,
   description: dto.description,
   topics,
   totalCards: dto.totalCards,
