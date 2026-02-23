@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Category, Roadmap } from '@/types/learning';
 import { RoadmapMiniCard } from './RoadmapMiniCard';
+import { cn } from "@/lib/utils";
 
 interface CategoryCardProps {
   category: Category;
@@ -69,8 +70,16 @@ export const CategoryCard = ({
         className="cursor-pointer p-4 md:p-6 pb-4 transition-all hover:bg-gradient-to-br hover:from-secondary/50 hover:to-transparent"
       >
         <div className="mb-3 md:mb-4 flex items-center justify-between">
-          <div className="h-12 w-12 md:h-14 md:w-14 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
+          <div className="relative h-12 w-12 md:h-14 md:w-14 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
             <span className="text-2xl md:text-3xl">{category.icon}</span>
+
+            {/* Kropka powiadomienia o powtórkach */}
+            {category.dueCards > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+              </span>
+            )}
           </div>
           <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
         </div>
@@ -103,7 +112,12 @@ export const CategoryCard = ({
       <div className="border-t border-border/50 px-6 py-4 bg-gradient-to-b from-secondary/30 to-secondary/10">
         <div className="flex items-center gap-2">
           <Button
-            className="flex-1"
+            className={cn(
+              "flex-1 transition-all duration-300",
+              category.dueCards > 0
+                ? "bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-500/30"
+                : "bg-secondary text-secondary-foreground hover:bg-secondary/80 border-transparent"
+            )}
             onClick={handleStartCategoryStudy}
           >
             <Play className="h-4 w-4 mr-2" />

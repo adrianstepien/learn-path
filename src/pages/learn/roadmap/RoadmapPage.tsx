@@ -9,6 +9,7 @@ import { getCategoryById } from '@/data/mockData';
 import { Roadmap } from '@/types/learning';
 import { useLearnRoadmap } from '@/hooks/queries/useLearnRoadmap';
 import * as api from '@/lib/api';
+import { cn } from "@/lib/utils";
 
 const RoadmapCard = ({ roadmap, categoryId, delay }: { roadmap: Roadmap; categoryId: string; delay: number }) => {
   const navigate = useNavigate();
@@ -27,8 +28,14 @@ const RoadmapCard = ({ roadmap, categoryId, delay }: { roadmap: Roadmap; categor
         className="cursor-pointer p-6 pb-4 transition-all hover:bg-gradient-to-br hover:from-secondary/50 hover:to-transparent"
       >
         <div className="mb-4 flex items-center justify-between">
-          <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-3xl">
+          <div className="relative h-14 w-14 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-3xl">
             {roadmap.icon ?? '▶️'}
+            {roadmap.dueCards > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                  </span>
+                )}
           </div>
           <ChevronRight className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
         </div>
@@ -54,7 +61,12 @@ const RoadmapCard = ({ roadmap, categoryId, delay }: { roadmap: Roadmap; categor
       <div className="border-t border-border/50 px-6 py-4 bg-gradient-to-b from-secondary/30 to-secondary/10">
         <div className="flex items-center gap-2">
           <Button
-            className="flex-1"
+            className={cn(
+                      "flex-1 transition-all duration-300",
+                      roadmap.dueCards > 0
+                        ? "bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-500/30"
+                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80 border-transparent"
+                    )}
             onClick={(e) => {
               e.stopPropagation();
               navigate(`/learn/study?roadmap=${roadmap.id}&mode=SRS`);
