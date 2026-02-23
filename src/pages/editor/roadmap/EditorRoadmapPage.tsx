@@ -11,8 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { useEditorCategories } from '@/hooks/queries/useEditorCategories';
-import { useEditorRoadmaps } from '@/hooks/queries/useEditorRoadmaps';
-import { useDeleteRoadmapMutation } from '@/hooks/queries/useEditorRoadmap';
+import { useDeleteRoadmapMutation, useEditorRoadmapList } from '@/hooks/queries/useEditorRoadmap';
 import { EMOJI_OPTIONS } from '@/types/learning';
 
 const EditorRoadmapPage = () => {
@@ -21,7 +20,7 @@ const EditorRoadmapPage = () => {
   const ui = useEditorStore();
   const dialog = useEditorDialogService();
   const categoriesQuery = useEditorCategories();
-  const roadmapsQuery = useEditorRoadmaps(categoryId);
+  const roadmapsQuery = useEditorRoadmapList(categoryId);
   const deleteRoadmap = useDeleteRoadmapMutation();
 
   const category = useMemo(

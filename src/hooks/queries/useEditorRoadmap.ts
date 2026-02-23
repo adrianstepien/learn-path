@@ -223,6 +223,27 @@ export const useEditorRoadmap = (roadmapId: string | undefined) => {
   };
 };
 
+export const useEditorRoadmapList = (categoryId: string | undefined) => {
+  const numericCategoryId = categoryId ? parseNumericId(categoryId) : 0;
+
+  return useQuery<Roadmap[]>({
+    queryKey: queryKeys.roadmaps(categoryId || 'unknown'),
+    enabled: !!numericCategoryId,
+    queryFn: async () => {
+      try {
+        const dtos: RoadmapDto[] = await api.getRoadmaps(numericCategoryId);
+        return dtos.map((dto) => mapRoadmapDtoToRoadmap(dto, []))
+        .sort((a, b) => a.title.localeCompare(b.title, 'pl', { sensitivity: 'base' }));
+      } catch (error) {
+        console.error('Failed to load roadmaps', error);
+        toast.error('Nie udało się załadować roadmap');
+        throw error;
+      }
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+};
+
 // ===== Roadmap mutations (create/update/delete) =====
 
 interface CreateRoadmapPayload {
