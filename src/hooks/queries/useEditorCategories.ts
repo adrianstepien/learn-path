@@ -14,7 +14,9 @@ export const useEditorCategories = () => {
     queryFn: async () => {
       try {
         const categoryDtos = await api.getCategories();
-        return categoryDtos.map((dto: CategoryDto) => mapCategoryDtoToCategory(dto, []));
+        return categoryDtos
+            .map((dto: CategoryDto) => mapCategoryDtoToCategory(dto, []))
+            .sort((a, b) => a.name.localeCompare(b.name, 'pl', { sensitivity: 'base' }));;
       } catch (error) {
         console.error('Failed to load categories', error);
         toast.error('Nie udało się załadować kategorii');

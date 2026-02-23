@@ -16,7 +16,8 @@ export const useEditorRoadmaps = (categoryId: string | undefined) => {
     queryFn: async () => {
       try {
         const dtos: RoadmapDto[] = await api.getRoadmaps(numericCategoryId);
-        return dtos.map((dto) => mapRoadmapDtoToRoadmap(dto, []));
+        return dtos.map((dto) => mapRoadmapDtoToRoadmap(dto, []))
+        .sort((a, b) => a.title.localeCompare(b.title, 'pl', { sensitivity: 'base' }));
       } catch (error) {
         console.error('Failed to load roadmaps', error);
         toast.error('Nie udało się załadować roadmap');

@@ -39,7 +39,9 @@ export const useLearnCategory = (): UseLearnCategoryReturn => {
 
     try {
         const categoryDtos = await getCategoriesWithProgress();
-        const mappedCategories = categoryDtos.map(dto => mapCategoryDtoToCategory(dto));
+        const mappedCategories = categoryDtos
+        .map(dto => mapCategoryDtoToCategory(dto))
+        .sort((a, b) => a.name.localeCompare(b.name, 'pl', { sensitivity: 'base' }));
         setCategories(mappedCategories);
     } catch (err) {
       console.error('Failed to load categories:', err);

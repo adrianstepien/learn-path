@@ -25,7 +25,9 @@ export const useLearnRoadmap = (categoryId: string | undefined) => {
       if (!categoryId) return [];
       const numericId = parseInt(categoryId.replace(/\D/g, ''));
       const roadmapDtos = await getRoadmapsWithProgress(numericId);
-      return roadmapDtos.map(dto => mapRoadmapDtoToRoadmap(dto, []));;
+      return roadmapDtos
+      .map(dto => mapRoadmapDtoToRoadmap(dto, []))
+      .sort((a, b) => a.title.localeCompare(b.title, 'pl', { sensitivity: 'base' }));
     },
     enabled: !!categoryId,
   });
