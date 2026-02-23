@@ -40,7 +40,7 @@ export const DueReviewCard = ({ count }: DueReviewCardProps) => {
 
         <Button
           onClick={() => navigate('/learn/study')}
-          className="w-full bg-white/20 text-primary-foreground hover:bg-white/30 backdrop-blur-sm"
+          className="bg-white/20 text-primary-foreground hover:bg-white/30 backdrop-blur-sm"
         >
           Rozpocznij powtórkę
           <ArrowRight className="ml-2 h-4 w-4" />

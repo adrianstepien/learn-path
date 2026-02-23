@@ -30,20 +30,21 @@ const Index = () => {
 
   return (
     <MainLayout>
-      <div className="p-4 md:p-8">
+          <div className="p-4 md:p-8 max-w-7xl mx-auto"> {/* Centrowanie całego widoku */}
+
         {/* Background gradient glow */}
         <div className="pointer-events-none fixed inset-0 overflow-hidden">
           <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full gradient-glow opacity-50 blur-3xl" />
           <div className="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-accent/10 blur-3xl" />
         </div>
 
-        {/* Header */}
+          {/* Header - Wyśrodkowany */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative mb-10"
+            className="relative mb-10 text-center"
         >
-          <h1 className="text-3xl md:text-4xl font-bold font-display text-foreground">
+            <h1 className="text-3xl md:text-5xl font-bold font-display text-foreground">
             Witaj ponownie! 👋
           </h1>
           <p className="mt-3 text-lg text-muted-foreground">
@@ -51,11 +52,19 @@ const Index = () => {
           </p>
         </motion.div>
 
-        {/* Main Grid */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Left Column - Stats */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Stats Row */}
+          {/* DUE REVIEW CARD - Na środku, szeroka */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mb-10"
+          >
+            <DueReviewCard count={dueForReview} className="w-full" />
+          </motion.div>
+
+          {/* Zawartość główna w jednej kolumnie */}
+          <div className="space-y-8">
+
+            {/* Stats Row - teraz 4 kolumny na dużych ekranach */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatsCard
                 title="Tematy"
@@ -91,79 +100,39 @@ const Index = () => {
               />
             </div>
 
-            {/* Progress Overview */}
+            {/* Progress Overview - rozciągnięty na całość */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
-              className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-6 shadow-card"
+              className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-8 shadow-card"
             >
-              <h3 className="mb-6 text-lg font-semibold text-foreground">Postęp ogólny</h3>
-              <div className="flex flex-wrap items-center justify-around gap-8">
+              <h3 className="mb-6 text-xl font-semibold text-foreground">Postęp ogólny</h3>
+              <div className="flex flex-wrap items-center justify-around gap-12">
                 <div className="text-center">
-                  <ProgressRing progress={overallProgress} label="ukończono" />
-                  <p className="mt-2 text-sm font-medium text-muted-foreground">Wszystkie pytania</p>
+                  <ProgressRing progress={overallProgress} size={140} label="ukończono" />
+                  <p className="mt-4 text-sm font-medium text-muted-foreground">Wszystkie pytania</p>
                 </div>
                 <div className="text-center">
-                  <ProgressRing progress={Math.round((masteredTopics / totalTopics) * 100)} size={100} label="tematów" />
-                  <p className="mt-2 text-sm font-medium text-muted-foreground">Opanowane tematy</p>
+                  <ProgressRing progress={Math.round((masteredTopics / totalTopics) * 100)} size={140} label="tematów" />
+                  <p className="mt-4 text-sm font-medium text-muted-foreground">Opanowane tematy</p>
                 </div>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Target className="h-5 w-5 text-primary" />
-                    <div>
+
+                <div className="space-y-6 min-w-[250px]">
+                  <div className="flex items-center gap-4">
+                    <Target className="h-6 w-6 text-primary" />
+                    <div className="flex-1">
                       <p className="text-sm font-medium text-foreground">Cel tygodniowy</p>
-                      <p className="text-xs text-muted-foreground">35/50 pytań</p>
+                      <div className="mt-2 h-3 w-full rounded-full bg-secondary">
+                        <div className="h-3 w-[70%] rounded-full gradient-primary" />
                     </div>
-                    <div className="h-2 w-24 rounded-full bg-secondary">
-                      <div className="h-2 w-[70%] rounded-full gradient-primary" />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <TrendingUp className="h-5 w-5 text-success" />
-                    <div>
-                      <p className="text-sm font-medium text-foreground">Skuteczność</p>
-                      <p className="text-xs text-muted-foreground">87% poprawnych</p>
                     </div>
                   </div>
                 </div>
               </div>
             </motion.div>
-
             {/* Recent Activity */}
             <RecentActivity />
           </div>
-
-          {/* Right Column */}
-          <div className="space-y-6">
-            {/* Due Review */}
-            <DueReviewCard count={dueForReview} />
-
-            {/* Quick Actions */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.4 }}
-              className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-6 shadow-card"
-            >
-              <h3 className="mb-5 text-lg font-semibold font-display text-foreground">Rekomendowane</h3>
-              <div className="space-y-3">
-                <button className="w-full rounded-xl bg-secondary/60 p-4 text-left transition-all hover:bg-secondary hover:shadow-md hover:-translate-y-0.5 group border border-transparent hover:border-primary/20">
-                  <p className="font-medium text-foreground group-hover:text-primary transition-colors">Docker - Kontynuuj naukę</p>
-                  <p className="text-sm text-muted-foreground mt-1">3 pytania pozostały</p>
-                </button>
-                <button className="w-full rounded-xl bg-secondary/60 p-4 text-left transition-all hover:bg-secondary hover:shadow-md hover:-translate-y-0.5 group border border-transparent hover:border-primary/20">
-                  <p className="font-medium text-foreground group-hover:text-primary transition-colors">REST API - Powtórka</p>
-                  <p className="text-sm text-muted-foreground mt-1">5 pytań do przypomnienia</p>
-                </button>
-                <button className="w-full rounded-xl bg-secondary/60 p-4 text-left transition-all hover:bg-secondary hover:shadow-md hover:-translate-y-0.5 group border border-transparent hover:border-primary/20">
-                  <p className="font-medium text-foreground group-hover:text-primary transition-colors">Kubernetes - Nowy temat</p>
-                  <p className="text-sm text-muted-foreground mt-1">Rozpocznij naukę</p>
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        </div>
       </div>
     </MainLayout>
   );
