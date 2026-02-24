@@ -5,21 +5,19 @@ import {
   Target,
   Clock,
   Flame,
-  Loader2 // Dodano Loader
+  Loader2
 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { StatsCard } from '@/components/home/StatsCard';
 import { ProgressRing } from '@/components/home/ProgressRing';
 import { RecentActivity } from '@/components/home/RecentActivity';
 import { DueReviewCard } from '@/components/home/DueReviewCard';
-// Importujemy nowo utworzony hook (dostosuj ścieżkę do swojego projektu)
 import { useAnalyticsSummary } from '@/hooks/queries/useAnalyticsSummary';
 
 const MainPage = () => {
   // Pobieramy dane z API za pomocą React Query
   const { data: summary, isLoading, isError } = useAnalyticsSummary();
 
-  // Obsługa ładowania
   if (isLoading) {
     return (
       <MainLayout>
