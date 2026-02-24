@@ -15,8 +15,8 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { TiptapRenderer } from '@/components/study/TiptapRenderer';
-import { createReview, StudyMode, startStudySession } from '@/lib/api/cards';
-import { SessionType } from '@/lib/api/types';
+import { createReview, StudyMode, startStudySession, updateStudySession,  } from '@/lib/api/cards';
+import { SessionType, SessionStatus } from '@/lib/api/types';
 import { cn } from '@/lib/utils';
 import { QuestionWithReview, ReviewRating } from '@/types/learning';
 
@@ -61,12 +61,35 @@ const StudyPage = () => {
   const answerShownTimeRef = useRef<string | undefined>(undefined);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const sessionIdRef = useRef<number | null>(null);
+  const sessionEndedRef = useRef(false);
 
   const formatTime = (totalSeconds: number) => {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
+
+  useEffect(() => {
+    if (
+      hasFetched &&
+      questions.length === 0 &&
+      initialCount > 0 &&
+      !sessionEndedRef.current &&
+      sessionIdRef.current
+    ) {
+      sessionEndedRef.current = true;
+
+      (async () => {
+        try {
+          await updateStudySession(sessionIdRef.current, {
+            sessionStatus: SessionStatus.STOPPED
+          });
+        } catch (err) {
+          console.error('updateStudySession failed', err);
+        }
+      })();
+    }
+  }, [hasFetched, questions.length, initialCount, elapsedSeconds]);
 
   useEffect(() => {
     const fetchData = async () => {
