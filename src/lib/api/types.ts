@@ -13,6 +13,10 @@ export enum StudyMode {
     FUTURE = 'FUTURE'
 }
 
+export enum SessionStatus {
+  STOPPED = 'STOPPED'
+};
+
 export interface LearnCategoryDto {
   categoryId: number;
   title: string;

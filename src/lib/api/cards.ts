@@ -1,5 +1,5 @@
 import { apiRequest } from './config';
-import { CardDto, ReviewRequestDTO } from './types';
+import { CardDto, ReviewRequestDTO, SessionStatus } from './types';
 
 // GET /cards - Get all cards
 export async function getCards(): Promise<CardDto[]> {
@@ -41,6 +41,14 @@ export async function startStudySession(request: StartSessionRequestDto): Promis
   return apiRequest<StudySessionResponseDto>('/spaced-repetitions/sessions', {
     method: 'POST',
     body: JSON.stringify(request),
+  });
+}
+
+// PATCH /spaced-repetitions/session - Update fsrs-6 session e.g. stop
+export async function updateStudySession(sessionId: number, sessionStatus: SessionStatus): Promise<void> {
+  return apiRequest<void>(`/spaced-repetitions/sessions/${sessionId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(sessionStatus),
   });
 }
 
