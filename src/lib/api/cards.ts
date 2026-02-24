@@ -1,8 +1,6 @@
 import { apiRequest } from './config';
 import { CardDto, ReviewRequestDTO } from './types';
 
-export type StudyMode = 'SRS' | 'FUTURE';
-
 // GET /cards - Get all cards
 export async function getCards(): Promise<CardDto[]> {
   return apiRequest<CardDto[]>('/cards');
@@ -38,29 +36,12 @@ export async function deleteCard(id: number): Promise<void> {
 
 // ===== SPACED REPETITIONS =====
 
-// GET /spaced-repetitions - Get all cards to repeat
-export async function getCardsToRepeat(): Promise<CardDto[]> {
-  return apiRequest<CardDto[]>('/spaced-repetitions');
-}
-
-// GET /spaced-repetitions/category/{categoryId} - Get cards to repeat in category
-export async function getCardsToRepeatByCategory(categoryId: number, mode: StudyMode = 'SRS'): Promise<CardDto[]> {
-   return apiRequest<CardDto[]>(`/spaced-repetitions/category/${categoryId}`, { params: { mode }});
-}
-
-// GET /spaced-repetitions/roadmap/{roadmapId} - Get cards to repeat in roadmap
-export async function getCardsToRepeatByRoadmap(roadmapId: number, mode: StudyMode = 'SRS'): Promise<CardDto[]> {
-  return apiRequest<CardDto[]>(`/spaced-repetitions/roadmap/${roadmapId}`, { params: { mode }});
-}
-
-// GET /spaced-repetitions/topic/{topicId} - Get cards to repeat in topic
-export async function getCardsToRepeatByTopic(topicId: number, mode: StudyMode = 'SRS'): Promise<CardDto[]> {
-  return apiRequest<CardDto[]>(`/spaced-repetitions/topic/${topicId}`, { params: { mode }});
-}
-
-// GET /spaced-repetitions/card/{cardId} - Get specific card for study
-export async function getCardForStudy(cardId: number): Promise<CardDto> {
-  return apiRequest<CardDto>(`/spaced-repetitions/card/${cardId}`);
+// POST /spaced-repetitions - Start fsrs-6 session
+export async function startStudySession(request: StartSessionRequestDto): Promise<StudySessionResponseDto> {
+  return apiRequest<StudySessionResponseDto>('/spaced-repetitions/sessions', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
 }
 
 // POST /spaced-repetitions - Create a new review

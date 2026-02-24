@@ -1,5 +1,18 @@
 // API DTOs matching OpenAPI specification
 
+export enum SessionType {
+  GLOBAL = 'GLOBAL',
+  CATEGORY = 'CATEGORY',
+  ROADMAP = 'ROADMAP',
+  TOPIC = 'TOPIC',
+  CARD = 'CARD'
+}
+
+export enum StudyMode {
+    SRS = 'SRS',
+    FUTURE = 'FUTURE'
+}
+
 export interface LearnCategoryDto {
   categoryId: number;
   title: string;
@@ -119,6 +132,17 @@ export interface CardDto {
   topicId: number;
 }
 
+export interface StartSessionRequestDto {
+  sessionType: SessionType;
+  contextId?: number;
+  mode?: StudyMode;
+}
+
+export interface StudySessionResponseDto {
+  sessionId: number;
+  cards: FsrsCardDto[];
+}
+
 export interface FsrsCardDto {
   cardId: number;
   question: string;
@@ -127,9 +151,10 @@ export interface FsrsCardDto {
   importance: number;
 }
 
-export interface ReviewCardDTO {
+export interface ReviewRequestDTO {
   cardId: number;
   rating: ReviewRating;
+  sessionId: number;
   reviewStartedAt?: string;
   answerShownAt?: string;
 }

@@ -15,7 +15,8 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { TiptapRenderer } from '@/components/study/TiptapRenderer';
-import { createReview, getCardsToRepeatByCategory, getCardsToRepeatByRoadmap, getCardsToRepeatByTopic, getCardsToRepeat, getCardForStudy, StudyMode } from '@/lib/api/cards';
+import { createReview, StudyMode, startStudySession } from '@/lib/api/cards';
+import { SessionType } from '@/lib/api/types';
 import { cn } from '@/lib/utils';
 import { QuestionWithReview, ReviewRating } from '@/types/learning';
 
@@ -59,6 +60,7 @@ const StudyPage = () => {
   const startTimeRef = useRef<string | undefined>(undefined);
   const answerShownTimeRef = useRef<string | undefined>(undefined);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const sessionIdRef = useRef<number | null>(null);
 
   const formatTime = (totalSeconds: number) => {
     const minutes = Math.floor(totalSeconds / 60);
@@ -68,54 +70,54 @@ const StudyPage = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      let collectedQuestions: any[] = [];
-      let studyTitle = '';
+        let sessionType = SessionType.GLOBAL;
+        let contextId: number | undefined = undefined;
+        let studyTitle = 'Nauka w systemie';
 
-      if (questionId) {
-          const data = await getCardForStudy(questionId);
-          if (data) {
-              collectedQuestions = [data];
-              studyTitle = "Nauka pytania";
-          }
-      } else if (topicId) {
-          const data = await getCardsToRepeatByTopic(topicId, studyModeParam);
-          if (data) {
-              collectedQuestions = data;
-              studyTitle = "Nauka tematu";
-          }
-      } else if (roadmapId) {
-          const data = await getCardsToRepeatByRoadmap(roadmapId, studyModeParam);
-          if (data) {
-              collectedQuestions = data;
-              studyTitle = "Nauka roadmapy";
-          }
-      } else if (categoryId) {
-          const data = await getCardsToRepeatByCategory(categoryId, studyModeParam);
-          if (data) {
-            collectedQuestions = data;
-            studyTitle = "Nauka kategorii";
+        if (questionId) {
+            sessionType = SessionType.CARD;
+            contextId = Number(questionId);
+            studyTitle = 'Nauka pytania';
+        } else if (topicId) {
+            sessionType = SessionType.TOPIC;
+            contextId = Number(topicId);
+            studyTitle = 'Nauka tematu';
+        } else if (roadmapId) {
+            sessionType = SessionType.ROADMAP;
+            contextId = Number(roadmapId);
+            studyTitle = 'Nauka roadmapy';
+        } else if (categoryId) {
+            sessionType = SessionType.CATEGORY;
+            contextId = Number(categoryId);
+            studyTitle = 'Nauka kategorii';
         }
-      } else {
-          const data = await getCardsToRepeat();
-            if (data) {
-              collectedQuestions = data;
-              studyTitle = "Powtórka w systemie";
-          }
-      }
 
-      const finalQuestions = collectedQuestions.map(q => ({
-        ...q,
-        id: q.cardId?.toString() || q.id,
-        question: typeof q.question === 'string' && q.question.startsWith('{')
-                  ? JSON.parse(q.question).text
-                  : q.question
-      }));
+        try {
+            const sessionData = await startStudySession({
+            sessionType,
+            contextId,
+            mode: studyModeParam
+            });
 
-      setQuestions(finalQuestions);
-      setInitialCount(finalQuestions.length);
-      setTitle(studyTitle);
-      setHasFetched(true);
-    };
+            sessionIdRef.current = sessionData.sessionId;
+
+            const finalQuestions = sessionData.cards.map((q: any) => ({
+                    ...q,
+                    id: q.cardId?.toString() || q.id,
+                    question: typeof q.question === 'string' && q.question.startsWith('{')
+                    ? JSON.parse(q.question).text
+                    : q.question
+                }));
+
+                setQuestions(finalQuestions);
+                setInitialCount(finalQuestions.length);
+                setTitle(studyTitle);
+            } catch (error) {
+                console.error("Błąd podczas otwierania sesji nauki", error);
+            } finally {
+                setHasFetched(true);
+            }
+        };
 
     fetchData();
   }, [topicId, categoryId, roadmapId, questionId]);
@@ -149,12 +151,13 @@ const StudyPage = () => {
 
   const skipQuestion = async () => {
     const currentQuestion = questions[0];
-    const reviewCardDTO: ReviewRequestDTO = {
+    const reviewRequestDTO: ReviewRequestDTO = {
         cardId: currentQuestion.id,
+        sessionId: sessionIdRef.current,
         rating: ReviewRating.SKIP
     };
 
-    await createReview(reviewCardDTO);
+    await createReview(reviewRequestDTO);
 
     setQuestions(prev => {
       const [, ...rest] = prev;
@@ -173,20 +176,21 @@ const StudyPage = () => {
 
   // --- LOGIKA OCENIANIA (rating) ---
   const handleRate = async (rating: ReviewRating) => {
-    if (questions.length === 0) return;
+    if (questions.length === 0 || !sessionIdRef.current) return;
 
     const currentQuestion = questions[0];
 
     // Tworzymy pełny obiekt z uzupełnionymi parametrami
-    const reviewCardDTO: ReviewRequestDTO = {
+    const reviewRequestDTO: ReviewRequestDTO = {
         cardId: currentQuestion.id,
         rating: rating,
+        sessionId: sessionIdRef.current,
         reviewStartedAt: startTimeRef.current,      // Czas wejścia pytania na ekran
         answerShownAt: answerShownTimeRef.current  // Czas kliknięcia "Pokaż odpowiedź" (może być undefined, jeśli nie kliknął)
     };
 
     // Tutaj wywołanie API, np.:
-    await createReview(reviewCardDTO);
+    await createReview(reviewRequestDTO);
 
     if (rating === ReviewRating.AGAIN) {
       // Jeśli "Nie znam" (1) -> przenieś na koniec kolejki
