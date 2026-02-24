@@ -77,9 +77,38 @@ export const RichTextEditor = ({
           'prose-blockquote:border-l-2 prose-blockquote:border-primary prose-blockquote:pl-4',
           // CRITICAL: Override prose's default block display for images
           '[&_img]:inline-block [&_img]:align-middle [&_img]:max-w-full',
-          '[&_.inline-image-wrapper]:inline-block [&_.inline-image-wrapper]:align-middle',
+          '[&_.inline-image-wrapper]:inline-block [&_.inline-image-wrapper]:align-middle'
         ),
         style: `min-height: ${minHeight}`,
+      },
+      // Dodana obsługa wklejania obrazków ze schowka
+      handlePaste: (view, event, slice) => {
+        const items = Array.from(event.clipboardData?.items || []);
+        const imageItem = items.find(item => item.type.startsWith('image/'));
+
+        if (imageItem) {
+          const file = imageItem.getAsFile();
+          if (file) {
+            event.preventDefault(); // Zatrzymuje domyślne zachowanie przeglądarki/TipTap (np. surowe base64)
+
+            // Wyślij na serwer i wstaw z użyciem customowego noda 'inlineImage'
+            uploadImageToServer(file).then(uploadedUrl => {
+              view.dispatch(
+                view.state.tr.replaceSelectionWith(
+                  view.state.schema.nodes.inlineImage.create({
+                    src: uploadedUrl,
+                    width: 200
+                  })
+                )
+              );
+            }).catch(err => {
+              console.error('Wklejanie obrazka nie powiodło się', err);
+            });
+
+            return true; // Informuje edytor, że przejęliśmy to zdarzenie
+          }
+        }
+        return false; // Jeśli to nie obrazek, pozwalamy TipTap obsłużyć wklejany tekst standardowo
       },
     },
   });
