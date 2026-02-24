@@ -39,7 +39,7 @@ export const DueReviewCard = ({ count }: DueReviewCardProps) => {
         </p>
 
         <Button
-          onClick={() => navigate('/learn/study')}
+          onClick={() => navigate('/learn/study?mode=SRS')}
           className="bg-white/20 text-primary-foreground hover:bg-white/30 backdrop-blur-sm"
         >
           Rozpocznij powtórkę

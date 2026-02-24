@@ -449,7 +449,7 @@ export const TopicSlidePanel = ({ topic, onClose }: TopicSlidePanelProps) => {
                         questions.map((question: any) => (
                           <button
                             key={question.id}
-                            onClick={() => navigate(`/learn/study/${topic.id}?question=${question.id}`)}
+                            onClick={() => navigate(`/learn/study/${topic.id}?question=${question.id}&mode=FUTURE`)}
                             className="flex w-full items-center justify-between rounded-lg border border-border bg-card p-3 text-left transition-colors hover:bg-secondary"
                           >
                             <div className="flex-1 min-w-0">

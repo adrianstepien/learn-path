@@ -7,11 +7,11 @@ interface RecentActivityProps {
   activities: RecentlyStudiedDto[];
 }
 
-const getActivityVisuals = (sessionType: string) => {
-  switch (sessionType) {
-    case 'LEARN':
+const getActivityVisuals = (studyMode: string) => {
+  switch (studyMode) {
+    case 'FUTURE':
       return { icon: BookOpen, colors: 'text-primary bg-primary/10', title: 'Nauka materiału' };
-    case 'REVIEW':
+    case 'SRS':
       return { icon: Clock, colors: 'text-warning bg-warning/10', title: 'Powtórka SRS' };
     default:
       return { icon: PlayCircle, colors: 'text-accent bg-accent/10', title: 'Sesja' };
@@ -41,7 +41,7 @@ export const RecentActivity = ({ activities }: RecentActivityProps) => {
       <h3 className="mb-4 text-lg font-semibold text-foreground">Ostatnia aktywność</h3>
       <div className="space-y-3">
         {activities.map((item, index) => {
-          const { icon: Icon, colors, title } = getActivityVisuals(item.sessionType as string);
+          const { icon: Icon, colors, title } = getActivityVisuals(item.studyMode as string);
 
           const formattedDate = new Date(item.lastStudiedAt).toLocaleDateString('pl-PL', {
             hour: '2-digit',

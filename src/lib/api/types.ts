@@ -30,6 +30,7 @@ export interface AnalyticsSummaryDto {
 
 export interface RecentlyStudiedDto {
   sessionType: SessionType;
+  studyMode : StudyMode;
   contextTitle: string;
   lastStudiedAt: string;
 }
