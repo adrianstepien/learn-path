@@ -5,7 +5,7 @@ import { Color } from '@tiptap/extension-color';
 import { InlineImageResize } from './InlineImageResize';
 import Placeholder from '@tiptap/extension-placeholder';
 import { uploadImageToServer } from '@/lib/api/cards';
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useState } from 'react';
 import {
   Bold,
   Italic,
@@ -20,6 +20,7 @@ import {
   Heading2,
   Heading3,
   Palette,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
@@ -52,11 +53,13 @@ export const RichTextEditor = ({
   className,
 }: RichTextEditorProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // NOWE: Stan odpowiadający za pokazywanie loadera podczas wgrywania pliku
+  const [isUploading, setIsUploading] = useState(false);
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        heading: { levels: [1,2,3] },
+        heading: { levels: [1, 2, 3] },
       }),
       TextStyle,
       Color,
@@ -75,7 +78,6 @@ export const RichTextEditor = ({
           'prose-pre:bg-muted prose-pre:p-2 prose-pre:rounded-md',
           'prose-code:bg-muted prose-code:px-1 prose-code:rounded',
           'prose-blockquote:border-l-2 prose-blockquote:border-primary prose-blockquote:pl-4',
-          // CRITICAL: Override prose's default block display for images
           '[&_img]:inline-block [&_img]:align-middle [&_img]:max-w-full',
           '[&_.inline-image-wrapper]:inline-block [&_.inline-image-wrapper]:align-middle'
         ),
@@ -91,7 +93,8 @@ export const RichTextEditor = ({
           if (file) {
             event.preventDefault(); // Zatrzymuje domyślne zachowanie przeglądarki/TipTap (np. surowe base64)
 
-            // Wyślij na serwer i wstaw z użyciem customowego noda 'inlineImage'
+            // Włączamy loader podczas wklejania ze schowka
+            setIsUploading(true);
             uploadImageToServer(file).then(uploadedUrl => {
               view.dispatch(
                 view.state.tr.replaceSelectionWith(
@@ -103,6 +106,10 @@ export const RichTextEditor = ({
               );
             }).catch(err => {
               console.error('Wklejanie obrazka nie powiodło się', err);
+              // Zabezpieczenie przed błędem z chmury
+              alert('Wystąpił błąd podczas wgrywania zdjęcia.');
+            }).finally(() => {
+              setIsUploading(false); // Wyłączamy loader niezależnie od wyniku
             });
 
             return true; // Informuje edytor, że przejęliśmy to zdarzenie
@@ -114,8 +121,12 @@ export const RichTextEditor = ({
   });
 
   useEffect(() => {
+    // POPRAWKA: Zapobiega "skakaniu kursora" na początek edytora
+    // podczas aktywnego pisania, aktualizując content tylko, gdy edytor nie ma focusu.
     if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content);
+      if (!editor.isFocused) {
+        editor.commands.setContent(content);
+      }
     }
   }, [content, editor]);
 
@@ -124,12 +135,14 @@ export const RichTextEditor = ({
     if (!file || !editor) return;
 
     try {
+      setIsUploading(true); // Włączamy loader dla przycisku
       const uploadedUrl = await uploadImageToServer(file);
-      // Use the custom inline image command
       editor.chain().focus().setInlineImage({ src: uploadedUrl, width: 200 }).run();
     } catch (err) {
       console.error('Upload failed', err);
+      alert('Wystąpił błąd podczas wgrywania zdjęcia.');
     } finally {
+      setIsUploading(false); // Wyłączamy loader
       event.target.value = '';
     }
   }, [editor]);
@@ -257,13 +270,20 @@ export const RichTextEditor = ({
           </PopoverContent>
         </Popover>
 
+        {/* ZMIANA: Zablokowanie przycisku w trakcie wgrywania + animacja */}
         <Button
           variant="ghost"
           size="sm"
           className="h-8 w-8 p-0"
           onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+          title="Dodaj zdjęcie"
         >
-          <ImageIcon className="h-4 w-4" />
+          {isUploading ? (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          ) : (
+            <ImageIcon className="h-4 w-4" />
+          )}
         </Button>
         <input
           ref={fileInputRef}

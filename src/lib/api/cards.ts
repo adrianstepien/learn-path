@@ -1,6 +1,9 @@
 import { apiRequest } from './config';
 import { CardDto, ReviewRequestDTO, SessionStatus } from './types';
 
+const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
 // GET /cards - Get all cards
 export async function getCards(): Promise<CardDto[]> {
   return apiRequest<CardDto[]>('/cards');
@@ -60,14 +63,31 @@ export async function createReview(review: ReviewRequestDTO): Promise<void> {
   });
 }
 
-export async function uploadImageToServer(file: File): Promise<string> {
-  const form = new FormData();
-  form.append('file', file);
+export const uploadImageToServer = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', uploadPreset);
 
-  const data = await apiRequest<{ url: string }>('/cards/images/upload', {
-    method: 'POST',
-    body: form,
-  });
+  try {
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
 
-    return data.url;
-}
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Błąd Cloudinary:', errorData);
+      throw new Error('Nie udało się wgrać zdjęcia do chmury.');
+    }
+
+    const data = await response.json();
+
+    return data.secure_url;
+  } catch (error) {
+    console.error('Błąd uploadu:', error);
+    throw error;
+  }
+};
