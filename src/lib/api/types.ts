@@ -17,6 +17,23 @@ export enum SessionStatus {
   STOPPED = 'STOPPED'
 };
 
+export interface AnalyticsSummaryDto {
+  cardsDueToday: number;
+  topicsCompleted: number;
+  topicsTotal: number;
+  cardsLearned: number;
+  cardsTotal: number;
+  currentStreakDays: number;
+  timeSpentLearningSeconds: number;
+  recentlyStudied: RecentlyStudiedDto[];
+}
+
+export interface RecentlyStudiedDto {
+  sessionType: SessionType;
+  contextTitle: string;
+  lastStudiedAt: string;
+}
+
 export interface LearnCategoryDto {
   categoryId: number;
   title: string;
