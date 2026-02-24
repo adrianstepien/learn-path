@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/useTheme";
-import Index from "./pages/Index";
+import MainPage from "./pages/MainPage";
 import LearnPage from "./pages/learn/LearnPage";
 import RoadmapPage from "./pages/learn/roadmap/RoadmapPage";
 import TopicPage from "./pages/learn/roadmap/topic/TopicPage";
@@ -28,7 +28,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<MainPage />} />
             <Route path="/learn" element={<LearnPage />} />
             <Route path="/learn/roadmap/:categoryId" element={<RoadmapPage />} />
             <Route path="/learn/:categoryId/topic/:roadmapId" element={<TopicPage />} />
