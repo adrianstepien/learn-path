@@ -123,40 +123,6 @@ const MainPage = () => {
               delay={0.3}
             />
           </div>
-
-          {/* Progress Overview */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl border border-border/50 bg-card/80 p-8 shadow-card backdrop-blur-sm"
-          >
-            <h3 className="mb-6 text-xl font-semibold text-foreground">Postęp ogólny</h3>
-            <div className="flex flex-wrap items-center justify-around gap-12">
-              <div className="text-center">
-                <ProgressRing progress={overallProgress} size={140} label="ukończono" />
-                <p className="mt-4 text-sm font-medium text-muted-foreground">Wszystkie pytania</p>
-              </div>
-              <div className="text-center">
-                <ProgressRing progress={topicsProgress} size={140} label="tematów" />
-                <p className="mt-4 text-sm font-medium text-muted-foreground">Opanowane tematy</p>
-              </div>
-
-              <div className="min-w-[250px] space-y-6">
-                <div className="flex items-center gap-4">
-                  <Target className="h-6 w-6 text-primary" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground">Cel tygodniowy</p>
-                    {/* Ten element możesz ewentualnie podłączyć pod przyszły endpoint dla celów,
-                        na ten moment zostawiłem statyczne 70% jak w Twoim pierwotnym kodzie */}
-                    <div className="mt-2 h-3 w-full rounded-full bg-secondary">
-                      <div className="h-3 w-[70%] rounded-full gradient-primary" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
           {/* Recent Activity z wstrzykniętą listą `recentlyStudied` */}
           <RecentActivity activities={summary.recentlyStudied} />
         </div>
