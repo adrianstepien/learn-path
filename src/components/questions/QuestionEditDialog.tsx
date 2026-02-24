@@ -292,7 +292,7 @@ export const QuestionEditDialog = ({
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-2">
               <Label>Typ pytania</Label>
-              <Select value={type} onValueChange={(v) => setType(v as QuestionType)}>
+              <Select value={type} onValueChange={(v) => setType(v as QuestionType)} disabled>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
