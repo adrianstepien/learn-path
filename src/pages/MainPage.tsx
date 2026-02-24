@@ -18,6 +18,11 @@ const MainPage = () => {
   // Pobieramy dane z API za pomocą React Query
   const { data: summary, isLoading, isError } = useAnalyticsSummary();
 
+  const getDaysLabel = (days: number) => {
+    if (days === 1) return 'dzień z rzędu';
+    return 'dni z rzędu';
+  };
+
   if (isLoading) {
     return (
       <MainLayout>
@@ -108,7 +113,7 @@ const MainPage = () => {
             <StatsCard
               title="Seria dni"
               value={summary.currentStreakDays}
-              subtitle="dni z rzędu"
+              subtitle={getDaysLabel(summary.currentStreakDays)}
               icon={Flame}
               variant="warning"
               delay={0.2}
@@ -118,6 +123,7 @@ const MainPage = () => {
               value={`${hoursSpent}h`}
               subtitle="łącznie"
               icon={Clock}
+              variant="success"
               delay={0.3}
             />
           </div>
