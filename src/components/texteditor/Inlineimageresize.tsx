@@ -2,46 +2,70 @@ import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
 import { useEffect, useRef, useState } from 'react';
 
-// Custom NodeView Component for Inline Resizable Images
-const InlineImageComponent = ({ node, updateAttributes, deleteNode }: any) => {
-  const [isResizing, setIsResizing] = useState(false);
+type ResizeDirection = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | null;
+
+const InlineImageComponent = ({ node, updateAttributes }: any) => {
+  const [activeHandle, setActiveHandle] = useState<ResizeDirection>(null);
   const [isSelected, setIsSelected] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const startResize = (e: React.MouseEvent | React.TouchEvent, direction: ResizeDirection) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsResizing(true);
-    startXRef.current = e.clientX;
+    setActiveHandle(direction);
+
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    startXRef.current = clientX;
     startWidthRef.current = node.attrs.width || imgRef.current?.offsetWidth || 200;
   };
 
   useEffect(() => {
-    if (!isResizing) return;
+    if (!activeHandle) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const diff = e.clientX - startXRef.current;
-      const newWidth = Math.max(50, Math.min(1000, startWidthRef.current + diff));
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
+      const diff = clientX - startXRef.current;
+
+      let newWidth = startWidthRef.current;
+
+      // Ciągnięcie za lewe rogi w lewo (ujemny diff) powiększa obrazek
+      if (activeHandle === 'top-left' || activeHandle === 'bottom-left') {
+        newWidth = startWidthRef.current - diff;
+      } else {
+        // Ciągnięcie za prawe rogi w prawo (dodatni diff) powiększa obrazek
+        newWidth = startWidthRef.current + diff;
+      }
+
+    const containerWidth = imgRef.current?.parentElement?.parentElement?.offsetWidth || 1000;
+      newWidth = Math.max(50, Math.min(newWidth, containerWidth));
+
       updateAttributes({ width: newWidth });
     };
 
-    const handleMouseUp = () => {
-      setIsResizing(false);
+    const handleEnd = () => {
+      setActiveHandle(null);
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchmove', handleMove, { passive: false });
+    document.addEventListener('touchend', handleEnd);
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchmove', handleMove);
+      document.removeEventListener('touchend', handleEnd);
     };
-  }, [isResizing, updateAttributes]);
+  }, [activeHandle, updateAttributes]);
 
   const width = node.attrs.width || 200;
   const height = node.attrs.height || 'auto';
+  const isResizing = activeHandle !== null;
+
+  const handleClasses = "absolute w-3 h-3 bg-primary border border-background rounded-full shadow-sm z-10 transition-transform hover:scale-125";
 
   return (
     <NodeViewWrapper
@@ -52,6 +76,7 @@ const InlineImageComponent = ({ node, updateAttributes, deleteNode }: any) => {
         position: 'relative',
         verticalAlign: 'middle',
         margin: '0 2px',
+        lineHeight: 0,
         cursor: isResizing ? 'ew-resize' : 'default',
       }}
       onMouseEnter={() => setIsSelected(true)}
@@ -62,100 +87,41 @@ const InlineImageComponent = ({ node, updateAttributes, deleteNode }: any) => {
         src={node.attrs.src}
         alt={node.attrs.alt || ''}
         title={node.attrs.title || ''}
+        className={(isSelected || isResizing) ? 'ring-2 ring-primary' : ''}
         style={{
+          margin: 0,
           width: `${width}px`,
           height: height === 'auto' ? 'auto' : `${height}px`,
           display: 'block',
           maxWidth: '100%',
           userSelect: 'none',
+          pointerEvents: isResizing ? 'none' : 'auto',
+          borderRadius: '4px',
         }}
         draggable={false}
       />
 
-      {/* Resize Handles - Only show on hover/select */}
-      {isSelected && (
+      {(isSelected || isResizing) && (
         <>
-          {/* Left Handle */}
           <div
-            onMouseDown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setIsResizing(true);
-              startXRef.current = e.clientX;
-              startWidthRef.current = node.attrs.width || imgRef.current?.offsetWidth || 200;
-              // For left handle, we need to adjust differently
-              const originalMouseMove = (ev: MouseEvent) => {
-                const diff = startXRef.current - ev.clientX; // Reversed
-                const newWidth = Math.max(50, Math.min(1000, startWidthRef.current + diff));
-                updateAttributes({ width: newWidth });
-              };
-              const originalMouseUp = () => {
-                setIsResizing(false);
-                document.removeEventListener('mousemove', originalMouseMove);
-                document.removeEventListener('mouseup', originalMouseUp);
-              };
-              document.addEventListener('mousemove', originalMouseMove);
-              document.addEventListener('mouseup', originalMouseUp);
-            }}
-            style={{
-              position: 'absolute',
-              left: '-4px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: '8px',
-              height: '40px',
-              backgroundColor: '#3b82f6',
-              borderRadius: '4px',
-              cursor: 'ew-resize',
-              zIndex: 10,
-            }}
-          />
-
-          {/* Right Handle */}
-          <div
-            onMouseDown={handleMouseDown}
-            style={{
-              position: 'absolute',
-              right: '-4px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: '8px',
-              height: '40px',
-              backgroundColor: '#3b82f6',
-              borderRadius: '4px',
-              cursor: 'ew-resize',
-              zIndex: 10,
-            }}
-          />
-
-          {/* Corner Handles */}
-          <div
-            onMouseDown={handleMouseDown}
-            style={{
-              position: 'absolute',
-              right: '-4px',
-              bottom: '-4px',
-              width: '12px',
-              height: '12px',
-              backgroundColor: '#3b82f6',
-              borderRadius: '50%',
-              cursor: 'nwse-resize',
-              zIndex: 10,
-            }}
+            onMouseDown={(e) => startResize(e, 'top-left')}
+            onTouchStart={(e) => startResize(e, 'top-left')}
+            className={`${handleClasses} -top-1.5 -left-1.5 cursor-nwse-resize`}
           />
           <div
-            onMouseDown={handleMouseDown}
-            style={{
-              position: 'absolute',
-              left: '-4px',
-              bottom: '-4px',
-              width: '12px',
-              height: '12px',
-              backgroundColor: '#3b82f6',
-              borderRadius: '50%',
-              cursor: 'nesw-resize',
-              zIndex: 10,
-            }}
+            onMouseDown={(e) => startResize(e, 'top-right')}
+            onTouchStart={(e) => startResize(e, 'top-right')}
+            className={`${handleClasses} -top-1.5 -right-1.5 cursor-nesw-resize`}
+          />
+          <div
+            onMouseDown={(e) => startResize(e, 'bottom-left')}
+            onTouchStart={(e) => startResize(e, 'bottom-left')}
+            className={`${handleClasses} -bottom-1.5 -left-1.5 cursor-nesw-resize`}
+          />
+          <div
+            onMouseDown={(e) => startResize(e, 'bottom-right')}
+            onTouchStart={(e) => startResize(e, 'bottom-right')}
+            className={`${handleClasses} -bottom-1.5 -right-1.5 cursor-nwse-resize`}
           />
         </>
       )}
