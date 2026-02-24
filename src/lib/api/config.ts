@@ -55,7 +55,15 @@ export async function apiRequest<T>(
   const response = await fetch(url, {
     ...options,
     headers,
+    credentials: 'include',
   });
+
+  if (response.status === 401) {
+    // Jeśli backend odrzuci zapytanie z powodu braku autoryzacji:
+    // Czyścimy ewentualne śmieci i kierujemy na stronę logowania
+    window.location.href = '/login';
+    return undefined as T;
+  }
 
   if (!response.ok) {
     const error = await response.text().catch(() => 'Unknown error');

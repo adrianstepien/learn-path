@@ -14,11 +14,16 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { API_BASE_URL } from '@/lib/api/config';
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
+
+  const handleGoogleLogin = () => {
+    window.location.href = `${API_BASE_URL}/oauth2/authorization/google`;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,7 +130,7 @@ const LoginPage = () => {
 
           {/* Social Login */}
           <div className="flex gap-3">
-            <Button variant="outline" className="flex-1">
+            <Button variant="outline" className="flex-1" onClick={handleGoogleLogin}>
               <Chrome className="mr-2 h-4 w-4" />
               Google
             </Button>

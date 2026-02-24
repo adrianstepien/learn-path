@@ -9,6 +9,7 @@ import {
   LogOut,
   BookOpen,
   Flame,
+  LogIn,
   HelpCircle,
   Menu,
   X
@@ -25,6 +26,7 @@ const navItems = [
   { to: '/questions', icon: HelpCircle, label: 'Baza pytań' },
   { to: '/import', icon: FileVideo, label: 'Import' },
   { to: '/dashboard', icon: BarChart3, label: 'Dashboard' },
+  { to: '/login', icon: LogIn , label: 'Login' },
 ];
 
 export const Sidebar = () => {
