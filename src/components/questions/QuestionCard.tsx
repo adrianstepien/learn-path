@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   HelpCircle,
@@ -73,11 +74,13 @@ const importanceLabels: Record<ImportanceLevel, string> = {
   critical: 'Krytyczna',
 };
 
-export const QuestionCard = ({ question, onEdit, onDelete, onStudy }: QuestionCardProps) => {
+export const QuestionCard = forwardRef<HTMLDivElement, QuestionCardProps>(
+  ({ question, onEdit, onDelete, onStudy }, ref) => {
   const TypeIcon = questionTypeIcons[question.type];
 
   return (
     <motion.div
+    ref={ref}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
@@ -149,4 +152,5 @@ export const QuestionCard = ({ question, onEdit, onDelete, onStudy }: QuestionCa
       </div>
     </motion.div>
   );
-};
+}
+);

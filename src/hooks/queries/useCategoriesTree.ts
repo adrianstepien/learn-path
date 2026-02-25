@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import * as api from '@/lib/api';
-import { isApiAvailable } from '@/lib/api/config';
 import { Category } from '@/types/learning';
 import { mockCategories } from '@/data/mockData';
 
@@ -9,8 +8,6 @@ export const categoryKeys = {
 };
 
 const fetchFullCategoryTree = async (): Promise<Category[]> => {
-  const available = await isApiAvailable();
-  if (!available) return mockCategories;
 
   try {
     const categoryDtos = await api.getCategories();

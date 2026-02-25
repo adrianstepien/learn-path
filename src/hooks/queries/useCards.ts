@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as api from '@/lib/api';
-import { isApiAvailable } from '@/lib/api/config';
 import { CardDto } from '@/lib/api/types';
 import { Question } from '@/types/learning';
 
@@ -34,8 +33,6 @@ export const useCards = () => {
   return useQuery({
     queryKey: cardKeys.lists(),
     queryFn: async () => {
-      const available = await isApiAvailable();
-      if (!available) return [];
       const data = await api.getCards();
       return data.map(mapCardDtoToQuestion);
     },
@@ -47,8 +44,6 @@ export const useCardMutations = () => {
 
   const deleteCard = useMutation({
     mutationFn: async (id: string) => {
-      const available = await isApiAvailable();
-      if (!available) throw new Error("API unavailable");
       const numericId = parseInt(id.replace(/\D/g, ''));
       await api.deleteCard(numericId);
     },
@@ -70,8 +65,6 @@ export const useCardMutations = () => {
 
   const updateCard = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Question> }) => {
-      const available = await isApiAvailable();
-      if (!available) throw new Error("API unavailable");
 
       const cachedCards = queryClient.getQueryData<Question[]>(cardKeys.lists());
       const existingCard = cachedCards?.find(q => q.id === id);
@@ -110,8 +103,6 @@ export const useCardMutations = () => {
 
   const addCard = useMutation({
     mutationFn: async ({ topicId, data }: { topicId: string, data: Partial<Question> }) => {
-      const available = await isApiAvailable();
-      if (!available) throw new Error("API unavailable");
       const numericTopicId = parseInt(topicId.replace(/\D/g, ''));
       const cardDto: Omit<CardDto, 'id'> = {
         question: data.question || '',
