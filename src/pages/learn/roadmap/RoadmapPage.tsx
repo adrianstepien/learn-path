@@ -58,36 +58,36 @@ const RoadmapCard = ({ roadmap, categoryId, delay }: { roadmap: Roadmap; categor
         </div>
       </div>
 
-      <div className="border-t border-border/50 px-6 py-4 bg-gradient-to-b from-secondary/30 to-secondary/10">
-        <div className="flex items-center gap-2">
-          <Button
-            className={cn(
-                      "flex-1 transition-all duration-300",
-                      roadmap.dueCards > 0
-                        ? "bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-500/30"
-                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80 border-transparent"
-                    )}
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/learn/study?roadmap=${roadmap.id}&mode=SRS`);
-            }}
-          >
-            <Play className="h-4 w-4 mr-2" />
-            Ucz się w roadmapie
-          </Button>
+      <div className="border-t border-border/50 px-3 py-3 md:px-6 md:py-4 bg-gradient-to-b from-secondary/30 to-secondary/10">
+          <div className="flex flex-row items-center gap-2">
+            <Button
+              className={cn(
+                "flex-1 min-w-0 px-2 sm:px-4 transition-all duration-300",
+                roadmap.dueCards > 0
+                  ? "bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-500/30"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80 border-transparent"
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/learn/study?roadmap=${roadmap.id}&mode=SRS`);
+              }}
+            >
+              <Play className="h-4 w-4 mr-1.5 sm:mr-2 shrink-0" />
+              <span className="truncate text-xs sm:text-sm">Ucz się w roadmapie</span>
+            </Button>
 
-          <Button
-            variant="outline"
-            className="shrink-0 px-3 transition-colors hover:bg-background hover:text-primary hover:border-primary/20 border border-transparent"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/learn/study?roadmap=${roadmap.id}&mode=FUTURE`);
-            }}
-          >
-            <RotateCcw className="h-4 w-4 mr-2" />
-            <span>Powtórz</span>
-          </Button>
-        </div>
+            <Button
+              variant="outline"
+              className="shrink-0 px-2 sm:px-3 transition-colors hover:bg-background hover:text-primary hover:border-primary/20 border border-transparent"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/learn/study?roadmap=${roadmap.id}&mode=FUTURE`);
+              }}
+            >
+              <RotateCcw className="h-4 w-4 mr-1.5 sm:mr-2 shrink-0" />
+              <span className="text-xs sm:text-sm">Powtórz</span>
+            </Button>
+          </div>
       </div>
     </motion.div>
   );
@@ -101,7 +101,9 @@ const RoadmapPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { data: roadmaps = [], isLoading } = useLearnRoadmap(categoryId);
 
-  const filteredRoadmaps = roadmaps.filter(roadmap =>
+  const safeRoadmaps = Array.isArray(roadmaps) ? roadmaps : [];
+
+  const filteredRoadmaps = safeRoadmaps.filter(roadmap =>
     roadmap.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     roadmap.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
