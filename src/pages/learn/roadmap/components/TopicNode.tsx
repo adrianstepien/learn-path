@@ -23,14 +23,13 @@ export const TopicNode = ({
   onClick,
   isSelected
 }: TopicNodeProps) => {
-  const resourcesCount = topic.resources.length;
   const displayStatus = getProgressStatus(topic.progress);
 
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
-      whileHover={{ scale: 1.05, zIndex: 10 }}
+      whileHover={{ scale: 1.05, zIndex: 20 }}
       onClick={onClick}
       style={{
         position: 'absolute',
@@ -38,9 +37,16 @@ export const TopicNode = ({
         top: position.y,
       }}
       className={cn(
-        'topic-node min-w-[180px] w-[180px] cursor-pointer rounded-xl border-2 bg-card p-4 shadow-md transition-all',
-        statusColors[displayStatus],
+        'absolute z-10 cursor-pointer rounded-xl shadow-md transition-all',
         isSelected && 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+      )}
+    >
+    <div className="absolute inset-0 rounded-xl bg-card" />
+
+    <div
+      className={cn(
+        'topic-node relative min-w-[180px] w-[180px] h-full rounded-xl border-2 p-4',
+        statusColors[displayStatus]
       )}
     >
       <h4 className="font-semibold text-foreground mb-1 truncate">{topic.title}</h4>
@@ -57,6 +63,7 @@ export const TopicNode = ({
             className="h-full rounded-full gradient-primary transition-all duration-500"
             style={{ width: `${topic.progress}%` }}
           />
+        </div>
         </div>
       </div>
     </motion.div>

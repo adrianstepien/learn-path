@@ -202,7 +202,7 @@ export const EditorCanvas = ({
   const getNodePosition = useCallback((nodeId: string) => {
     const node = nodes.find(n => n.id === nodeId);
     // Return center-right of the node for "from" position, center for general
-    return node ? { x: node.position.x + 80, y: node.position.y + 40 } : { x: 0, y: 0 };
+    return node ? { x: node.position.x + 90, y: node.position.y + 60 } : { x: 0, y: 0 };
   }, [nodes]);
 
   return (
