@@ -155,6 +155,7 @@ export const CanvasNode = ({
 
   return (
     <motion.div
+      id={`node-${node.id}`}
       ref={nodeRef}
       className={cn(
         'canvas-node absolute flex min-w-[180px] cursor-move select-none flex-col rounded-xl border-2 shadow-lg transition-shadow hover:shadow-xl',

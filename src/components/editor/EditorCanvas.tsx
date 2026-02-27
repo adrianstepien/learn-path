@@ -201,8 +201,21 @@ export const EditorCanvas = ({
 
   const getNodePosition = useCallback((nodeId: string) => {
     const node = nodes.find(n => n.id === nodeId);
-    // Return center-right of the node for "from" position, center for general
-    return node ? { x: node.position.x + 90, y: node.position.y + 60 } : { x: 0, y: 0 };
+    if (!node) return { x: 0, y: 0 };
+console.log('kozwa')
+    // 1. Szukamy wyrenderowanego elementu węzła w DOM
+    const element = document.getElementById(`node-${nodeId}`);
+
+    if (element) {
+      // 2. Jeśli istnieje, dodajemy połowę jego ZMIENNEJ szerokości i wysokości
+      return {
+        x: node.position.x + (element.offsetWidth / 2),
+        y: node.position.y + (element.offsetHeight / 2)
+      };
+    }
+
+    // Fallback (wartości domyślne), zanim element zdąży się wyrenderować
+    return { x: node.position.x + 90, y: node.position.y + 60 };
   }, [nodes]);
 
   return (
