@@ -202,7 +202,7 @@ export const EditorCanvas = ({
   const getNodePosition = useCallback((nodeId: string) => {
     const node = nodes.find(n => n.id === nodeId);
     if (!node) return { x: 0, y: 0 };
-console.log('kozwa')
+
     // 1. Szukamy wyrenderowanego elementu węzła w DOM
     const element = document.getElementById(`node-${nodeId}`);
 
@@ -365,6 +365,7 @@ console.log('kozwa')
             <CanvasNode
               key={node.id}
               node={node}
+              zoom={zoom}
               isSelected={selectedNodeId === node.id}
               isConnecting={connectingFrom !== null}
               isConnectingSource={connectingFrom === node.id}

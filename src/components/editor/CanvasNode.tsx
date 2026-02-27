@@ -20,6 +20,7 @@ interface CanvasNodeProps {
   isSelected: boolean;
   isConnecting: boolean;
   isConnectingSource: boolean;
+  zoom: number;
   onClick: () => void;
   onDoubleClick: () => void;
   onMove: (position: { x: number; y: number }) => void; // called once on drag end
@@ -49,6 +50,7 @@ export const CanvasNode = ({
   isSelected,
   isConnecting,
   isConnectingSource,
+  zoom,
   onClick,
   onDoubleClick,
   onMove,
@@ -79,11 +81,11 @@ export const CanvasNode = ({
     let dragStarted = false;
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
-      const deltaX = moveEvent.clientX - startX;
-      const deltaY = moveEvent.clientY - startY;
+      const deltaX = (moveEvent.clientX - startX) / zoom;
+      const deltaY = (moveEvent.clientY - startY) / zoom;
       
       // Only start dragging after threshold is exceeded
-      if (!dragStarted && (Math.abs(deltaX) > DRAG_THRESHOLD || Math.abs(deltaY) > DRAG_THRESHOLD)) {
+      if (!dragStarted && (Math.abs(deltaX * zoom) > DRAG_THRESHOLD || Math.abs(deltaY * zoom) > DRAG_THRESHOLD)) {
         dragStarted = true;
         setHasDragged(true);
       }
@@ -97,7 +99,6 @@ export const CanvasNode = ({
           el.style.left = `${Math.round(startPosX + deltaX)}px`;
           el.style.top = `${Math.round(startPosY + deltaY)}px`;
         }
-        // Note: we DO NOT call onMove here
       }
     };
 
@@ -109,18 +110,13 @@ export const CanvasNode = ({
 
       // If a drag happened, compute final position and call onMove once
       if (dragStarted) {
-        const finalX = startPosX + (upEvent.clientX - startX);
-        const finalY = startPosY + (upEvent.clientY - startY);
+        const finalX = startPosX + ((upEvent.clientX - startX) / zoom);
+        const finalY = startPosY + ((upEvent.clientY - startY) / zoom);
 
-        // Call onMove only once with the final position
         onMove({
           x: Math.round(finalX),
           y: Math.round(finalY),
         });
-      } else {
-        // If there was no drag, ensure DOM left/top still come from store (no-op)
-        // If you want to reset DOM position to store position in non-drag case, uncomment:
-        // if (nodeRef.current) { nodeRef.current.style.left = `${node.position.x}px`; nodeRef.current.style.top = `${node.position.y}px`; }
       }
     };
 
