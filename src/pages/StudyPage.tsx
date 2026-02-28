@@ -20,11 +20,16 @@ import { SessionType, SessionStatus } from '@/lib/api/types';
 import { cn } from '@/lib/utils';
 import { QuestionWithReview, ReviewRating } from '@/types/learning';
 
-const difficultyColors = {
-  beginner: 'bg-green-500/20 text-green-600',
-  intermediate: 'bg-yellow-500/20 text-yellow-600',
-  advanced: 'bg-orange-500/20 text-orange-600',
-  expert: 'bg-red-500/20 text-red-600',
+const getDifficultyConfig = (difficultyValue?: number | string | null) => {
+  if (difficultyValue <= 3) {
+    return { label: `Łatwe (${difficultyValue}/10)`, color: 'bg-green-500/20 text-green-600' };
+  } else if (difficultyValue <= 6) {
+    return { label: `Średnie (${difficultyValue}/10)`, color: 'bg-yellow-500/20 text-yellow-600' };
+  } else if (difficultyValue <= 8) {
+    return { label: `Trudne (${difficultyValue}/10)`, color: 'bg-orange-500/20 text-orange-600' };
+  } else {
+    return { label: `Wyjątkowo trudne (${difficultyValue}/10)`, color: 'bg-red-500/20 text-red-600' };
+  }
 };
 
 const ratingButtons = [
@@ -389,16 +394,19 @@ const StudyPage = () => {
               </Button>
               {/* Question Meta */}
               <div className="flex flex-wrap items-center gap-2 mb-4">
-                <span className={cn(
-                  'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
-                  // @ts-ignore - ignorujemy typowanie kluczy dla uproszczenia
-                  difficultyColors[question.difficulty || 'beginner']
-                )}>
-                  {question.difficulty || 'beginner'}
-                </span>
-                <span className="text-xs text-muted-foreground capitalize px-2.5 py-0.5 rounded-full bg-secondary">
-                  {question.type || 'open_ended'}
-                </span>
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                    {(() => {
+                      const diffConfig = getDifficultyConfig(question.difficulty);
+                      return (
+                        <span className={cn(
+                          'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
+                          diffConfig.color
+                        )}>
+                          {diffConfig.label}
+                        </span>
+                      );
+                    })()}
+                </div>
               </div>
 
               {/* Question Content */}
