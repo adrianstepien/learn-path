@@ -1,5 +1,5 @@
 import { apiRequest } from './config';
-import { CardDto, ReviewRequestDTO, SessionStatus } from './types';
+import { CardDto, UpdateCardDto, ReviewRequestDTO, SessionStatus } from './types';
 
 const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
@@ -23,7 +23,7 @@ export async function createCard(card: CardDto): Promise<void> {
 }
 
 // PUT /cards/{id} - Update card
-export async function updateCard(id: number, card: CardDto): Promise<void> {
+export async function updateCard(id: number, card: UpdateCardDto): Promise<void> {
   return apiRequest<void>(`/cards/${id}`, {
     method: 'PUT',
     body: JSON.stringify(card),

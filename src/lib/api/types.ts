@@ -154,6 +154,13 @@ export interface CardDto {
   topicId: number;
 }
 
+export interface UpdateCardDto {
+  question: string;
+  answer: string;
+  importance: number;
+  topicId: number;
+}
+
 export interface StartSessionRequestDto {
   sessionType: SessionType;
   contextId?: number;

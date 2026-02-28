@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as api from '@/lib/api';
-import { CardDto } from '@/lib/api/types';
+import { CardDto, UpdateCardDto } from '@/lib/api/types';
 import { Question } from '@/types/learning';
 
 // Klucze zapytań - warto trzymać je w obiekcie, żeby były spójne w całej apce
@@ -71,16 +71,14 @@ export const useCardMutations = () => {
       if (!existingCard) throw new Error("Card not found in cache");
 
       const numericId = parseInt(id.replace(/\D/g, ''));
-      const cardDto: CardDto = {
-        id: numericId,
+      const updateDto: UpdateCardDto = {
         question: data.question !== undefined ? data.question : existingCard.question,
         answer: data.answer !== undefined ? data.answer : existingCard.answer,
-        topicId: parseInt(existingCard.topicId.replace(/\D/g, '')),
-        difficulty: data.difficulty ? (data.difficulty === 'beginner' ? 1 : data.difficulty === 'intermediate' ? 2 : data.difficulty === 'advanced' ? 3 : 4) : (existingCard.difficulty === 'beginner' ? 1 : existingCard.difficulty === 'intermediate' ? 2 : existingCard.difficulty === 'advanced' ? 3 : 4),
         importance: data.importance ? (data.importance === 'low' ? 1 : data.importance === 'medium' ? 2 : data.importance === 'high' ? 3 : 4) : (existingCard.importance === 'low' ? 1 : existingCard.importance === 'medium' ? 2 : existingCard.importance === 'high' ? 3 : 4),
+        topicId: parseInt(existingCard.topicId.replace(/\D/g, '')),
       };
 
-      await api.updateCard(numericId, cardDto);
+      await api.updateCard(numericId, updateDto);
     },
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: cardKeys.lists() });
