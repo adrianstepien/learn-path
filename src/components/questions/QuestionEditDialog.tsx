@@ -232,9 +232,10 @@ export const QuestionEditDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-6 py-4">
+
           {/* Location selection - Zawsze widoczne, aby umożliwić przenoszenie pytań */}
-          <div className="grid grid-cols-3 gap-3 mb-4 p-4 bg-muted/20 rounded-lg border border-border/50">
+          <div className="grid grid-cols-3 gap-3 p-4 bg-muted/20 rounded-lg border border-border/50">
               <div className="space-y-2">
                 <Label>Kategoria</Label>
                 <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
@@ -288,51 +289,6 @@ export const QuestionEditDialog = ({
               </div>
           </div>
 
-          {/* Type and Difficulty Row */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-2">
-              <Label>Typ pytania</Label>
-              <Select value={type} onValueChange={(v) => setType(v as QuestionType)} disabled>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {questionTypes.map(t => (
-                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Poziom trudności</Label>
-              <Select value={difficulty} onValueChange={(v) => setDifficulty(v as DifficultyLevel)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {difficultyLevels.map(d => (
-                    <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Ważność</Label>
-              <Select value={importance} onValueChange={(v) => setImportance(v as ImportanceLevel)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {importanceLevels.map(i => (
-                    <SelectItem key={i.value} value={i.value}>{i.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
           {/* Question Content - RichTextEditor */}
           <div className="space-y-2">
             <Label>Treść pytania *</Label>
@@ -355,36 +311,72 @@ export const QuestionEditDialog = ({
             />
           </div>
 
-          {/* Tags */}
-          <div className="space-y-2">
-            <Label>Tagi</Label>
-            <div className="flex gap-2">
-              <Input
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                placeholder="Dodaj tag..."
-                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-              />
-              <Button type="button" variant="secondary" onClick={handleAddTag}>
-                Dodaj
-              </Button>
+          {/* Opcje dodatkowe zgrupowane na dole */}
+          {/* Zmieniono na md:grid-cols-4 dla lepszych proporcji z 3 elementami */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 pt-2">
+
+            {/* Ważność - zajmuje 1/4 szerokości */}
+            <div className="space-y-2">
+              <Label>Ważność</Label>
+              <Select value={importance} onValueChange={(v) => setImportance(v as ImportanceLevel)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {importanceLevels.map(i => (
+                    <SelectItem key={i.value} value={i.value}>{i.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            {tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 pt-2">
-                {tags.map(tag => (
-                  <Badge key={tag} variant="secondary" className="gap-1">
-                    {tag}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveTag(tag)}
-                      className="ml-1 hover:text-destructive"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
+
+            {/* Poziom trudności (Tylko do odczytu) - zajmuje 1/4 szerokości */}
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">Poziom trudności</Label>
+              <Select value={difficulty} onValueChange={(v) => setDifficulty(v as DifficultyLevel)} disabled>
+                <SelectTrigger className="bg-muted/30">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {difficultyLevels.map(d => (
+                    <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Tagi - zajmują 2/4 (połowę) szerokości */}
+            <div className="md:col-span-2 space-y-2">
+              <Label>Tagi</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  placeholder="Dodaj tag..."
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                />
+                <Button type="button" variant="secondary" onClick={handleAddTag}>
+                  Dodaj
+                </Button>
               </div>
-            )}
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {tags.map(tag => (
+                    <Badge key={tag} variant="secondary" className="gap-1">
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTag(tag)}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
 
