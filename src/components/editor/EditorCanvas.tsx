@@ -53,13 +53,8 @@ export const EditorCanvas = ({
       e.preventDefault();
       const delta = e.deltaY > 0 ? -0.1 : 0.1;
       onZoomChange(zoom + delta);
-    } else {
-      onPanChange({
-        x: pan.x - e.deltaX,
-        y: pan.y - e.deltaY,
-      });
     }
-  }, [zoom, pan, onZoomChange, onPanChange]);
+  }, [zoom, onZoomChange]);
 
   // Touch panning and pinch-to-zoom state
   const [isTouchPanning, setIsTouchPanning] = useState(false);
@@ -67,11 +62,14 @@ export const EditorCanvas = ({
   const pinchStartRef = useRef<{ distance: number; zoom: number } | null>(null);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button === 1 || (e.button === 0 && e.altKey)) {
-      setIsPanning(true);
-      setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-    }
-  }, [pan]);
+    // Match roadmap canvas behavior: left-click drag pans the canvas
+    // Ignore drags that start on a node so node dragging still works
+    if ((e.target as HTMLElement).closest('.canvas-node')) return;
+    if (e.button !== 0) return;
+
+    setIsPanning(true);
+    setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+  }, [pan.x, pan.y]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -88,7 +86,7 @@ export const EditorCanvas = ({
         y: e.clientY - panStart.y,
       });
     }
-  }, [isPanning, panStart, pan, zoom, onPanChange]);
+  }, [isPanning, panStart.x, panStart.y, zoom, onPanChange]);
 
   const handleMouseUp = useCallback(() => {
     setIsPanning(false);
