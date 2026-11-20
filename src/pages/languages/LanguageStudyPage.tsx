@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -10,13 +10,13 @@ import {
   Lightbulb,
   Loader2,
   Sparkles,
-  Star,
   Trophy,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { FsrsRatingPanel } from '@/components/study/FsrsRatingPanel';
 import { SessionStatus, StudyMode } from '@/lib/api/types';
 import { ReviewRating } from '@/types/learning';
 import {
@@ -29,14 +29,6 @@ import {
 import { languageKeys } from '@/hooks/queries/useLanguages';
 import { analyticsKeys } from '@/hooks/queries/useAnalyticsSummary';
 
-const ratingButtons = [
-  { value: ReviewRating.AGAIN, label: 'Nie znam (Powtórz)', stars: 1 },
-  { value: ReviewRating.HARD, label: 'Trudne', stars: 2 },
-  { value: ReviewRating.GOOD, label: 'Dobre', stars: 3 },
-  { value: ReviewRating.EASY, label: 'Łatwe', stars: 4 },
-];
-
-/** Bezpieczne renderowanie **pogrubienia** bez dangerouslySetInnerHTML */
 const renderHighlightedText = (text: string) => {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((part, idx) => {
@@ -63,6 +55,7 @@ const LanguageStudyPage = () => {
   const [cards, setCards] = useState<LanguageStudyCardDto[]>([]);
   const [initialCount, setInitialCount] = useState(0);
   const [hasFetched, setHasFetched] = useState(false);
+  const [attemptSeq, setAttemptSeq] = useState(0);
 
   const [showAnswer, setShowAnswer] = useState(false);
   const [showClozeHint, setShowClozeHint] = useState(false);
@@ -80,6 +73,19 @@ const LanguageStudyPage = () => {
     const seconds = totalSeconds % 60;
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
+
+  const stopSessionIfActive = useCallback(async () => {
+    if (sessionEndedRef.current || !sessionIdRef.current) return;
+    sessionEndedRef.current = true;
+    try {
+      await updateLanguageStudySession(sessionIdRef.current, SessionStatus.STOPPED);
+    } catch (err) {
+      console.error('updateLanguageStudySession failed', err);
+    } finally {
+      queryClient.invalidateQueries({ queryKey: languageKeys.list() });
+      queryClient.invalidateQueries({ queryKey: analyticsKeys.summary() });
+    }
+  }, [queryClient]);
 
   // Pobranie sesji na start
   useEffect(() => {
@@ -104,36 +110,27 @@ const LanguageStudyPage = () => {
     };
   }, [normalizedCode, studyMode]);
 
-  // Zakończenie sesji i odświeżenie liczników
+  // Zamykanie przerwanej sesji przy opuszczeniu widoku
   useEffect(() => {
-    if (
-      hasFetched &&
-      cards.length === 0 &&
-      initialCount > 0 &&
-      !sessionEndedRef.current &&
-      sessionIdRef.current
-    ) {
-      sessionEndedRef.current = true;
-      (async () => {
-        try {
-          await updateLanguageStudySession(sessionIdRef.current!, SessionStatus.STOPPED);
-        } catch (err) {
-          console.error('updateLanguageStudySession failed', err);
-        } finally {
-          queryClient.invalidateQueries({ queryKey: languageKeys.list() });
-          queryClient.invalidateQueries({ queryKey: analyticsKeys.summary() });
-        }
-      })();
-    }
-  }, [hasFetched, cards.length, initialCount, queryClient]);
+    return () => {
+      void stopSessionIfActive();
+    };
+  }, [stopSessionIfActive]);
 
-  // Rejestracja czasu wyświetlenia bieżącej karty
+  // Zamykanie ukończonej sesji
+  useEffect(() => {
+    if (hasFetched && cards.length === 0 && initialCount > 0) {
+      void stopSessionIfActive();
+    }
+  }, [hasFetched, cards.length, initialCount, stopSessionIfActive]);
+
+  // Rejestracja czasu startu każdej próby (działa też dla AGAIN na ostatniej karcie)
   useEffect(() => {
     if (cards.length > 0) {
       startTimeRef.current = new Date().toISOString();
       answerShownTimeRef.current = undefined;
     }
-  }, [cards[0]?.flashcardId, cards.length]);
+  }, [cards[0]?.flashcardId, attemptSeq]);
 
   // Stoper sesji
   useEffect(() => {
@@ -145,6 +142,11 @@ const LanguageStudyPage = () => {
   const resetCardUi = () => {
     setShowAnswer(false);
     setShowClozeHint(false);
+  };
+
+  const handleGoBack = async () => {
+    await stopSessionIfActive();
+    navigate(-1);
   };
 
   const handleShowAnswer = () => {
@@ -182,6 +184,7 @@ const LanguageStudyPage = () => {
         reviewStartedAt: startTimeRef.current,
       });
       setCards((prev) => prev.slice(1));
+      setAttemptSeq((n) => n + 1);
       resetCardUi();
     } catch {
       toast.error('Nie udało się pominąć fiszki.');
@@ -210,6 +213,7 @@ const LanguageStudyPage = () => {
       } else {
         setCards((prev) => prev.slice(1));
       }
+      setAttemptSeq((n) => n + 1);
       resetCardUi();
     } catch {
       toast.error('Nie udało się zapisać oceny.');
@@ -218,7 +222,6 @@ const LanguageStudyPage = () => {
     }
   };
 
-  // Ekran ukończenia
   if (hasFetched && cards.length === 0 && initialCount > 0) {
     return (
       <MainLayout>
@@ -248,7 +251,6 @@ const LanguageStudyPage = () => {
     );
   }
 
-  // Ekran braku kart
   if (hasFetched && cards.length === 0) {
     return (
       <MainLayout>
@@ -304,7 +306,7 @@ const LanguageStudyPage = () => {
           <div className="flex items-center justify-between">
             <div className="flex min-w-0 items-center gap-3 md:gap-4">
               <button
-                onClick={() => navigate(-1)}
+                onClick={handleGoBack}
                 className="flex shrink-0 items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -345,7 +347,7 @@ const LanguageStudyPage = () => {
           <div className="mx-auto max-w-3xl p-4 md:p-8">
             <AnimatePresence mode="wait">
               <motion.div
-                key={card.flashcardId}
+                key={`${card.flashcardId}-${attemptSeq}`}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -361,10 +363,9 @@ const LanguageStudyPage = () => {
                   Pomiń
                 </Button>
 
-                {/* Metadane */}
                 <div className="mb-5 flex flex-wrap items-center gap-2 pr-16">
-                  <Badge variant="secondary">{card.primarySource}</Badge>
                   {card.cefr && <Badge variant="outline">{card.cefr}</Badge>}
+                  <Badge variant="secondary">{card.isCustom ? 'Własne' : 'Słownik'}</Badge>
                   {card.hint && (
                     <Badge variant="outline" className="border-primary/30 text-primary">
                       Podpowiedź: {card.hint}
@@ -372,12 +373,10 @@ const LanguageStudyPage = () => {
                   )}
                 </div>
 
-                {/* Przód karty: znaczenie PL */}
                 <h2 className="mb-4 text-2xl font-bold text-foreground md:text-3xl">
                   {card.nativeMeaning}
                 </h2>
 
-                {/* Zdjęcie skojarzeniowe */}
                 {card.imageUrl && (
                   <div className="mb-5 overflow-hidden rounded-xl border border-border bg-secondary/20 p-2">
                     <img
@@ -388,7 +387,6 @@ const LanguageStudyPage = () => {
                   </div>
                 )}
 
-                {/* Zdanie kontekstowe PL + opcjonalna luka */}
                 {card.sentence && (
                   <div className="mb-6 rounded-xl border border-border bg-secondary/30 p-4">
                     <p className="text-base leading-relaxed text-foreground">
@@ -402,7 +400,6 @@ const LanguageStudyPage = () => {
                   </div>
                 )}
 
-                {/* Akcje przed odsłonięciem */}
                 {!showAnswer && (
                   <div className="flex flex-wrap gap-3">
                     <Button onClick={handleShowAnswer} size="lg" className="flex-1">
@@ -436,7 +433,6 @@ const LanguageStudyPage = () => {
                   </div>
                 )}
 
-                {/* Tył karty: odpowiedź docelowa */}
                 {showAnswer && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
@@ -487,39 +483,8 @@ const LanguageStudyPage = () => {
               </motion.div>
             </AnimatePresence>
 
-            {/* Panel ocen FSRS-6 */}
             {showAnswer && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="rounded-2xl border border-border bg-card p-6"
-              >
-                <h3 className="mb-4 text-center font-medium text-foreground">
-                  Jak oceniasz swoją odpowiedź?
-                </h3>
-                <div className="grid grid-cols-4 gap-2">
-                  {ratingButtons.map((btn) => (
-                    <button
-                      key={btn.value}
-                      disabled={isSubmittingRating}
-                      onClick={() => handleRate(btn.value)}
-                      className="rounded-xl border border-border p-2 text-center transition-all hover:scale-105 hover:border-primary hover:bg-primary/10 disabled:opacity-50 md:p-3"
-                    >
-                      <div className="mb-1 flex justify-center">
-                        {[...Array(btn.stars)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className="h-3 w-3 fill-warning text-warning md:h-4 md:w-4"
-                          />
-                        ))}
-                      </div>
-                      <span className="mt-1 block text-[10px] font-semibold text-muted-foreground md:text-xs">
-                        {btn.label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
+              <FsrsRatingPanel onRate={handleRate} disabled={isSubmittingRating} />
             )}
           </div>
         </div>

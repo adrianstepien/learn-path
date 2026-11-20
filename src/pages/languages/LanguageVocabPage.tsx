@@ -46,8 +46,8 @@ import {
 import {
   CefrLevel,
   VocabLearningStatus,
+  VocabOriginFilter,
   VocabRowDto,
-  VocabSource,
 } from '@/lib/api/languages';
 import {
   useLanguageVocab,
@@ -56,15 +56,9 @@ import {
 } from '@/hooks/queries/useLanguages';
 import { VocabFlashcardDialog } from './components/VocabFlashcardDialog';
 
-const SOURCE_OPTIONS: { value: VocabSource | 'ALL'; label: string }[] = [
-  { value: 'ALL', label: 'Wszystkie listy' },
-  { value: 'NGSL', label: '1. NGSL' },
-  { value: 'NGSL_SPOKEN', label: '2. NGSL Spoken' },
-  { value: 'PHAVE', label: '3. PHaVE' },
-  { value: 'NAWL', label: '4. NAWL' },
-  { value: 'OXFORD_3000', label: '5. Oxford 3000' },
-  { value: 'OXFORD_5000', label: '6. Oxford 5000' },
-  { value: 'BSL', label: '7. BSL' },
+const ORIGIN_OPTIONS: { value: VocabOriginFilter; label: string }[] = [
+  { value: 'ALL', label: 'Słownik + własne' },
+  { value: 'DICTIONARY', label: 'Ze słownika' },
   { value: 'CUSTOM', label: 'Własne' },
 ];
 
@@ -86,6 +80,11 @@ const STATUS_OPTIONS: { value: VocabLearningStatus; label: string }[] = [
 
 const PAGE_SIZE = 25;
 
+type FlashcardDialogState =
+  | { mode: 'custom' }
+  | { mode: 'vocab'; vocab: VocabRowDto }
+  | null;
+
 type ConfirmAction =
   | { type: 'remove-learning'; row: VocabRowDto }
   | { type: 'delete-custom'; row: VocabRowDto }
@@ -99,12 +98,12 @@ const LanguageVocabPage = () => {
 
   const page = Math.max(0, Number(searchParams.get('page') || 0));
   const queryParam = searchParams.get('q') || '';
-  const sourceParam = (searchParams.get('source') || 'ALL') as VocabSource | 'ALL';
+  const originParam = (searchParams.get('origin') || 'ALL') as VocabOriginFilter;
   const cefrParam = (searchParams.get('cefr') || 'ALL') as CefrLevel | 'ALL';
   const statusParam = (searchParams.get('status') || 'ALL') as VocabLearningStatus;
 
   const [searchInput, setSearchInput] = useState(queryParam);
-  const [dialogVocab, setDialogVocab] = useState<VocabRowDto | null>(null);
+  const [dialogState, setDialogState] = useState<FlashcardDialogState>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
 
   const { data: languages = [] } = useLanguages();
@@ -116,46 +115,61 @@ const LanguageVocabPage = () => {
       page,
       size: PAGE_SIZE,
       q: queryParam,
-      source: sourceParam,
+      origin: originParam,
       cefr: cefrParam,
       status: statusParam,
     }
   );
 
-  const { deleteFlashcard, deleteCustomWord, toggleKnown } =
+  const { deleteAllFlashcardsForVocab, deleteCustomWord, toggleKnown } =
     useLanguageVocabMutations(normalizedCode);
 
-  // Debounce wyszukiwarki -> zapis do URL i reset strony do 0
+  useEffect(() => {
+    setSearchInput(queryParam);
+  }, [queryParam]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchInput === queryParam) return;
-      const next = new URLSearchParams(searchParams);
-      if (searchInput.trim()) {
-        next.set('q', searchInput.trim());
-      } else {
-        next.delete('q');
-      }
-      next.set('page', '0');
-      setSearchParams(next, { replace: true });
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (searchInput.trim()) {
+            next.set('q', searchInput.trim());
+          } else {
+            next.delete('q');
+          }
+          next.set('page', '0');
+          return next;
+        },
+        { replace: true }
+      );
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput, queryParam, searchParams, setSearchParams]);
+  }, [searchInput, queryParam, setSearchParams]);
 
   const updateFilter = (key: string, value: string) => {
-    const next = new URLSearchParams(searchParams);
-    if (!value || value === 'ALL') {
-      next.delete(key);
-    } else {
-      next.set(key, value);
-    }
-    next.set('page', '0');
-    setSearchParams(next, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (!value || value === 'ALL') {
+          next.delete(key);
+        } else {
+          next.set(key, value);
+        }
+        next.set('page', '0');
+        return next;
+      },
+      { replace: true }
+    );
   };
 
   const setPage = (nextPage: number) => {
-    const next = new URLSearchParams(searchParams);
-    next.set('page', String(nextPage));
-    setSearchParams(next);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('page', String(nextPage));
+      return next;
+    });
   };
 
   const handleToggleKnown = async (row: VocabRowDto) => {
@@ -170,14 +184,8 @@ const LanguageVocabPage = () => {
     if (!confirmAction) return;
     try {
       if (confirmAction.type === 'remove-learning') {
-        const flashcardId = confirmAction.row.primaryFlashcardId;
-        if (flashcardId) {
-          await deleteFlashcard.mutateAsync({
-            flashcardId,
-            vocabId: confirmAction.row.id,
-          });
-          toast.success(`Usunięto "${confirmAction.row.lemma}" z nauki.`);
-        }
+        await deleteAllFlashcardsForVocab.mutateAsync(confirmAction.row.id);
+        toast.success(`Usunięto "${confirmAction.row.lemma}" z nauki.`);
       } else {
         await deleteCustomWord.mutateAsync(confirmAction.row.id);
         toast.success(`Usunięto własne słówko "${confirmAction.row.lemma}".`);
@@ -209,26 +217,33 @@ const LanguageVocabPage = () => {
             </Button>
             <div>
               <div className="flex items-center gap-2">
-                {currentLang?.flag && <span className="text-2xl">{currentLang.flag}</span>}
                 <h1 className="text-xl font-bold text-foreground md:text-2xl">
                   {currentLang?.name ?? normalizedCode}
                 </h1>
                 <Badge variant="secondary">{totalElements} słówek</Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                Wybierz słówka do nauki FSRS-6 lub edytuj istniejące fiszki
+                Wybierz słówka do nauki FSRS-6, edytuj fiszki lub dodaj własne hasła
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDialogState({ mode: 'custom' })}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Dodaj własne słówko
+            </Button>
+
             <Button
               onClick={() => navigate(`/languages/${langCode.toLowerCase()}/study?mode=SRS`)}
               disabled={(currentLang?.activeFlashcards ?? 0) === 0}
               className="bg-violet-600 text-white hover:bg-violet-700"
             >
               <Play className="mr-2 h-4 w-4" />
-              Ucz się (SRS{currentLang?.dueCards ? `: ${currentLang.dueCards}` : ''})
+              Ucz się
             </Button>
           </div>
         </div>
@@ -254,19 +269,6 @@ const LanguageVocabPage = () => {
             )}
           </div>
 
-          <Select value={sourceParam} onValueChange={(v) => updateFilter('source', v)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Lista" />
-            </SelectTrigger>
-            <SelectContent>
-              {SOURCE_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
           <Select value={cefrParam} onValueChange={(v) => updateFilter('cefr', v)}>
             <SelectTrigger>
               <SelectValue placeholder="Poziom CEFR" />
@@ -286,6 +288,19 @@ const LanguageVocabPage = () => {
             </SelectTrigger>
             <SelectContent>
               {STATUS_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={originParam} onValueChange={(v) => updateFilter('origin', v)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Pochodzenie" />
+            </SelectTrigger>
+            <SelectContent>
+              {ORIGIN_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
                 </SelectItem>
@@ -314,7 +329,7 @@ const LanguageVocabPage = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Słówko</TableHead>
-                    <TableHead className="w-[150px]">Lista / CEFR</TableHead>
+                    <TableHead className="w-[150px]">Poziom / Źródło</TableHead>
                     <TableHead>Znaczenie / Status</TableHead>
                     <TableHead className="text-right">Akcje</TableHead>
                   </TableRow>
@@ -333,11 +348,6 @@ const LanguageVocabPage = () => {
                                 {row.ipa}
                               </span>
                             )}
-                            {row.isCustom && (
-                              <Badge variant="outline" className="text-[10px]">
-                                Własne
-                              </Badge>
-                            )}
                           </div>
                           {row.pos && (
                             <p className="mt-0.5 text-xs text-muted-foreground">{row.pos}</p>
@@ -345,15 +355,18 @@ const LanguageVocabPage = () => {
                         </TableCell>
 
                         <TableCell>
-                          <div className="flex items-center gap-1.5">
-                            <Badge variant="secondary" className="text-[11px]">
-                              {row.primarySource}
-                            </Badge>
+                          <div className="flex flex-wrap items-center gap-1.5">
                             {row.cefr && (
                               <Badge variant="outline" className="text-[11px]">
                                 {row.cefr}
                               </Badge>
                             )}
+                            <Badge
+                              variant={row.isCustom ? 'default' : 'secondary'}
+                              className="text-[11px]"
+                            >
+                              {row.isCustom ? 'Własne' : 'Słownik'}
+                            </Badge>
                           </div>
                         </TableCell>
 
@@ -377,7 +390,7 @@ const LanguageVocabPage = () => {
                               <>
                                 <Button
                                   size="sm"
-                                  onClick={() => setDialogVocab(row)}
+                                  onClick={() => setDialogState({ mode: 'vocab', vocab: row })}
                                 >
                                   <Plus className="mr-1.5 h-3.5 w-3.5" />
                                   Dodaj do nauki
@@ -397,7 +410,7 @@ const LanguageVocabPage = () => {
                                 <Button
                                   size="sm"
                                   variant="secondary"
-                                  onClick={() => setDialogVocab(row)}
+                                  onClick={() => setDialogState({ mode: 'vocab', vocab: row })}
                                 >
                                   <BookOpen className="mr-1.5 h-3.5 w-3.5" />
                                   {row.flashcardCount > 1
@@ -470,13 +483,14 @@ const LanguageVocabPage = () => {
         )}
       </div>
 
-      {/* Wspólny modal dla "Dodaj do nauki" i "Pokaż fiszkę" */}
+      {/* Wspólny modal dla "Dodaj własne słówko", "Dodaj do nauki" i "Pokaż fiszkę" */}
       <VocabFlashcardDialog
-        open={dialogVocab !== null}
+        open={dialogState !== null}
         onOpenChange={(isOpen) => {
-          if (!isOpen) setDialogVocab(null);
+          if (!isOpen) setDialogState(null);
         }}
-        vocab={dialogVocab}
+        mode={dialogState?.mode ?? 'vocab'}
+        vocab={dialogState?.mode === 'vocab' ? dialogState.vocab : null}
         langCode={normalizedCode}
       />
 
@@ -496,8 +510,10 @@ const LanguageVocabPage = () => {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {confirmAction?.type === 'delete-custom'
-                ? `Słówko "${confirmAction.row.lemma}" wraz z fiszką i historią FSRS-6 zostanie trwale usunięte z systemu.`
-                : `Fiszka dla "${confirmAction?.row.lemma}" oraz jej postęp FSRS-6 zostaną usunięte. Samo słówko pozostanie w katalogu.`}
+                ? `Słówko "${confirmAction.row.lemma}" wraz z fiszkami i historią FSRS-6 zostanie trwale usunięte z systemu.`
+                : confirmAction && confirmAction.row.flashcardCount > 1
+                  ? `Wszystkie ${confirmAction.row.flashcardCount} fiszki dla "${confirmAction.row.lemma}" oraz ich postęp FSRS-6 zostaną usunięte. Samo słówko pozostanie w katalogu.`
+                  : `Fiszka dla "${confirmAction?.row.lemma}" oraz jej postęp FSRS-6 zostaną usunięte. Samo słówko pozostanie w katalogu.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

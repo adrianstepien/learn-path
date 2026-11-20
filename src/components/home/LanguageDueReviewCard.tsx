@@ -76,7 +76,7 @@ export const LanguageDueReviewCard = ({ languages }: LanguageDueReviewCardProps)
               onClick={() => navigate(`/languages/${lang.code.toLowerCase()}/study?mode=SRS`)}
               className="bg-white/20 text-primary-foreground hover:bg-white/30 backdrop-blur-sm"
             >
-              {lang.flag} {lang.name} ({lang.dueCards})
+              {lang.name} ({lang.dueCards})
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           ))

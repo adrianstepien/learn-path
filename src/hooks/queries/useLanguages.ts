@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import * as languagesApi from '@/lib/api/languages';
 import {
   CreateCustomVocabRequest,
+  GenerateFlashcardAiRequest,
   SaveVocabFlashcardRequest,
   VocabListParams,
 } from '@/lib/api/languages';
@@ -40,6 +41,7 @@ export const useVocabFlashcards = (vocabId: number | null, enabled: boolean) => 
     queryKey: languageKeys.vocabFlashcards(vocabId ?? -1),
     queryFn: () => languagesApi.getFlashcardsForVocab(vocabId!),
     enabled: enabled && vocabId !== null,
+    refetchOnWindowFocus: false,
   });
 };
 
@@ -78,6 +80,11 @@ export const useLanguageVocabMutations = (langCode: string) => {
     onSuccess: (_, variables) => invalidateVocabAndSummary(variables.vocabId),
   });
 
+  const deleteAllFlashcardsForVocab = useMutation({
+    mutationFn: (vocabId: number) => languagesApi.deleteAllFlashcardsForVocab(vocabId),
+    onSuccess: (_, vocabId) => invalidateVocabAndSummary(vocabId),
+  });
+
   const toggleKnown = useMutation({
     mutationFn: ({ vocabId, known }: { vocabId: number; known: boolean }) =>
       languagesApi.setVocabKnown(vocabId, known),
@@ -96,8 +103,8 @@ export const useLanguageVocabMutations = (langCode: string) => {
   });
 
   const generateDraftAi = useMutation({
-    mutationFn: (vocabId: number) =>
-      languagesApi.generateFlashcardDraftWithAi({ vocabId }),
+    mutationFn: (payload: GenerateFlashcardAiRequest) =>
+      languagesApi.generateFlashcardDraftWithAi(payload),
   });
 
   const generateExtraSentence = useMutation({
@@ -109,6 +116,7 @@ export const useLanguageVocabMutations = (langCode: string) => {
     createFlashcard,
     updateFlashcard,
     deleteFlashcard,
+    deleteAllFlashcardsForVocab,
     toggleKnown,
     createCustomWord,
     deleteCustomWord,

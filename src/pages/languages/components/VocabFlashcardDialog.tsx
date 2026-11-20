@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ImagePlus,
   Loader2,
@@ -21,8 +21,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { uploadImageToServer } from '@/lib/api/cards';
 import {
+  CefrLevel,
   VocabFlashcardDto,
   VocabRowDto,
   VocabSentenceDto,
@@ -35,9 +43,12 @@ import {
 interface VocabFlashcardDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  mode: 'custom' | 'vocab';
   vocab: VocabRowDto | null;
   langCode: string;
 }
+
+const CEFR_VALUES: CefrLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1'];
 
 const emptySentence = (): VocabSentenceDto => ({
   sentenceNative: '',
@@ -48,16 +59,21 @@ const emptySentence = (): VocabSentenceDto => ({
 export const VocabFlashcardDialog = ({
   open,
   onOpenChange,
+  mode,
   vocab,
   langCode,
 }: VocabFlashcardDialogProps) => {
-  const hasExisting = (vocab?.flashcardCount ?? 0) > 0;
-  const { data: existingCards = [], isLoading: isLoadingCards } = useVocabFlashcards(
-    vocab?.id ?? null,
-    open && hasExisting
-  );
+  const isCustomMode = mode === 'custom';
+  const hasExisting = !isCustomMode && (vocab?.flashcardCount ?? 0) > 0;
 
   const {
+    data: existingCards,
+    isLoading: isLoadingCards,
+    isSuccess: isCardsSuccess,
+  } = useVocabFlashcards(vocab?.id ?? null, open && hasExisting);
+
+  const {
+    createCustomWord,
     createFlashcard,
     updateFlashcard,
     deleteFlashcard,
@@ -65,13 +81,15 @@ export const VocabFlashcardDialog = ({
     generateExtraSentence,
   } = useLanguageVocabMutations(langCode);
 
-  // null = tryb tworzenia nowej fiszki; number = edycja fiszki o podanym id
+  const initializedForRef = useRef<string | null>(null);
   const [activeCardId, setActiveCardId] = useState<number | null>(null);
 
   const [targetWord, setTargetWord] = useState('');
   const [nativeMeaning, setNativeMeaning] = useState('');
   const [hint, setHint] = useState('');
   const [ipa, setIpa] = useState('');
+  const [customPos, setCustomPos] = useState('');
+  const [customCefr, setCustomCefr] = useState<CefrLevel | 'NONE'>('NONE');
   const [trapNote, setTrapNote] = useState('');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [sentences, setSentences] = useState<VocabSentenceDto[]>([emptySentence()]);
@@ -88,35 +106,72 @@ export const VocabFlashcardDialog = ({
     setSentences(card.sentences.length > 0 ? card.sentences : [emptySentence()]);
   };
 
-  const resetFormForCreate = (row: VocabRowDto) => {
+  const resetForm = (row: VocabRowDto | null) => {
     setActiveCardId(null);
-    setTargetWord(row.lemma);
+    setTargetWord(row?.lemma ?? '');
     setNativeMeaning('');
-    setHint(row.lemma ? `${row.lemma[0]}...` : '');
-    setIpa(row.ipa ?? '');
+    setHint(row?.lemma ? `${row.lemma[0]}...` : '');
+    setIpa(row?.ipa ?? '');
+    setCustomPos('');
+    setCustomCefr('NONE');
     setTrapNote('');
     setImageUrl(null);
     setSentences([emptySentence()]);
   };
 
   useEffect(() => {
-    if (!open || !vocab) return;
-    if (hasExisting) {
+    if (!open) {
+      initializedForRef.current = null;
+      return;
+    }
+
+    const initKey = isCustomMode
+      ? 'custom'
+      : `${vocab?.id ?? 'none'}-${hasExisting ? 'edit' : 'create'}`;
+
+    if (initializedForRef.current === initKey) return;
+
+    if (isCustomMode) {
+      resetForm(null);
+      initializedForRef.current = initKey;
+      return;
+    }
+
+    if (!vocab) return;
+
+    if (!hasExisting) {
+      resetForm(vocab);
+      initializedForRef.current = initKey;
+      return;
+    }
+
+    if (isCardsSuccess && existingCards) {
       if (existingCards.length > 0) {
         fillFormFromCard(existingCards[0]);
+      } else {
+        resetForm(vocab);
       }
-    } else {
-      resetFormForCreate(vocab);
+      initializedForRef.current = initKey;
     }
-  }, [open, vocab, hasExisting, existingCards]);
+  }, [open, isCustomMode, vocab, hasExisting, isCardsSuccess, existingCards]);
 
   const handleGenerateWithAi = async () => {
-    if (!vocab) return;
+    const word = targetWord.trim();
+    if (!word) {
+      toast.error('Najpierw wpisz słówko docelowe.');
+      return;
+    }
+
     try {
-      const draft = await generateDraftAi.mutateAsync(vocab.id);
+      const draft = await generateDraftAi.mutateAsync({
+        languageCode: langCode,
+        vocabId: isCustomMode ? undefined : vocab?.id,
+        targetWord: word,
+      });
       setNativeMeaning(draft.nativeMeaning);
-      if (draft.hint !== undefined && draft.hint !== null) setHint(draft.hint);
-      if (draft.trapNote !== undefined && draft.trapNote !== null) setTrapNote(draft.trapNote);
+      if (draft.hint) setHint(draft.hint);
+      if (draft.ipa && !ipa.trim()) setIpa(draft.ipa);
+      if (draft.trapNote) setTrapNote(draft.trapNote);
       if (draft.sentences.length > 0) setSentences(draft.sentences);
       toast.success('Wygenerowano propozycję fiszki. Sprawdź pola przed zapisem.');
     } catch {
@@ -158,12 +213,15 @@ export const VocabFlashcardDialog = ({
   };
 
   const removeSentence = (index: number) => {
-    setSentences((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : [emptySentence()]));
+    setSentences((prev) =>
+      prev.length > 1 ? prev.filter((_, i) => i !== index) : [emptySentence()]
+    );
   };
 
   const handleSave = async () => {
-    if (!vocab) return;
-    if (!targetWord.trim() || !nativeMeaning.trim()) {
+    const cleanedTarget = targetWord.trim();
+    const cleanedNative = nativeMeaning.trim();
+    if (!cleanedTarget || !cleanedNative) {
       toast.error('Wypełnij słówko docelowe i polskie znaczenie.');
       return;
     }
@@ -177,21 +235,35 @@ export const VocabFlashcardDialog = ({
       }))
       .filter((s) => s.sentenceNative && s.sentenceTarget);
 
-    const payload = {
-      vocabId: vocab.id,
-      targetWord: targetWord.trim(),
-      nativeMeaning: nativeMeaning.trim(),
-      hint: hint.trim() || null,
-      ipa: ipa.trim() || null,
-      trapNote: trapNote.trim() || null,
-      imageUrl,
-      sentences: validSentences,
-    };
-
     try {
+      let targetVocabId = vocab?.id;
+
+      if (isCustomMode) {
+        const createdVocab = await createCustomWord.mutateAsync({
+          lemma: cleanedTarget,
+          pos: customPos.trim() || undefined,
+          cefr: customCefr === 'NONE' ? undefined : customCefr,
+          ipa: ipa.trim() || undefined,
+        });
+        targetVocabId = createdVocab.id;
+      }
+
+      if (!targetVocabId) return;
+
+      const payload = {
+        vocabId: targetVocabId,
+        targetWord: cleanedTarget,
+        nativeMeaning: cleanedNative,
+        hint: hint.trim() || null,
+        ipa: ipa.trim() || null,
+        trapNote: trapNote.trim() || null,
+        imageUrl,
+        sentences: validSentences,
+      };
+
       if (activeCardId === null) {
         await createFlashcard.mutateAsync(payload);
-        toast.success(`Dodano "${targetWord.trim()}" do nauki FSRS-6.`);
+        toast.success(`Dodano "${cleanedTarget}" do nauki FSRS-6.`);
       } else {
         await updateFlashcard.mutateAsync({ flashcardId: activeCardId, payload });
         toast.success('Zapisano zmiany w fiszce.');
@@ -213,7 +285,9 @@ export const VocabFlashcardDialog = ({
     }
   };
 
-  const isSaving = createFlashcard.isPending || updateFlashcard.isPending;
+  const cardsList = existingCards ?? [];
+  const isSaving =
+    createCustomWord.isPending || createFlashcard.isPending || updateFlashcard.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -222,14 +296,20 @@ export const VocabFlashcardDialog = ({
           <div className="flex flex-wrap items-center justify-between gap-2 pr-6">
             <div>
               <DialogTitle className="flex items-center gap-2 text-xl">
-                <span>{vocab?.lemma}</span>
-                {vocab?.cefr && <Badge variant="outline">{vocab.cefr}</Badge>}
-                {vocab?.primarySource && (
-                  <Badge variant="secondary">{vocab.primarySource}</Badge>
+                <span>{isCustomMode ? 'Nowe własne słówko' : vocab?.lemma}</span>
+                {!isCustomMode && vocab?.cefr && (
+                  <Badge variant="outline">{vocab.cefr}</Badge>
+                )}
+                {!isCustomMode && vocab && (
+                  <Badge variant="secondary">
+                    {vocab.isCustom ? 'Własne' : 'Słownik'}
+                  </Badge>
                 )}
               </DialogTitle>
               <DialogDescription className="mt-1">
-                {vocab?.posCefrDetails || vocab?.pos || 'Konfiguracja fiszki PL → obcy'}
+                {isCustomMode
+                  ? `Dodaj słówko (${langCode}) i od razu utwórz fiszkę FSRS-6`
+                  : vocab?.posCefrDetails || vocab?.pos || 'Konfiguracja fiszki PL → obcy'}
               </DialogDescription>
             </div>
 
@@ -238,7 +318,7 @@ export const VocabFlashcardDialog = ({
               variant="secondary"
               size="sm"
               onClick={handleGenerateWithAi}
-              disabled={generateDraftAi.isPending || !vocab}
+              disabled={generateDraftAi.isPending || !targetWord.trim()}
             >
               {generateDraftAi.isPending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -250,10 +330,9 @@ export const VocabFlashcardDialog = ({
           </div>
         </DialogHeader>
 
-        {/* Przełącznik znaczeń dla słów wieloznacznych */}
-        {existingCards.length > 0 && vocab && (
+        {!isCustomMode && cardsList.length > 0 && vocab && (
           <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
-            {existingCards.map((card, idx) => (
+            {cardsList.map((card, idx) => (
               <Button
                 key={card.id}
                 type="button"
@@ -268,7 +347,7 @@ export const VocabFlashcardDialog = ({
               type="button"
               size="sm"
               variant={activeCardId === null ? 'default' : 'ghost'}
-              onClick={() => resetFormForCreate(vocab)}
+              onClick={() => resetForm(vocab)}
             >
               <Plus className="mr-1 h-3.5 w-3.5" />
               Kolejne znaczenie
@@ -276,10 +355,9 @@ export const VocabFlashcardDialog = ({
           </div>
         )}
 
-        {vocab?.exampleHint && (
+        {!isCustomMode && vocab?.exampleHint && (
           <div className="rounded-xl bg-secondary/60 px-3 py-2 text-xs text-muted-foreground">
-            <strong className="text-foreground">Zakres znaczeń z korpusu:</strong>{' '}
-            {vocab.exampleHint}
+            <strong className="text-foreground">Zakres znaczeń:</strong> {vocab.exampleHint}
           </div>
         )}
 
@@ -291,24 +369,61 @@ export const VocabFlashcardDialog = ({
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
+                <Label htmlFor="targetWord">Słówko docelowe (tył karty) *</Label>
+                <Input
+                  id="targetWord"
+                  autoFocus={isCustomMode}
+                  value={targetWord}
+                  onChange={(e) => setTargetWord(e.target.value)}
+                  placeholder="np. boilerplate, postpone"
+                />
+              </div>
+
+              <div className="space-y-1.5">
                 <Label htmlFor="nativeMeaning">Znaczenie po polsku (przód karty) *</Label>
                 <Input
                   id="nativeMeaning"
+                  autoFocus={!isCustomMode}
                   value={nativeMeaning}
                   onChange={(e) => setNativeMeaning(e.target.value)}
                   placeholder="np. odłożyć na później (termin)"
                 />
               </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="targetWord">Słówko docelowe (tył karty) *</Label>
-                <Input
-                  id="targetWord"
-                  value={targetWord}
-                  onChange={(e) => setTargetWord(e.target.value)}
-                />
-              </div>
             </div>
+
+            {isCustomMode && (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="customPos">Część mowy (opcjonalna)</Label>
+                  <Input
+                    id="customPos"
+                    value={customPos}
+                    onChange={(e) => setCustomPos(e.target.value)}
+                    placeholder="np. noun, verb, idiom"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Poziom CEFR (opcjonalny)</Label>
+                  <Select
+                    value={customCefr}
+                    onValueChange={(v) => setCustomCefr(v as CefrLevel | 'NONE')}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Brak" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="NONE">Brak</SelectItem>
+                      {CEFR_VALUES.map((lvl) => (
+                        <SelectItem key={lvl} value={lvl}>
+                          {lvl}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
@@ -344,7 +459,6 @@ export const VocabFlashcardDialog = ({
               />
             </div>
 
-            {/* Sekcja zdjęcia */}
             <div className="space-y-2">
               <Label>Zdjęcie skojarzeniowe (opcjonalne)</Label>
               {imageUrl ? (
@@ -383,7 +497,6 @@ export const VocabFlashcardDialog = ({
               )}
             </div>
 
-            {/* Pula zdań kontekstowych (1:N) */}
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <Label>Zdania kontekstowe (pogrubiaj cel przez **tekst**)</Label>
@@ -458,7 +571,7 @@ export const VocabFlashcardDialog = ({
 
         <DialogFooter className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
           <div>
-            {activeCardId !== null && (
+            {!isCustomMode && activeCardId !== null && (
               <Button
                 type="button"
                 variant="outline"

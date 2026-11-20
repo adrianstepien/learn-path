@@ -1,4 +1,5 @@
 import { SessionStatus, StudyMode } from './types';
+import { ReviewRating } from '@/types/learning';
 import {
   CreateCustomVocabRequest,
   GenerateFlashcardAiRequest,
@@ -25,7 +26,6 @@ interface MockVocabItem {
   id: number;
   languageCode: string;
   lemma: string;
-  primarySource: VocabRowDto['primarySource'];
   cefr: VocabRowDto['cefr'];
   pos: string | null;
   posCefrDetails: string | null;
@@ -40,7 +40,6 @@ let vocabStore: MockVocabItem[] = [
     id: 1,
     languageCode: 'EN',
     lemma: 'postpone',
-    primarySource: 'OXFORD_3000',
     cefr: 'B2',
     pos: 'verb',
     posCefrDetails: 'verb:B2',
@@ -53,7 +52,6 @@ let vocabStore: MockVocabItem[] = [
     id: 2,
     languageCode: 'EN',
     lemma: 'work out',
-    primarySource: 'PHAVE',
     cefr: 'A2',
     pos: 'phrasal verb',
     posCefrDetails: null,
@@ -66,7 +64,6 @@ let vocabStore: MockVocabItem[] = [
     id: 3,
     languageCode: 'EN',
     lemma: 'abandon',
-    primarySource: 'NGSL',
     cefr: 'B2',
     pos: 'verb',
     posCefrDetails: 'verb:B2',
@@ -79,7 +76,6 @@ let vocabStore: MockVocabItem[] = [
     id: 4,
     languageCode: 'EN',
     lemma: 'allocate',
-    primarySource: 'NAWL',
     cefr: 'C1',
     pos: 'verb',
     posCefrDetails: 'verb:C1',
@@ -92,7 +88,6 @@ let vocabStore: MockVocabItem[] = [
     id: 5,
     languageCode: 'EN',
     lemma: 'water',
-    primarySource: 'NGSL',
     cefr: 'A1',
     pos: 'noun, verb',
     posCefrDetails: 'noun:A1; verb:B1',
@@ -105,7 +100,6 @@ let vocabStore: MockVocabItem[] = [
     id: 6,
     languageCode: 'EN',
     lemma: 'boilerplate',
-    primarySource: 'CUSTOM',
     cefr: 'B2',
     pos: 'noun',
     posCefrDetails: null,
@@ -159,6 +153,16 @@ let flashcardStore: VocabFlashcardDto[] = [
 
 const dueFlashcardIds = new Set<number>([10, 11]);
 
+const mapToVocabRow = (item: MockVocabItem): VocabRowDto => {
+  const cards = flashcardStore.filter((f) => f.vocabId === item.id);
+  return {
+    ...item,
+    flashcardCount: cards.length,
+    primaryFlashcardId: cards[0]?.id ?? null,
+    nativeMeaningPreview: cards[0]?.nativeMeaning ?? null,
+  };
+};
+
 export const languagesMockApi = {
   async getLanguages(): Promise<LanguageSummaryDto[]> {
     await delay();
@@ -170,8 +174,7 @@ export const languagesMockApi = {
       {
         code: 'EN',
         name: 'Angielski',
-        description: 'PL → EN · NGSL, PHaVE, NAWL, Oxford, BSL',
-        flag: '🇺🇸',
+        description: 'PL → EN · Słownictwo i zwroty',
         dueCards: dueCount,
         activeFlashcards: enCards.length,
         knownWords: enVocab.filter((v) => v.isKnown).length,
@@ -188,24 +191,13 @@ export const languagesMockApi = {
     const code = langCode.toUpperCase();
     const q = params.q?.trim().toLowerCase() ?? '';
 
-    const mapped: VocabRowDto[] = vocabStore
+    const mapped = vocabStore
       .filter((v) => v.languageCode === code)
-      .map((v) => {
-        const cards = flashcardStore.filter((f) => f.vocabId === v.id);
-        return {
-          ...v,
-          flashcardCount: cards.length,
-          primaryFlashcardId: cards[0]?.id ?? null,
-          nativeMeaningPreview: cards[0]?.nativeMeaning ?? null,
-        };
-      })
+      .map(mapToVocabRow)
       .filter((row) => {
-        if (params.source && params.source !== 'ALL' && row.primarySource !== params.source) {
-          return false;
-        }
-        if (params.cefr && params.cefr !== 'ALL' && row.cefr !== params.cefr) {
-          return false;
-        }
+        if (params.origin === 'DICTIONARY' && row.isCustom) return false;
+        if (params.origin === 'CUSTOM' && !row.isCustom) return false;
+        if (params.cefr && params.cefr !== 'ALL' && row.cefr !== params.cefr) return false;
         if (params.status === 'LEARNING' && row.flashcardCount === 0) return false;
         if (params.status === 'KNOWN' && !row.isKnown) return false;
         if (params.status === 'NOT_STARTED' && (row.flashcardCount > 0 || row.isKnown)) {
@@ -236,11 +228,20 @@ export const languagesMockApi = {
     payload: CreateCustomVocabRequest
   ): Promise<VocabRowDto> {
     await delay();
+    const code = langCode.toUpperCase();
+    const normalized = payload.lemma.trim().toLowerCase();
+
+    const existing = vocabStore.find(
+      (v) => v.languageCode === code && v.lemma === normalized
+    );
+    if (existing) {
+      return mapToVocabRow(existing);
+    }
+
     const item: MockVocabItem = {
       id: ++nextVocabId,
-      languageCode: langCode.toUpperCase(),
-      lemma: payload.lemma.trim().toLowerCase(),
-      primarySource: 'CUSTOM',
+      languageCode: code,
+      lemma: normalized,
       cefr: payload.cefr ?? null,
       pos: payload.pos ?? null,
       posCefrDetails: null,
@@ -250,17 +251,18 @@ export const languagesMockApi = {
       isKnown: false,
     };
     vocabStore = [item, ...vocabStore];
-    return {
-      ...item,
-      flashcardCount: 0,
-      primaryFlashcardId: null,
-      nativeMeaningPreview: null,
-    };
+    return mapToVocabRow(item);
   },
 
   async deleteCustomVocab(vocabId: number): Promise<void> {
     await delay();
-    vocabStore = vocabStore.filter((v) => !(v.id === vocabId && v.isCustom));
+    const target = vocabStore.find((v) => v.id === vocabId && v.isCustom);
+    if (!target) return;
+
+    vocabStore = vocabStore.filter((v) => v.id !== vocabId);
+    flashcardStore
+      .filter((f) => f.vocabId === vocabId)
+      .forEach((f) => dueFlashcardIds.delete(f.id));
     flashcardStore = flashcardStore.filter((f) => f.vocabId !== vocabId);
   },
 
@@ -274,7 +276,17 @@ export const languagesMockApi = {
     return flashcardStore.filter((f) => f.vocabId === vocabId);
   },
 
-  async createVocabFlashcard(payload: SaveVocabFlashcardRequest): Promise<VocabFlashcardDto> {
+  async deleteAllFlashcardsForVocab(vocabId: number): Promise<void> {
+    await delay();
+    flashcardStore
+      .filter((f) => f.vocabId === vocabId)
+      .forEach((f) => dueFlashcardIds.delete(f.id));
+    flashcardStore = flashcardStore.filter((f) => f.vocabId !== vocabId);
+  },
+
+  async createVocabFlashcard(
+    payload: SaveVocabFlashcardRequest
+  ): Promise<VocabFlashcardDto> {
     await delay();
     const vocab = vocabStore.find((v) => v.id === payload.vocabId);
     const created: VocabFlashcardDto = {
@@ -287,6 +299,7 @@ export const languagesMockApi = {
       ipa: payload.ipa ?? null,
       trapNote: payload.trapNote ?? null,
       imageUrl: payload.imageUrl ?? null,
+      imagePublicId: payload.imagePublicId ?? null,
       sentences: payload.sentences.map((s) => ({ ...s, id: s.id ?? ++nextSentenceId })),
     };
     flashcardStore = [...flashcardStore, created];
@@ -310,6 +323,7 @@ export const languagesMockApi = {
         ipa: payload.ipa ?? null,
         trapNote: payload.trapNote ?? null,
         imageUrl: payload.imageUrl ?? null,
+        imagePublicId: payload.imagePublicId ?? null,
         sentences: payload.sentences.map((s) => ({ ...s, id: s.id ?? ++nextSentenceId })),
       };
       return updated;
@@ -327,17 +341,21 @@ export const languagesMockApi = {
     payload: GenerateFlashcardAiRequest
   ): Promise<GeneratedFlashcardDraftDto> {
     await delay(500);
-    const vocab = vocabStore.find((v) => v.id === payload.vocabId);
-    const word = vocab?.lemma ?? 'word';
+    const vocab = payload.vocabId
+      ? vocabStore.find((v) => v.id === payload.vocabId)
+      : undefined;
+    const word = payload.targetWord?.trim() || vocab?.lemma || 'word';
+
     return {
       nativeMeaning: `[AI] znaczenie słowa "${word}"`,
       hint: `${word[0]}...`,
+      ipa: vocab?.ipa ?? `/${word}/`,
       trapNote: `[AI] Przykładowa uwaga o użyciu "${word}".`,
       sentences: [
         {
-          sentenceNative: `To jest przykładowe zdanie ze słowem **${word}** wygenerowane przez mock AI.`,
-          sentenceTarget: `This is a sample sentence using ${word} generated by mock AI.`,
-          clozeTarget: `This is a sample sentence using ________ generated by mock AI.`,
+          sentenceNative: `Przykładowe zdanie ze słowem **${word}** wygenerowane przez mock AI.`,
+          sentenceTarget: `Sample sentence using ${word} generated by mock AI.`,
+          clozeTarget: `Sample sentence using ________ generated by mock AI.`,
         },
       ],
     };
@@ -381,7 +399,7 @@ export const languagesMockApi = {
         trapNote: f.trapNote ?? null,
         imageUrl: f.imageUrl ?? null,
         cefr: vocab?.cefr ?? null,
-        primarySource: vocab?.primarySource ?? 'CUSTOM',
+        isCustom: vocab?.isCustom ?? true,
         sentence: f.sentences[0] ?? null,
       };
     });
@@ -398,7 +416,7 @@ export const languagesMockApi = {
 
   async createLanguageReview(payload: LanguageReviewRequestDto): Promise<void> {
     await delay(100);
-    if (payload.rating !== 'AGAIN') {
+    if (payload.rating !== ReviewRating.AGAIN) {
       dueFlashcardIds.delete(payload.flashcardId);
     }
   },

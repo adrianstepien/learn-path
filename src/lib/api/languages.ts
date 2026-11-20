@@ -5,43 +5,32 @@ import { languagesMockApi } from './languages.mock';
 
 const USE_MOCK_LANGUAGES = import.meta.env.VITE_MOCK_LANGUAGES === 'true';
 
-export type VocabSource =
-  | 'NGSL'
-  | 'NGSL_SPOKEN'
-  | 'PHAVE'
-  | 'NAWL'
-  | 'OXFORD_3000'
-  | 'OXFORD_5000'
-  | 'BSL'
-  | 'CUSTOM';
-
+export type VocabOriginFilter = 'ALL' | 'DICTIONARY' | 'CUSTOM';
 export type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';
 export type VocabLearningStatus = 'ALL' | 'NOT_STARTED' | 'LEARNING' | 'KNOWN';
 
 export interface LanguageSummaryDto {
-  code: string;              // np. 'EN', 'ES'
-  name: string;              // np. 'Angielski'
-  description: string;       // np. 'PL → EN · NGSL, PHaVE, Oxford'
-  flag: string;              // np. '🇺🇸' lub '🇬🇧'
-  dueCards: number;          // fiszki do powtórki dziś
-  activeFlashcards: number;  // fiszki w nauce (FSRS-6)
-  knownWords: number;        // oznaczone jako znane
-  totalCatalogWords: number; // wszystkie słówka w katalogu
+  code: string;
+  name: string;
+  description: string;
+  dueCards: number;
+  activeFlashcards: number;
+  knownWords: number;
+  totalCatalogWords: number;
 }
 
 export interface VocabRowDto {
   id: number;
   languageCode: string;
   lemma: string;
-  primarySource: VocabSource;
   cefr: CefrLevel | null;
   pos: string | null;
   posCefrDetails: string | null;
   ipa: string | null;
   exampleHint: string | null;
-  isCustom: boolean;         // true => owner_user_id != null (można usunąć z katalogu)
+  isCustom: boolean;
   isKnown: boolean;
-  flashcardCount: number;    // 0 => pokaż "Dodaj do nauki", >0 => "Pokaż fiszkę" + "Usuń z nauki"
+  flashcardCount: number;
   primaryFlashcardId: number | null;
   nativeMeaningPreview: string | null;
 }
@@ -58,7 +47,7 @@ export interface VocabListParams {
   page?: number;
   size?: number;
   q?: string;
-  source?: VocabSource | 'ALL';
+  origin?: VocabOriginFilter;
   cefr?: CefrLevel | 'ALL';
   status?: VocabLearningStatus;
 }
@@ -97,12 +86,15 @@ export interface SaveVocabFlashcardRequest {
 }
 
 export interface GenerateFlashcardAiRequest {
-  vocabId: number;
+  languageCode: string;
+  vocabId?: number;
+  targetWord?: string;
 }
 
 export interface GeneratedFlashcardDraftDto {
   nativeMeaning: string;
   hint?: string | null;
+  ipa?: string | null;
   trapNote?: string | null;
   sentences: VocabSentenceDto[];
 }
@@ -124,8 +116,8 @@ export interface LanguageStudyCardDto {
   trapNote?: string | null;
   imageUrl?: string | null;
   cefr?: CefrLevel | null;
-  primarySource: VocabSource;
-  sentence: VocabSentenceDto | null; // zdanie wybrane rotacyjnie po last_shown_at
+  isCustom: boolean;
+  sentence: VocabSentenceDto | null;
 }
 
 export interface LanguageStudySessionResponseDto {
@@ -141,151 +133,105 @@ export interface LanguageReviewRequestDto {
   answerShownAt?: string;
 }
 
-// ===== JĘZYKI I KATALOG =====
+const languagesHttpApi = {
+  getLanguages: () => apiRequest<LanguageSummaryDto[]>('/languages'),
 
-export async function getLanguages(): Promise<LanguageSummaryDto[]> {
-  if (USE_MOCK_LANGUAGES) return languagesMockApi.getLanguages();
-  return apiRequest<LanguageSummaryDto[]>('/languages');
-}
+  getLanguageVocab: (langCode: string, params: VocabListParams = {}) => {
+    const cleanParams: Record<string, string | number> = {
+      page: params.page ?? 0,
+      size: params.size ?? 25,
+    };
+    if (params.q?.trim()) cleanParams.q = params.q.trim();
+    if (params.origin && params.origin !== 'ALL') cleanParams.origin = params.origin;
+    if (params.cefr && params.cefr !== 'ALL') cleanParams.cefr = params.cefr;
+    if (params.status && params.status !== 'ALL') cleanParams.status = params.status;
 
-export async function getLanguageVocab(
-  langCode: string,
-  params: VocabListParams = {}
-): Promise<PageResponse<VocabRowDto>> {
-  if (USE_MOCK_LANGUAGES) return languagesMockApi.getLanguageVocab(langCode, params);
+    return apiRequest<PageResponse<VocabRowDto>>(
+      `/languages/${langCode.toUpperCase()}/vocab`,
+      { params: cleanParams }
+    );
+  },
 
-  const cleanParams: Record<string, string | number> = {
-    page: params.page ?? 0,
-    size: params.size ?? 25,
-  };
-  if (params.q?.trim()) cleanParams.q = params.q.trim();
-  if (params.source && params.source !== 'ALL') cleanParams.source = params.source;
-  if (params.cefr && params.cefr !== 'ALL') cleanParams.cefr = params.cefr;
-  if (params.status && params.status !== 'ALL') cleanParams.status = params.status;
-
-  return apiRequest<PageResponse<VocabRowDto>>(
-    `/languages/${langCode.toUpperCase()}/vocab`,
-    { params: cleanParams }
-  );
-}
-
-export async function createCustomVocab(
-  langCode: string,
-  payload: CreateCustomVocabRequest
-): Promise<VocabRowDto> {
-  if (USE_MOCK_LANGUAGES) return languagesMockApi.createCustomVocab(langCode, payload);
-  return apiRequest<VocabRowDto>(`/languages/${langCode.toUpperCase()}/vocab`, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-}
-
-export async function deleteCustomVocab(vocabId: number): Promise<void> {
-  if (USE_MOCK_LANGUAGES) return languagesMockApi.deleteCustomVocab(vocabId);
-  return apiRequest<void>(`/languages/vocab/${vocabId}`, {
-    method: 'DELETE',
-  });
-}
-
-export async function setVocabKnown(vocabId: number, known: boolean): Promise<void> {
-  if (USE_MOCK_LANGUAGES) return languagesMockApi.setVocabKnown(vocabId, known);
-  return apiRequest<void>(`/languages/vocab/${vocabId}/known`, {
-    method: known ? 'PUT' : 'DELETE',
-  });
-}
-
-// ===== FISZKI (DODAJ DO NAUKI / POKAŻ FISZKĘ / USUŃ Z NAUKI) =====
-
-export async function getFlashcardsForVocab(vocabId: number): Promise<VocabFlashcardDto[]> {
-  if (USE_MOCK_LANGUAGES) return languagesMockApi.getFlashcardsForVocab(vocabId);
-  return apiRequest<VocabFlashcardDto[]>(`/languages/vocab/${vocabId}/flashcards`);
-}
-
-export async function createVocabFlashcard(
-  payload: SaveVocabFlashcardRequest
-): Promise<VocabFlashcardDto> {
-  if (USE_MOCK_LANGUAGES) return languagesMockApi.createVocabFlashcard(payload);
-  return apiRequest<VocabFlashcardDto>('/languages/flashcards', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-}
-
-export async function updateVocabFlashcard(
-  flashcardId: number,
-  payload: SaveVocabFlashcardRequest
-): Promise<VocabFlashcardDto> {
-  if (USE_MOCK_LANGUAGES) return languagesMockApi.updateVocabFlashcard(flashcardId, payload);
-  return apiRequest<VocabFlashcardDto>(`/languages/flashcards/${flashcardId}`, {
-    method: 'PUT',
-    body: JSON.stringify(payload),
-  });
-}
-
-export async function deleteVocabFlashcard(flashcardId: number): Promise<void> {
-  if (USE_MOCK_LANGUAGES) return languagesMockApi.deleteVocabFlashcard(flashcardId);
-  return apiRequest<void>(`/languages/flashcards/${flashcardId}`, {
-    method: 'DELETE',
-  });
-}
-
-// ===== AI (GENERACJA DO MODALU + KOLEJNE ZDANIA) =====
-
-export async function generateFlashcardDraftWithAi(
-  payload: GenerateFlashcardAiRequest
-): Promise<GeneratedFlashcardDraftDto> {
-  if (USE_MOCK_LANGUAGES) return languagesMockApi.generateFlashcardDraftWithAi(payload);
-  return apiRequest<GeneratedFlashcardDraftDto>('/languages/ai/generate-flashcard', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-}
-
-export async function generateExtraSentenceWithAi(
-  flashcardId: number
-): Promise<VocabSentenceDto> {
-  if (USE_MOCK_LANGUAGES) return languagesMockApi.generateExtraSentenceWithAi(flashcardId);
-  return apiRequest<VocabSentenceDto>(
-    `/languages/flashcards/${flashcardId}/sentences/generate`,
-    { method: 'POST' }
-  );
-}
-
-// ===== SESJE FSRS-6 =====
-
-export async function startLanguageStudySession(
-  langCode: string,
-  mode: StudyMode = StudyMode.SRS
-): Promise<LanguageStudySessionResponseDto> {
-  if (USE_MOCK_LANGUAGES) return languagesMockApi.startLanguageStudySession(langCode, mode);
-  return apiRequest<LanguageStudySessionResponseDto>(
-    `/languages/${langCode.toUpperCase()}/sessions`,
-    {
+  createCustomVocab: (langCode: string, payload: CreateCustomVocabRequest) =>
+    apiRequest<VocabRowDto>(`/languages/${langCode.toUpperCase()}/vocab`, {
       method: 'POST',
-      body: JSON.stringify({ mode }),
-    }
-  );
-}
+      body: JSON.stringify(payload),
+    }),
 
-export async function updateLanguageStudySession(
-  sessionId: number,
-  sessionStatus: SessionStatus
-): Promise<void> {
-  if (USE_MOCK_LANGUAGES) {
-    return languagesMockApi.updateLanguageStudySession(sessionId, sessionStatus);
-  }
-  return apiRequest<void>(`/languages/sessions/${sessionId}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ sessionStatus }),
-  });
-}
+  deleteCustomVocab: (vocabId: number) =>
+    apiRequest<void>(`/languages/vocab/${vocabId}`, { method: 'DELETE' }),
 
-export async function createLanguageReview(
-  payload: LanguageReviewRequestDto
-): Promise<void> {
-  if (USE_MOCK_LANGUAGES) return languagesMockApi.createLanguageReview(payload);
-  return apiRequest<void>('/languages/reviews', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-}
+  setVocabKnown: (vocabId: number, known: boolean) =>
+    apiRequest<void>(`/languages/vocab/${vocabId}/known`, {
+      method: known ? 'PUT' : 'DELETE',
+    }),
+
+  getFlashcardsForVocab: (vocabId: number) =>
+    apiRequest<VocabFlashcardDto[]>(`/languages/vocab/${vocabId}/flashcards`),
+
+  deleteAllFlashcardsForVocab: (vocabId: number) =>
+    apiRequest<void>(`/languages/vocab/${vocabId}/flashcards`, { method: 'DELETE' }),
+
+  createVocabFlashcard: (payload: SaveVocabFlashcardRequest) =>
+    apiRequest<VocabFlashcardDto>('/languages/flashcards', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  updateVocabFlashcard: (flashcardId: number, payload: SaveVocabFlashcardRequest) =>
+    apiRequest<VocabFlashcardDto>(`/languages/flashcards/${flashcardId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  deleteVocabFlashcard: (flashcardId: number) =>
+    apiRequest<void>(`/languages/flashcards/${flashcardId}`, { method: 'DELETE' }),
+
+  generateFlashcardDraftWithAi: (payload: GenerateFlashcardAiRequest) =>
+    apiRequest<GeneratedFlashcardDraftDto>('/languages/ai/generate-flashcard', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  generateExtraSentenceWithAi: (flashcardId: number) =>
+    apiRequest<VocabSentenceDto>(
+      `/languages/flashcards/${flashcardId}/sentences/generate`,
+      { method: 'POST' }
+    ),
+
+  startLanguageStudySession: (langCode: string, mode: StudyMode = StudyMode.SRS) =>
+    apiRequest<LanguageStudySessionResponseDto>(
+      `/languages/${langCode.toUpperCase()}/sessions`,
+      { method: 'POST', body: JSON.stringify({ mode }) }
+    ),
+
+  updateLanguageStudySession: (sessionId: number, sessionStatus: SessionStatus) =>
+    apiRequest<void>(`/languages/sessions/${sessionId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ sessionStatus }),
+    }),
+
+  createLanguageReview: (payload: LanguageReviewRequestDto) =>
+    apiRequest<void>('/languages/reviews', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+};
+
+const client = USE_MOCK_LANGUAGES ? languagesMockApi : languagesHttpApi;
+
+export const getLanguages = client.getLanguages;
+export const getLanguageVocab = client.getLanguageVocab;
+export const createCustomVocab = client.createCustomVocab;
+export const deleteCustomVocab = client.deleteCustomVocab;
+export const setVocabKnown = client.setVocabKnown;
+export const getFlashcardsForVocab = client.getFlashcardsForVocab;
+export const deleteAllFlashcardsForVocab = client.deleteAllFlashcardsForVocab;
+export const createVocabFlashcard = client.createVocabFlashcard;
+export const updateVocabFlashcard = client.updateVocabFlashcard;
+export const deleteVocabFlashcard = client.deleteVocabFlashcard;
+export const generateFlashcardDraftWithAi = client.generateFlashcardDraftWithAi;
+export const generateExtraSentenceWithAi = client.generateExtraSentenceWithAi;
+export const startLanguageStudySession = client.startLanguageStudySession;
+export const updateLanguageStudySession = client.updateLanguageStudySession;
+export const createLanguageReview = client.createLanguageReview;

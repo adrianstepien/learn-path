@@ -49,7 +49,9 @@ export const LanguageCard = ({ language, delay }: LanguageCardProps) => {
       >
         <div className="mb-3 flex items-center justify-between md:mb-4">
           <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 md:h-14 md:w-14">
-            <span className="text-2xl md:text-3xl">{language.flag}</span>
+            <span className="text-base font-bold tracking-wider text-primary md:text-lg">
+              {language.code}
+            </span>
 
             {language.dueCards > 0 && (
               <span className="absolute -right-1 -top-1 flex h-3 w-3">
