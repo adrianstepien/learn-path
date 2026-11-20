@@ -2,7 +2,8 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Home, 
-  Map, 
+  Map,
+  Languages,
   PlusCircle, 
   FileVideo, 
   BarChart3, 
@@ -24,6 +25,7 @@ const navItems = [
   { to: '/learn', icon: Map, label: 'Nauka' },
   { to: '/editor', icon: PlusCircle, label: 'Edytor' },
   { to: '/questions', icon: HelpCircle, label: 'Baza pytań' },
+  { to: '/languages', icon: Languages, label: 'Języki' },
   { to: '/import', icon: FileVideo, label: 'Import' },
   { to: '/dashboard', icon: BarChart3, label: 'Dashboard' },
   { to: '/login', icon: LogIn , label: 'Login' },
