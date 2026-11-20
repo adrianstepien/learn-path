@@ -13,10 +13,16 @@ import { ProgressRing } from '@/components/home/ProgressRing';
 import { RecentActivity } from '@/components/home/RecentActivity';
 import { DueReviewCard } from '@/components/home/DueReviewCard';
 import { useAnalyticsSummary } from '@/hooks/queries/useAnalyticsSummary';
+// Dodaj importy u góry MainPage.tsx:
+import { LanguageDueReviewCard } from '@/components/home/LanguageDueReviewCard';
+import { useLanguages } from '@/hooks/queries/useLanguages';
+import { cn } from '@/lib/utils';
 
 const MainPage = () => {
   // Pobieramy dane z API za pomocą React Query
   const { data: summary, isLoading, isError } = useAnalyticsSummary();
+const { data: languages = [] } = useLanguages();
+
 
   const getDaysLabel = (days: number) => {
     if (days === 1) return 'dzień z rzędu';
@@ -43,7 +49,10 @@ const MainPage = () => {
       </MainLayout>
     );
   }
-
+const hasKnowledgeDue = summary.cardsDueToday > 0;
+const hasLanguageDue = languages.some((lang) => lang.dueCards > 0);
+const hasAnyDue = hasKnowledgeDue || hasLanguageDue;
+const hasBothDue = hasKnowledgeDue && hasLanguageDue;
   // Przeliczanie danych z DTO
   const hoursSpent = Math.floor(summary.timeSpentLearningSeconds / 3600);
 
@@ -80,14 +89,16 @@ const MainPage = () => {
         </motion.div>
 
         {/* DUE REVIEW CARD - renderowane warunkowo, gdy są karty do powtórki */}
-        {summary.cardsDueToday > 0 && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-10"
+        {hasAnyDue && (
+          <div
+            className={cn(
+              'mb-10 grid gap-4',
+              hasBothDue ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'
+            )}
           >
-            <DueReviewCard count={summary.cardsDueToday} />
-          </motion.div>
+            {hasKnowledgeDue && <DueReviewCard count={summary.cardsDueToday} />}
+            {hasLanguageDue && <LanguageDueReviewCard languages={languages} />}
+          </div>
         )}
 
         {/* Zawartość główna w jednej kolumnie */}

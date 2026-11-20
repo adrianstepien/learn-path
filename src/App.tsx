@@ -17,6 +17,9 @@ import ImportPage from "./pages/ImportPage";
 import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
+import LanguagesPage from './pages/languages/LanguagesPage';
+import LanguageVocabPage from './pages/languages/LanguageVocabPage';
+import LanguageStudyPage from './pages/languages/LanguageStudyPage';
 
 const queryClient = new QueryClient();
 
@@ -38,6 +41,9 @@ const App = () => (
             <Route path="/editor/roadmap/:categoryId" element={<EditorRoadmapPage />} />
             <Route path="/editor/topic/:roadmapId" element={<EditorTopicPage />} />
             <Route path="/questions" element={<QuestionBankPage />} />
+            <Route path="/languages" element={<LanguagesPage />} />
+            <Route path="/languages/:langCode" element={<LanguageVocabPage />} />
+            <Route path="/languages/:langCode/study" element={<LanguageStudyPage />} />
             <Route path="/import" element={<ImportPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/login" element={<LoginPage />} />
