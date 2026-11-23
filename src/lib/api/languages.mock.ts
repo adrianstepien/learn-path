@@ -117,10 +117,8 @@ let flashcardStore: VocabFlashcardDto[] = [
     languageCode: 'EN',
     targetWord: 'postpone',
     nativeMeaning: 'odłożyć na później (termin/spotkanie)',
-    hint: 'p...',
     ipa: '/poʊstˈpoʊn/',
     trapNote: 'Łączy się z gerundium: postpone doing sth (nie "to do").',
-    imageUrl: null,
     sentences: [
       {
         id: 1,
@@ -136,10 +134,8 @@ let flashcardStore: VocabFlashcardDto[] = [
     languageCode: 'EN',
     targetWord: 'work out',
     nativeMeaning: 'ćwiczyć (na siłowni)',
-    hint: 'w... o...',
     ipa: '/wɜːrk aʊt/',
     trapNote: 'Bez dopełnienia = trenować; work sth out = rozwiązać coś.',
-    imageUrl: null,
     sentences: [
       {
         id: 2,
@@ -295,11 +291,8 @@ export const languagesMockApi = {
       languageCode: vocab?.languageCode ?? 'EN',
       targetWord: payload.targetWord,
       nativeMeaning: payload.nativeMeaning,
-      hint: payload.hint ?? null,
       ipa: payload.ipa ?? null,
       trapNote: payload.trapNote ?? null,
-      imageUrl: payload.imageUrl ?? null,
-      imagePublicId: payload.imagePublicId ?? null,
       sentences: payload.sentences.map((s) => ({ ...s, id: s.id ?? ++nextSentenceId })),
     };
     flashcardStore = [...flashcardStore, created];
@@ -319,11 +312,8 @@ export const languagesMockApi = {
         ...f,
         targetWord: payload.targetWord,
         nativeMeaning: payload.nativeMeaning,
-        hint: payload.hint ?? null,
         ipa: payload.ipa ?? null,
         trapNote: payload.trapNote ?? null,
-        imageUrl: payload.imageUrl ?? null,
-        imagePublicId: payload.imagePublicId ?? null,
         sentences: payload.sentences.map((s) => ({ ...s, id: s.id ?? ++nextSentenceId })),
       };
       return updated;
@@ -348,7 +338,6 @@ export const languagesMockApi = {
 
     return {
       nativeMeaning: `[AI] znaczenie słowa "${word}"`,
-      hint: `${word[0]}...`,
       ipa: vocab?.ipa ?? `/${word}/`,
       trapNote: `[AI] Przykładowa uwaga o użyciu "${word}".`,
       sentences: [
@@ -394,10 +383,8 @@ export const languagesMockApi = {
         vocabId: f.vocabId,
         targetWord: f.targetWord,
         nativeMeaning: f.nativeMeaning,
-        hint: f.hint ?? null,
         ipa: f.ipa ?? null,
         trapNote: f.trapNote ?? null,
-        imageUrl: f.imageUrl ?? null,
         cefr: vocab?.cefr ?? null,
         isCustom: vocab?.isCustom ?? true,
         sentence: f.sentences[0] ?? null,

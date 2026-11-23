@@ -65,11 +65,8 @@ export interface VocabFlashcardDto {
   languageCode: string;
   targetWord: string;
   nativeMeaning: string;
-  hint?: string | null;
   ipa?: string | null;
   trapNote?: string | null;
-  imageUrl?: string | null;
-  imagePublicId?: string | null;
   sentences: VocabSentenceDto[];
 }
 
@@ -77,11 +74,8 @@ export interface SaveVocabFlashcardRequest {
   vocabId: number;
   targetWord: string;
   nativeMeaning: string;
-  hint?: string | null;
   ipa?: string | null;
   trapNote?: string | null;
-  imageUrl?: string | null;
-  imagePublicId?: string | null;
   sentences: VocabSentenceDto[];
 }
 
@@ -93,7 +87,6 @@ export interface GenerateFlashcardAiRequest {
 
 export interface GeneratedFlashcardDraftDto {
   nativeMeaning: string;
-  hint?: string | null;
   ipa?: string | null;
   trapNote?: string | null;
   sentences: VocabSentenceDto[];
@@ -111,10 +104,8 @@ export interface LanguageStudyCardDto {
   vocabId: number;
   targetWord: string;
   nativeMeaning: string;
-  hint?: string | null;
   ipa?: string | null;
   trapNote?: string | null;
-  imageUrl?: string | null;
   cefr?: CefrLevel | null;
   isCustom: boolean;
   sentence: VocabSentenceDto | null;

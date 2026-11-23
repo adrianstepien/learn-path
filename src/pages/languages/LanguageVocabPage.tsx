@@ -217,6 +217,7 @@ const LanguageVocabPage = () => {
             </Button>
             <div>
               <div className="flex items-center gap-2">
+                {currentLang?.flag && <span className="text-2xl">{currentLang.flag}</span>}
                 <h1 className="text-xl font-bold text-foreground md:text-2xl">
                   {currentLang?.name ?? normalizedCode}
                 </h1>
@@ -243,7 +244,7 @@ const LanguageVocabPage = () => {
               className="bg-violet-600 text-white hover:bg-violet-700"
             >
               <Play className="mr-2 h-4 w-4" />
-              Ucz się
+              Ucz się (SRS{currentLang?.dueCards ? `: ${currentLang.dueCards}` : ''})
             </Button>
           </div>
         </div>

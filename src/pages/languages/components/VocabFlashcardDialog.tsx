@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  ImagePlus,
   Loader2,
   Plus,
   Sparkles,
   Trash2,
-  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -19,7 +17,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -28,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { uploadImageToServer } from '@/lib/api/cards';
+import { RichTextEditor } from '@/components/texteditor/RichTextEditor';
 import {
   CefrLevel,
   VocabFlashcardDto,
@@ -55,6 +52,12 @@ const emptySentence = (): VocabSentenceDto => ({
   sentenceTarget: '',
   clozeTarget: '',
 });
+
+const normalizeRichText = (html: string): string | null => {
+  const trimmed = html.trim();
+  if (!trimmed || trimmed === '<p></p>') return null;
+  return trimmed;
+};
 
 export const VocabFlashcardDialog = ({
   open,
@@ -83,40 +86,36 @@ export const VocabFlashcardDialog = ({
 
   const initializedForRef = useRef<string | null>(null);
   const [activeCardId, setActiveCardId] = useState<number | null>(null);
+  const [editorKey, setEditorKey] = useState(0);
 
   const [targetWord, setTargetWord] = useState('');
   const [nativeMeaning, setNativeMeaning] = useState('');
-  const [hint, setHint] = useState('');
   const [ipa, setIpa] = useState('');
   const [customPos, setCustomPos] = useState('');
   const [customCefr, setCustomCefr] = useState<CefrLevel | 'NONE'>('NONE');
   const [trapNote, setTrapNote] = useState('');
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [sentences, setSentences] = useState<VocabSentenceDto[]>([emptySentence()]);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const fillFormFromCard = (card: VocabFlashcardDto) => {
     setActiveCardId(card.id);
     setTargetWord(card.targetWord);
     setNativeMeaning(card.nativeMeaning);
-    setHint(card.hint ?? '');
     setIpa(card.ipa ?? '');
     setTrapNote(card.trapNote ?? '');
-    setImageUrl(card.imageUrl ?? null);
     setSentences(card.sentences.length > 0 ? card.sentences : [emptySentence()]);
+    setEditorKey((k) => k + 1);
   };
 
   const resetForm = (row: VocabRowDto | null) => {
     setActiveCardId(null);
     setTargetWord(row?.lemma ?? '');
     setNativeMeaning('');
-    setHint(row?.lemma ? `${row.lemma[0]}...` : '');
     setIpa(row?.ipa ?? '');
     setCustomPos('');
     setCustomCefr('NONE');
     setTrapNote('');
-    setImageUrl(null);
     setSentences([emptySentence()]);
+    setEditorKey((k) => k + 1);
   };
 
   useEffect(() => {
@@ -169,9 +168,11 @@ export const VocabFlashcardDialog = ({
         targetWord: word,
       });
       setNativeMeaning(draft.nativeMeaning);
-      if (draft.hint) setHint(draft.hint);
       if (draft.ipa && !ipa.trim()) setIpa(draft.ipa);
-      if (draft.trapNote) setTrapNote(draft.trapNote);
+      if (draft.trapNote) {
+        setTrapNote(draft.trapNote);
+        setEditorKey((k) => k + 1);
+      }
       if (draft.sentences.length > 0) setSentences(draft.sentences);
       toast.success('Wygenerowano propozycję fiszki. Sprawdź pola przed zapisem.');
     } catch {
@@ -187,22 +188,6 @@ export const VocabFlashcardDialog = ({
       toast.success('Dodano nowe zdanie z AI.');
     } catch {
       toast.error('Nie udało się wygenerować kolejnego zdania.');
-    }
-  };
-
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsUploadingImage(true);
-    try {
-      const uploadedUrl = await uploadImageToServer(file);
-      setImageUrl(uploadedUrl);
-      toast.success('Zdjęcie wgrane.');
-    } catch {
-      toast.error('Nie udało się wgrać zdjęcia.');
-    } finally {
-      setIsUploadingImage(false);
-      e.target.value = '';
     }
   };
 
@@ -254,10 +239,8 @@ export const VocabFlashcardDialog = ({
         vocabId: targetVocabId,
         targetWord: cleanedTarget,
         nativeMeaning: cleanedNative,
-        hint: hint.trim() || null,
         ipa: ipa.trim() || null,
-        trapNote: trapNote.trim() || null,
-        imageUrl,
+        trapNote: normalizeRichText(trapNote),
         sentences: validSentences,
       };
 
@@ -425,76 +408,26 @@ export const VocabFlashcardDialog = ({
               </div>
             )}
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="hint">Podpowiedź (opcjonalna)</Label>
-                <Input
-                  id="hint"
-                  value={hint}
-                  onChange={(e) => setHint(e.target.value)}
-                  placeholder="np. p... / czasownik"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="ipa">Wymowa IPA</Label>
-                <Input
-                  id="ipa"
-                  value={ipa}
-                  onChange={(e) => setIpa(e.target.value)}
-                  placeholder="/poʊstˈpoʊn/"
-                  className="font-mono"
-                />
-              </div>
-            </div>
-
             <div className="space-y-1.5">
-              <Label htmlFor="trapNote">Kolokacje / pułapka (opcjonalna)</Label>
-              <Textarea
-                id="trapNote"
-                rows={2}
-                value={trapNote}
-                onChange={(e) => setTrapNote(e.target.value)}
-                placeholder="np. postpone + -ing (nie 'to'); fałszywy przyjaciel..."
+              <Label htmlFor="ipa">Wymowa IPA</Label>
+              <Input
+                id="ipa"
+                value={ipa}
+                onChange={(e) => setIpa(e.target.value)}
+                placeholder="/poʊstˈpoʊn/"
+                className="font-mono"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label>Zdjęcie skojarzeniowe (opcjonalne)</Label>
-              {imageUrl ? (
-                <div className="relative inline-block overflow-hidden rounded-xl border border-border">
-                  <img
-                    src={imageUrl}
-                    alt={targetWord}
-                    className="max-h-40 w-auto object-contain"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setImageUrl(null)}
-                    className="absolute right-2 top-2 rounded-full bg-background/80 p-1 text-foreground hover:bg-destructive hover:text-destructive-foreground"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-border px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-foreground">
-                    {isUploadingImage ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <ImagePlus className="h-4 w-4" />
-                    )}
-                    <span>{isUploadingImage ? 'Wgrywanie...' : 'Dodaj zdjęcie'}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      disabled={isUploadingImage}
-                      onChange={handleImageSelect}
-                    />
-                  </label>
-                </div>
-              )}
+            <div className="space-y-1.5">
+              <Label>Dodatkowe informacje</Label>
+              <RichTextEditor
+                key={editorKey}
+                content={trapNote}
+                onChange={setTrapNote}
+                placeholder="np. postpone + -ing (nie 'to'); wklej zdjęcie przez Ctrl+V..."
+                minHeight="110px"
+              />
             </div>
 
             <div className="space-y-3">
@@ -589,7 +522,7 @@ export const VocabFlashcardDialog = ({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Anuluj
             </Button>
-            <Button type="button" onClick={handleSave} disabled={isSaving || isUploadingImage}>
+            <Button type="button" onClick={handleSave} disabled={isSaving}>
               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {activeCardId === null ? 'Zapisz i dodaj do nauki' : 'Zapisz zmiany'}
             </Button>

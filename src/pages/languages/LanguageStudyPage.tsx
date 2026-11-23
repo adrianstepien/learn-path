@@ -17,6 +17,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FsrsRatingPanel } from '@/components/study/FsrsRatingPanel';
+import { TiptapRenderer } from '@/components/study/TiptapRenderer';
 import { SessionStatus, StudyMode } from '@/lib/api/types';
 import { ReviewRating } from '@/types/learning';
 import {
@@ -87,7 +88,6 @@ const LanguageStudyPage = () => {
     }
   }, [queryClient]);
 
-  // Pobranie sesji na start
   useEffect(() => {
     let cancelled = false;
     const initSession = async () => {
@@ -110,21 +110,18 @@ const LanguageStudyPage = () => {
     };
   }, [normalizedCode, studyMode]);
 
-  // Zamykanie przerwanej sesji przy opuszczeniu widoku
   useEffect(() => {
     return () => {
       void stopSessionIfActive();
     };
   }, [stopSessionIfActive]);
 
-  // Zamykanie ukończonej sesji
   useEffect(() => {
     if (hasFetched && cards.length === 0 && initialCount > 0) {
       void stopSessionIfActive();
     }
   }, [hasFetched, cards.length, initialCount, stopSessionIfActive]);
 
-  // Rejestracja czasu startu każdej próby (działa też dla AGAIN na ostatniej karcie)
   useEffect(() => {
     if (cards.length > 0) {
       startTimeRef.current = new Date().toISOString();
@@ -132,7 +129,6 @@ const LanguageStudyPage = () => {
     }
   }, [cards[0]?.flashcardId, attemptSeq]);
 
-  // Stoper sesji
   useEffect(() => {
     if (!hasFetched || (cards.length === 0 && initialCount > 0)) return;
     const timer = setInterval(() => setElapsedSeconds((prev) => prev + 1), 1000);
@@ -366,26 +362,11 @@ const LanguageStudyPage = () => {
                 <div className="mb-5 flex flex-wrap items-center gap-2 pr-16">
                   {card.cefr && <Badge variant="outline">{card.cefr}</Badge>}
                   <Badge variant="secondary">{card.isCustom ? 'Własne' : 'Słownik'}</Badge>
-                  {card.hint && (
-                    <Badge variant="outline" className="border-primary/30 text-primary">
-                      Podpowiedź: {card.hint}
-                    </Badge>
-                  )}
                 </div>
 
                 <h2 className="mb-4 text-2xl font-bold text-foreground md:text-3xl">
                   {card.nativeMeaning}
                 </h2>
-
-                {card.imageUrl && (
-                  <div className="mb-5 overflow-hidden rounded-xl border border-border bg-secondary/20 p-2">
-                    <img
-                      src={card.imageUrl}
-                      alt=""
-                      className="mx-auto max-h-48 w-auto rounded-lg object-contain"
-                    />
-                  </div>
-                )}
 
                 {card.sentence && (
                   <div className="mb-6 rounded-xl border border-border bg-secondary/30 p-4">
@@ -416,20 +397,6 @@ const LanguageStudyPage = () => {
                         Pokaż lukę
                       </Button>
                     )}
-
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      onClick={handleGenerateNewSentence}
-                      disabled={isGeneratingSentence}
-                    >
-                      {isGeneratingSentence ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Sparkles className="mr-2 h-4 w-4 text-primary" />
-                      )}
-                      Nowe zdanie (AI)
-                    </Button>
                   </div>
                 )}
 
@@ -456,10 +423,15 @@ const LanguageStudyPage = () => {
                       )}
                     </div>
 
-                    {card.trapNote && (
+                    {card.trapNote && card.trapNote !== '<p></p>' && (
                       <div className="flex items-start gap-3 rounded-xl border border-warning/20 bg-warning/10 p-4">
                         <Lightbulb className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
-                        <p className="text-sm text-foreground">{card.trapNote}</p>
+                        <div className="min-w-0 flex-1 text-sm text-foreground">
+                          <TiptapRenderer
+                            key={`${card.flashcardId}-${attemptSeq}`}
+                            content={card.trapNote}
+                          />
+                        </div>
                       </div>
                     )}
 

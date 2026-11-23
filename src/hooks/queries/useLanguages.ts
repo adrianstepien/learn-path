@@ -108,8 +108,11 @@ export const useLanguageVocabMutations = (langCode: string) => {
   });
 
   const generateExtraSentence = useMutation({
-    mutationFn: (flashcardId: number) =>
+    mutationFn: ({ flashcardId }: { flashcardId: number; vocabId: number }) =>
       languagesApi.generateExtraSentenceWithAi(flashcardId),
+    onSuccess: (_, { vocabId }) => {
+      queryClient.invalidateQueries({ queryKey: languageKeys.vocabFlashcards(vocabId) });
+    },
   });
 
   return {
