@@ -59,7 +59,6 @@ const LanguageStudyPage = () => {
   const [attemptSeq, setAttemptSeq] = useState(0);
 
   const [showAnswer, setShowAnswer] = useState(false);
-  const [showClozeHint, setShowClozeHint] = useState(false);
   const [isGeneratingSentence, setIsGeneratingSentence] = useState(false);
   const [isSubmittingRating, setIsSubmittingRating] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -135,11 +134,6 @@ const LanguageStudyPage = () => {
     return () => clearInterval(timer);
   }, [hasFetched, cards.length, initialCount]);
 
-  const resetCardUi = () => {
-    setShowAnswer(false);
-    setShowClozeHint(false);
-  };
-
   const handleGoBack = async () => {
     await stopSessionIfActive();
     navigate(-1);
@@ -181,7 +175,7 @@ const LanguageStudyPage = () => {
       });
       setCards((prev) => prev.slice(1));
       setAttemptSeq((n) => n + 1);
-      resetCardUi();
+      setShowAnswer(false);
     } catch {
       toast.error('Nie udało się pominąć fiszki.');
     } finally {
@@ -210,7 +204,7 @@ const LanguageStudyPage = () => {
         setCards((prev) => prev.slice(1));
       }
       setAttemptSeq((n) => n + 1);
-      resetCardUi();
+      setShowAnswer(false);
     } catch {
       toast.error('Nie udało się zapisać oceny.');
     } finally {
@@ -373,11 +367,6 @@ const LanguageStudyPage = () => {
                     <p className="text-base leading-relaxed text-foreground">
                       {renderHighlightedText(card.sentence.sentenceNative)}
                     </p>
-                    {showClozeHint && card.sentence.clozeTarget && !showAnswer && (
-                      <p className="mt-2 font-mono text-sm text-muted-foreground">
-                        {card.sentence.clozeTarget}
-                      </p>
-                    )}
                   </div>
                 )}
 
@@ -387,16 +376,6 @@ const LanguageStudyPage = () => {
                       <Eye className="mr-2 h-4 w-4" />
                       Pokaż odpowiedź
                     </Button>
-
-                    {card.sentence?.clozeTarget && !showClozeHint && (
-                      <Button
-                        variant="outline"
-                        size="lg"
-                        onClick={() => setShowClozeHint(true)}
-                      >
-                        Pokaż lukę
-                      </Button>
-                    )}
                   </div>
                 )}
 
@@ -428,7 +407,7 @@ const LanguageStudyPage = () => {
                         <Lightbulb className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
                         <div className="min-w-0 flex-1 text-sm text-foreground">
                           <TiptapRenderer
-                            key={`${card.flashcardId}-${attemptSeq}`}
+                            key={card.flashcardId}
                             content={card.trapNote}
                           />
                         </div>

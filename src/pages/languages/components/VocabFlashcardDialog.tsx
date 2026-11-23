@@ -50,7 +50,6 @@ const CEFR_VALUES: CefrLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1'];
 const emptySentence = (): VocabSentenceDto => ({
   sentenceNative: '',
   sentenceTarget: '',
-  clozeTarget: '',
 });
 
 const normalizeRichText = (html: string): string | null => {
@@ -86,6 +85,7 @@ export const VocabFlashcardDialog = ({
 
   const initializedForRef = useRef<string | null>(null);
   const [activeCardId, setActiveCardId] = useState<number | null>(null);
+  const [resolvedVocabId, setResolvedVocabId] = useState<number | null>(vocab?.id ?? null);
   const [editorKey, setEditorKey] = useState(0);
 
   const [targetWord, setTargetWord] = useState('');
@@ -98,16 +98,26 @@ export const VocabFlashcardDialog = ({
 
   const fillFormFromCard = (card: VocabFlashcardDto) => {
     setActiveCardId(card.id);
+    setResolvedVocabId(card.vocabId);
     setTargetWord(card.targetWord);
     setNativeMeaning(card.nativeMeaning);
     setIpa(card.ipa ?? '');
     setTrapNote(card.trapNote ?? '');
-    setSentences(card.sentences.length > 0 ? card.sentences : [emptySentence()]);
+    setSentences(
+      card.sentences.length > 0
+        ? card.sentences.map(({ id, sentenceNative, sentenceTarget }) => ({
+            id,
+            sentenceNative,
+            sentenceTarget,
+          }))
+        : [emptySentence()]
+    );
     setEditorKey((k) => k + 1);
   };
 
   const resetForm = (row: VocabRowDto | null) => {
     setActiveCardId(null);
+    setResolvedVocabId(row?.id ?? null);
     setTargetWord(row?.lemma ?? '');
     setNativeMeaning('');
     setIpa(row?.ipa ?? '');
@@ -173,7 +183,15 @@ export const VocabFlashcardDialog = ({
         setTrapNote(draft.trapNote);
         setEditorKey((k) => k + 1);
       }
-      if (draft.sentences.length > 0) setSentences(draft.sentences);
+      if (draft.sentences.length > 0) {
+        setSentences(
+          draft.sentences.map(({ id, sentenceNative, sentenceTarget }) => ({
+            id,
+            sentenceNative,
+            sentenceTarget,
+          }))
+        );
+      }
       toast.success('Wygenerowano propozycję fiszki. Sprawdź pola przed zapisem.');
     } catch {
       toast.error('Nie udało się wygenerować treści przez AI.');
@@ -181,10 +199,20 @@ export const VocabFlashcardDialog = ({
   };
 
   const handleGenerateExtraSentence = async () => {
-    if (!activeCardId) return;
+    if (!activeCardId || !resolvedVocabId) return;
     try {
-      const sentence = await generateExtraSentence.mutateAsync(activeCardId);
-      setSentences((prev) => [...prev, sentence]);
+      const sentence = await generateExtraSentence.mutateAsync({
+        flashcardId: activeCardId,
+        vocabId: resolvedVocabId,
+      });
+      setSentences((prev) => [
+        ...prev,
+        {
+          id: sentence.id,
+          sentenceNative: sentence.sentenceNative,
+          sentenceTarget: sentence.sentenceTarget,
+        },
+      ]);
       toast.success('Dodano nowe zdanie z AI.');
     } catch {
       toast.error('Nie udało się wygenerować kolejnego zdania.');
@@ -216,7 +244,6 @@ export const VocabFlashcardDialog = ({
         id: s.id,
         sentenceNative: s.sentenceNative.trim(),
         sentenceTarget: s.sentenceTarget.trim(),
-        clozeTarget: s.clozeTarget?.trim() || null,
       }))
       .filter((s) => s.sentenceNative && s.sentenceTarget);
 
@@ -490,11 +517,6 @@ export const VocabFlashcardDialog = ({
                     value={s.sentenceTarget}
                     onChange={(e) => updateSentence(idx, 'sentenceTarget', e.target.value)}
                     placeholder="Zdanie w języku docelowym, np. We need to postpone the meeting."
-                  />
-                  <Input
-                    value={s.clozeTarget ?? ''}
-                    onChange={(e) => updateSentence(idx, 'clozeTarget', e.target.value)}
-                    placeholder="Wersja z luką (opcjonalna), np. We need to ________ the meeting."
                   />
                 </div>
               ))}

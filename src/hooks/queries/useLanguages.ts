@@ -107,13 +107,13 @@ export const useLanguageVocabMutations = (langCode: string) => {
       languagesApi.generateFlashcardDraftWithAi(payload),
   });
 
-  const generateExtraSentence = useMutation({
-    mutationFn: ({ flashcardId }: { flashcardId: number; vocabId: number }) =>
-      languagesApi.generateExtraSentenceWithAi(flashcardId),
-    onSuccess: (_, { vocabId }) => {
-      queryClient.invalidateQueries({ queryKey: languageKeys.vocabFlashcards(vocabId) });
-    },
-  });
+ const generateExtraSentence = useMutation({
+     mutationFn: (flashcardId: number) =>
+       languagesApi.generateExtraSentenceWithAi(flashcardId),
+     onSuccess: () => {
+       queryClient.invalidateQueries({ queryKey: languageKeys.all });
+     },
+   });
 
   return {
     createFlashcard,

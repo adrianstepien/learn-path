@@ -56,7 +56,6 @@ export interface VocabSentenceDto {
   id?: number;
   sentenceNative: string;
   sentenceTarget: string;
-  clozeTarget?: string | null;
 }
 
 export interface VocabFlashcardDto {
