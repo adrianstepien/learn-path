@@ -5,7 +5,8 @@ export enum SessionType {
   CATEGORY = 'CATEGORY',
   ROADMAP = 'ROADMAP',
   TOPIC = 'TOPIC',
-  CARD = 'CARD'
+  CARD = 'CARD',
+  LANGUAGE = 'LANGUAGE'
 }
 
 export enum StudyMode {
