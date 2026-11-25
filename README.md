@@ -31,6 +31,7 @@ cd <YOUR_PROJECT_NAME>
 
 # Step 3: Install the necessary dependencies.
 npm i
+npm install -D @vitejs/plugin-basic-ssl@1.1.0
 
 # Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
