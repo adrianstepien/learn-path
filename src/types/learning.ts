@@ -1,4 +1,5 @@
 // Core types for the learning application
+import { IntervalPreviewDto } from '@/lib/api/types';
 
 export const EMOJI_OPTIONS = ["💻", "📚", "🎨", "🔬", "📐", "🌍", "💼", "🎵", "⚽", "🍳", "📜", "🧠"];
 
@@ -35,10 +36,11 @@ export interface Question {
   repetitions: number;       // Number of successful reviews
 }
 
-interface QuestionWithReview extends Question {
+export interface QuestionWithReview extends Question {
   rating: ReviewRating;
   reviewStartedAt?: string;
   answerShownAt?: string;
+  intervalPreview?: IntervalPreviewDto;
 }
 
 export interface QuestionAttempt {

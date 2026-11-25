@@ -179,6 +179,14 @@ export interface FsrsCardDto {
   answer: string;
   difficulty: number;
   importance: number;
+  intervalPreview?: IntervalPreviewDto;
+}
+
+export interface IntervalPreviewDto {
+  again: string;
+  hard: string;
+  good: string;
+  easy: string;
 }
 
 export interface ReviewRequestDTO {

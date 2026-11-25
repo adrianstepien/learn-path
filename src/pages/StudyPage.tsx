@@ -264,12 +264,12 @@ const StudyPage = () => {
         answerShownAt: answerShownTimeRef.current,
       };
 
-      await createReview(reviewRequestDTO);
+      const nextPreview = await createReview(reviewRequestDTO);
 
       if (rating === ReviewRating.AGAIN) {
         setQuestions((prev) => {
           const [current, ...rest] = prev;
-          return [...rest, current];
+          return [...rest, { ...current, intervalPreview: nextPreview ?? current.intervalPreview }];
         });
       } else {
         setQuestions((prev) => {
@@ -545,7 +545,11 @@ const StudyPage = () => {
 
             {/* Rating Section */}
             {(showAnswer || llmFeedback) && (
-              <FsrsRatingPanel onRate={handleRate} disabled={isSubmitting} />
+              <FsrsRatingPanel
+                disabled={isSubmitting}
+                intervalPreview={question.intervalPreview}
+                onRate={handleRate}
+              />
             )}
           </div>
         </div>

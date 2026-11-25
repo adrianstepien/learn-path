@@ -187,7 +187,7 @@ const LanguageStudyPage = () => {
     if (cards.length === 0 || !sessionIdRef.current || isSubmittingRating) return;
     setIsSubmittingRating(true);
     try {
-      await createLanguageReview({
+      const nextPreview = await createLanguageReview({
         flashcardId: cards[0].flashcardId,
         sessionId: sessionIdRef.current,
         rating,
@@ -198,7 +198,7 @@ const LanguageStudyPage = () => {
       if (rating === ReviewRating.AGAIN) {
         setCards((prev) => {
           const [current, ...rest] = prev;
-          return [...rest, current];
+          return [...rest, { ...current, intervalPreview: nextPreview ?? current.intervalPreview }];
         });
       } else {
         setCards((prev) => prev.slice(1));
@@ -435,7 +435,11 @@ const LanguageStudyPage = () => {
             </AnimatePresence>
 
             {showAnswer && (
-              <FsrsRatingPanel onRate={handleRate} disabled={isSubmittingRating} />
+              <FsrsRatingPanel
+                disabled={isSubmittingRating}
+                intervalPreview={card.intervalPreview}
+                onRate={handleRate}
+              />
             )}
           </div>
         </div>

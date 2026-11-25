@@ -1,5 +1,5 @@
 import { apiRequest } from './config';
-import { CardDto, UpdateCardDto, ReviewRequestDTO, SessionStatus } from './types';
+import { CardDto, UpdateCardDto, ReviewRequestDTO, IntervalPreviewDto, SessionStatus, StartSessionRequestDto, StudySessionResponseDto } from './types';
 
 const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
@@ -56,8 +56,8 @@ export async function updateStudySession(sessionId: number, sessionStatus: Sessi
 }
 
 // POST /spaced-repetitions - Create a new review
-export async function createReview(review: ReviewRequestDTO): Promise<void> {
-  return apiRequest<void>('/spaced-repetitions', {
+export async function createReview(review: ReviewRequestDTO): Promise<IntervalPreviewDto | undefined> {
+  return apiRequest<IntervalPreviewDto | undefined>('/spaced-repetitions', {
     method: 'POST',
     body: JSON.stringify(review),
   });

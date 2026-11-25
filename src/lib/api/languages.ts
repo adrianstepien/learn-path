@@ -1,5 +1,5 @@
 import { apiRequest } from './config';
-import { SessionStatus, StudyMode } from './types';
+import { IntervalPreviewDto, SessionStatus, StudyMode } from './types';
 import { ReviewRating } from '@/types/learning';
 
 export type VocabOriginFilter = 'ALL' | 'DICTIONARY' | 'CUSTOM';
@@ -104,6 +104,7 @@ export interface LanguageStudyCardDto {
   cefr?: CefrLevel | null;
   isCustom: boolean;
   sentence: VocabSentenceDto | null;
+  intervalPreview?: IntervalPreviewDto;
 }
 
 export interface LanguageStudySessionResponseDto {
@@ -206,7 +207,7 @@ export const updateLanguageStudySession = (
   });
 
 export const createLanguageReview = (payload: LanguageReviewRequestDto) =>
-  apiRequest<void>('/languages/reviews', {
+  apiRequest<IntervalPreviewDto | undefined>('/languages/reviews', {
     method: 'POST',
     body: JSON.stringify(payload),
   });

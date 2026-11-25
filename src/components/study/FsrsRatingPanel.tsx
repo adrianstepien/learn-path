@@ -1,20 +1,22 @@
 import { motion } from 'framer-motion';
 import { Star } from 'lucide-react';
 import { ReviewRating } from '@/types/learning';
+import { IntervalPreviewDto } from '@/lib/api/types';
 
 const RATING_BUTTONS = [
-  { value: ReviewRating.AGAIN, label: 'Nie znam (Powtórz)', stars: 1 },
-  { value: ReviewRating.HARD, label: 'Trudne', stars: 2 },
-  { value: ReviewRating.GOOD, label: 'Dobre', stars: 3 },
-  { value: ReviewRating.EASY, label: 'Łatwe', stars: 4 },
-];
+  { value: ReviewRating.AGAIN, label: 'Nie znam (Powtórz)', stars: 1, key: 'again' },
+  { value: ReviewRating.HARD, label: 'Trudne', stars: 2, key: 'hard' },
+  { value: ReviewRating.GOOD, label: 'Dobre', stars: 3, key: 'good' },
+  { value: ReviewRating.EASY, label: 'Łatwe', stars: 4, key: 'easy' },
+] as const;
 
 interface FsrsRatingPanelProps {
   onRate: (rating: ReviewRating) => void;
   disabled?: boolean;
+  intervalPreview?: IntervalPreviewDto;
 }
 
-export const FsrsRatingPanel = ({ onRate, disabled = false }: FsrsRatingPanelProps) => {
+export const FsrsRatingPanel = ({ onRate, disabled = false, intervalPreview }: FsrsRatingPanelProps) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -44,6 +46,11 @@ export const FsrsRatingPanel = ({ onRate, disabled = false }: FsrsRatingPanelPro
             <span className="mt-1 block text-[10px] font-semibold text-muted-foreground md:text-xs">
               {btn.label}
             </span>
+            {intervalPreview && (
+              <span className="mt-0.5 block text-[10px] font-medium text-primary md:text-xs">
+                {intervalPreview[btn.key]}
+              </span>
+            )}
           </button>
         ))}
       </div>
