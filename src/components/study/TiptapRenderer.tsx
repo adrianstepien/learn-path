@@ -1,9 +1,12 @@
+import { useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Image from '@tiptap/extension-image';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { Color } from '@tiptap/extension-color';
+import { InlineImageResize } from '@/components/texteditor/InlineImageResize';
 
 type Props = {
-  content: any;
+  content: string;
 };
 
 export const TiptapRenderer = ({ content }: Props) => {
@@ -11,13 +14,18 @@ export const TiptapRenderer = ({ content }: Props) => {
     editable: false,
     extensions: [
       StarterKit,
-      Image.configure({
-        inline: false,
-        allowBase64: true, // jeśli zapisujesz base64
-      }),
+      TextStyle,
+      Color,
+      InlineImageResize,
     ],
     content,
   });
+
+  useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content ?? '', { emitUpdate: false });
+    }
+  }, [content, editor]);
 
   if (!editor) return null;
 

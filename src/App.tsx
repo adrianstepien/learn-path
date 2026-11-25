@@ -20,8 +20,16 @@ import NotFound from "./pages/NotFound";
 import LanguagesPage from './pages/languages/LanguagesPage';
 import LanguageVocabPage from './pages/languages/LanguageVocabPage';
 import LanguageStudyPage from './pages/languages/LanguageStudyPage';
+import { UnauthorizedError } from "@/lib/api/config";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error) =>
+        !(error instanceof UnauthorizedError) && failureCount < 2,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

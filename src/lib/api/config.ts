@@ -30,6 +30,13 @@ export function resetApiAvailability() {
   apiAvailable = null;
 }
 
+export class UnauthorizedError extends Error {
+  constructor() {
+    super('Sesja wygasła');
+    this.name = 'UnauthorizedError';
+  }
+}
+
 // Helper for making API requests
 export async function apiRequest<T>(
   endpoint: string,
@@ -59,10 +66,10 @@ export async function apiRequest<T>(
   });
 
   if (response.status === 401) {
-    // Jeśli backend odrzuci zapytanie z powodu braku autoryzacji:
-    // Czyścimy ewentualne śmieci i kierujemy na stronę logowania
-    window.location.href = '/login';
-    return undefined as T;
+    if (window.location.pathname !== '/login') {
+      window.location.replace('/login');
+    }
+    throw new UnauthorizedError();
   }
 
   if (!response.ok) {

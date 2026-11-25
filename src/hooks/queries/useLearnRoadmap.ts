@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { getRoadmapsWithProgress } from '@/lib/api/learnProgress';
-import { Roadmap } from '@/types/learning';
+import { Roadmap, Topic } from '@/types/learning';
+import { LearnRoadmapDto } from '@/lib/api/types';
+import { learnKeys } from './learnQueryKeys';
 
-const mapRoadmapDtoToRoadmap = (dto: RoadmapDto, topics: Topic[] = []): Roadmap => ({
+const mapRoadmapDtoToRoadmap = (dto: LearnRoadmapDto, topics: Topic[] = []): Roadmap => ({
   id: String(dto.roadmapId),
   categoryId: String(dto.categoryId),
   title: dto.title,
@@ -19,16 +21,17 @@ const mapRoadmapDtoToRoadmap = (dto: RoadmapDto, topics: Topic[] = []): Roadmap 
 });
 
 export const useLearnRoadmap = (categoryId: string | undefined) => {
+  const numericId = categoryId ? Number(categoryId) : NaN;
+  const isValidId = Number.isInteger(numericId) && numericId > 0;
+
   return useQuery({
-    queryKey: ['roadmaps', categoryId],
+    queryKey: learnKeys.categoryRoadmaps(categoryId ?? ''),
     queryFn: async () => {
-      if (!categoryId) return [];
-      const numericId = parseInt(categoryId.replace(/\D/g, ''));
       const roadmapDtos = await getRoadmapsWithProgress(numericId);
       return roadmapDtos
-      .map(dto => mapRoadmapDtoToRoadmap(dto, []))
-      .sort((a, b) => a.title.localeCompare(b.title, 'pl', { sensitivity: 'base' }));
+        .map((dto) => mapRoadmapDtoToRoadmap(dto, []))
+        .sort((a, b) => a.title.localeCompare(b.title, 'pl', { sensitivity: 'base' }));
     },
-    enabled: !!categoryId,
+    enabled: isValidId,
   });
 };

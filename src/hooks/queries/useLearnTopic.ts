@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { getRoadmapById } from '@/lib/api/roadmaps';
 import { Roadmap, Topic } from '@/types/learning';
-import { RoadmapDto, TopicDto } from '@/lib/api/types';
+import { RoadmapDto, LearnTopicDto } from '@/lib/api/types';
 import { getTopicsWithProgress } from '@/lib/api/learnProgress';
+import { learnKeys } from './learnQueryKeys';
 
 interface UseLearnTopicReturn {
   roadmap: Roadmap | undefined;
@@ -19,7 +20,8 @@ export const useLearnTopic = (
   roadmapId: string | undefined
 ): UseLearnTopicReturn => {
   // Parse categoryId to number for API call
-  const numericRoadmapId = roadmapId ? Number(roadmapId) : undefined;
+  const numericRoadmapId = roadmapId ? Number(roadmapId) : NaN;
+  const isValidId = Number.isInteger(numericRoadmapId) && numericRoadmapId > 0;
 
   // Fetch all roadmaps for the category
   const {
@@ -27,12 +29,9 @@ export const useLearnTopic = (
     isLoading: isLoadingRoadmaps,
     isError: isErrorRoadmaps,
   } = useQuery<RoadmapDto>({
-    queryKey: ['roadmaps', roadmapId],
-    queryFn: async () => {
-      if (!roadmapId) return [];
-      return getRoadmapById(roadmapId);
-    },
-    enabled: !!roadmapId,
+    queryKey: learnKeys.roadmap(roadmapId ?? ''),
+    queryFn: () => getRoadmapById(numericRoadmapId),
+    enabled: isValidId,
   });
 
   // Fetch topics for the roadmap
@@ -40,13 +39,10 @@ export const useLearnTopic = (
     data: topicDtos = [],
     isLoading: isLoadingTopics,
     isError: isErrorTopics,
-  } = useQuery<TopicDto[]>({
-    queryKey: ['topics', roadmapId],
-    queryFn: async () => {
-      if (!numericRoadmapId) return [];
-      return getTopicsWithProgress(numericRoadmapId);
-    },
-    enabled: !!numericRoadmapId && !!roadmapDto,
+  } = useQuery<LearnTopicDto[]>({
+    queryKey: learnKeys.roadmapTopics(roadmapId ?? ''),
+    queryFn: () => getTopicsWithProgress(numericRoadmapId),
+    enabled: isValidId && !!roadmapDto,
   });
 
   // Map TopicDto to Topic
