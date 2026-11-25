@@ -27,6 +27,8 @@ export interface AnalyticsSummaryDto {
   currentStreakDays: number;
   timeSpentLearningSeconds: number;
   recentlyStudied: RecentlyStudiedDto[];
+  trueRetention?: TrueRetentionDto;
+  workloadForecast?: WorkloadForecastDayDto[];
 }
 
 export interface RecentlyStudiedDto {
@@ -195,4 +197,17 @@ export interface ReviewRequestDTO {
   sessionId: number;
   reviewStartedAt?: string;
   answerShownAt?: string;
+}
+
+export interface TrueRetentionDto {
+  retentionPercent: number | null;
+  desiredRetentionPercent: number;
+  passedReviews: number;
+  totalReviews: number;
+}
+
+export interface WorkloadForecastDayDto {
+  date: string;
+  techCardsDue: number;
+  vocabCardsDue: number;
 }

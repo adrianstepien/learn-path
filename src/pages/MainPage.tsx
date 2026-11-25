@@ -11,6 +11,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { StatsCard } from '@/components/home/StatsCard';
 import { ProgressRing } from '@/components/home/ProgressRing';
 import { RecentActivity } from '@/components/home/RecentActivity';
+import { RetentionAndForecastSection } from '@/components/home/RetentionAndForecastSection';
 import { DueReviewCard } from '@/components/home/DueReviewCard';
 import { useAnalyticsSummary } from '@/hooks/queries/useAnalyticsSummary';
 // Dodaj importy u góry MainPage.tsx:
@@ -138,6 +139,10 @@ const hasBothDue = hasKnowledgeDue && hasLanguageDue;
               delay={0.3}
             />
           </div>
+          <RetentionAndForecastSection
+            trueRetention={summary.trueRetention}
+            workloadForecast={summary.workloadForecast}
+          />
           {/* Recent Activity z wstrzykniętą listą `recentlyStudied` */}
           <RecentActivity activities={summary.recentlyStudied} />
         </div>
