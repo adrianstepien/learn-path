@@ -9,13 +9,16 @@ import {
   Eye,
   Lightbulb,
   Loader2,
+  Mic,
   Sparkles,
   Trophy,
+  Volume2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import { FsrsRatingPanel } from '@/components/study/FsrsRatingPanel';
 import { TiptapRenderer } from '@/components/study/TiptapRenderer';
 import { SessionStatus, StudyMode } from '@/lib/api/types';
@@ -29,6 +32,12 @@ import {
 } from '@/lib/api/languages';
 import { languageKeys } from '@/hooks/queries/useLanguages';
 import { analyticsKeys } from '@/hooks/queries/useAnalyticsSummary';
+import {
+  resolveSpeechLocale,
+  useSpeechRecognition,
+} from '@/hooks/useSpeechRecognition';
+import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
+import { cn } from '@/lib/utils';
 
 const renderHighlightedText = (text: string) => {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
@@ -58,6 +67,7 @@ const LanguageStudyPage = () => {
   const [hasFetched, setHasFetched] = useState(false);
   const [attemptSeq, setAttemptSeq] = useState(0);
 
+  const [userAnswer, setUserAnswer] = useState('');
   const [showAnswer, setShowAnswer] = useState(false);
   const [isGeneratingSentence, setIsGeneratingSentence] = useState(false);
   const [isSubmittingRating, setIsSubmittingRating] = useState(false);
@@ -67,6 +77,31 @@ const LanguageStudyPage = () => {
   const answerShownTimeRef = useRef<string | undefined>(undefined);
   const sessionIdRef = useRef<number | null>(null);
   const sessionEndedRef = useRef(false);
+
+  const { speak, stop: stopTts, supported: ttsSupported } = useSpeechSynthesis();
+
+  const {
+    isListening: isRecording,
+    interimTranscript,
+    toggle: toggleSpeechRecognition,
+    stop: stopRecording,
+    cancel: cancelRecording,
+    supported: sttSupported,
+  } = useSpeechRecognition({
+    lang: resolveSpeechLocale(normalizedCode, 'en-US'),
+    onFinalResult: (text) => {
+      setUserAnswer((prev) => {
+        const separator = prev.length > 0 && !/\s$/.test(prev) ? ' ' : '';
+        return `${prev}${separator}${text}`;
+      });
+    },
+    onError: (msg) => toast.error(msg),
+  });
+
+  const handleToggleRecording = () => {
+    stopTts();
+    toggleSpeechRecognition();
+  };
 
   const formatTime = (totalSeconds: number) => {
     const minutes = Math.floor(totalSeconds / 60);
@@ -111,9 +146,11 @@ const LanguageStudyPage = () => {
 
   useEffect(() => {
     return () => {
+      cancelRecording();
+      stopTts();
       void stopSessionIfActive();
     };
-  }, [stopSessionIfActive]);
+  }, [cancelRecording, stopTts, stopSessionIfActive]);
 
   useEffect(() => {
     if (hasFetched && cards.length === 0 && initialCount > 0) {
@@ -134,13 +171,56 @@ const LanguageStudyPage = () => {
     return () => clearInterval(timer);
   }, [hasFetched, cards.length, initialCount]);
 
+  useEffect(() => {
+    if (!showAnswer) {
+      stopTts();
+    }
+  }, [showAnswer, cards[0]?.flashcardId, attemptSeq, stopTts]);
+
+  useEffect(() => {
+    if (!showAnswer || !ttsSupported) return;
+    const current = cards[0];
+    if (!current) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+      const key = e.key.toLowerCase();
+      if (key === 'r') {
+        speak(current.targetWord, normalizedCode);
+      } else if (key === 's' && current.sentence?.sentenceTarget) {
+        speak(current.sentence.sentenceTarget, normalizedCode);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showAnswer, ttsSupported, cards, normalizedCode, speak]);
+
+  const resetCardState = () => {
+    cancelRecording();
+    stopTts();
+    setUserAnswer('');
+    setShowAnswer(false);
+  };
+
   const handleGoBack = async () => {
+    cancelRecording();
+    stopTts();
     await stopSessionIfActive();
     navigate(-1);
   };
 
   const handleShowAnswer = () => {
     if (!showAnswer) {
+      stopRecording();
       answerShownTimeRef.current = new Date().toISOString();
       setShowAnswer(true);
     }
@@ -175,7 +255,7 @@ const LanguageStudyPage = () => {
       });
       setCards((prev) => prev.slice(1));
       setAttemptSeq((n) => n + 1);
-      setShowAnswer(false);
+      resetCardState();
     } catch {
       toast.error('Nie udało się pominąć fiszki.');
     } finally {
@@ -198,13 +278,16 @@ const LanguageStudyPage = () => {
       if (rating === ReviewRating.AGAIN) {
         setCards((prev) => {
           const [current, ...rest] = prev;
-          return [...rest, { ...current, intervalPreview: nextPreview ?? current.intervalPreview }];
+          return [
+            ...rest,
+            { ...current, intervalPreview: nextPreview ?? current.intervalPreview },
+          ];
         });
       } else {
         setCards((prev) => prev.slice(1));
       }
       setAttemptSeq((n) => n + 1);
-      setShowAnswer(false);
+      resetCardState();
     } catch {
       toast.error('Nie udało się zapisać oceny.');
     } finally {
@@ -371,11 +454,47 @@ const LanguageStudyPage = () => {
                 )}
 
                 {!showAnswer && (
-                  <div className="flex flex-wrap gap-3">
-                    <Button onClick={handleShowAnswer} size="lg" className="flex-1">
-                      <Eye className="mr-2 h-4 w-4" />
-                      Pokaż odpowiedź
-                    </Button>
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <Textarea
+                        placeholder={`Wpisz lub powiedz po ${normalizedCode}...`}
+                        value={userAnswer}
+                        onChange={(e) => setUserAnswer(e.target.value)}
+                        className="min-h-[84px] resize-none pr-12"
+                      />
+                      {sttSupported && (
+                        <button
+                          type="button"
+                          onClick={handleToggleRecording}
+                          title={
+                            isRecording
+                              ? 'Zatrzymaj dyktowanie'
+                              : `Dyktuj odpowiedź (${normalizedCode})`
+                          }
+                          className={cn(
+                            'absolute right-3 top-3 rounded-full p-2 transition-all',
+                            isRecording
+                              ? 'animate-pulse bg-destructive text-destructive-foreground shadow-lg'
+                              : 'bg-secondary text-muted-foreground hover:bg-secondary/80 hover:text-foreground'
+                          )}
+                        >
+                          <Mic className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    {interimTranscript && (
+                      <p className="text-xs italic text-muted-foreground">
+                        {interimTranscript}...
+                      </p>
+                    )}
+
+                    <div className="flex flex-wrap gap-3">
+                      <Button onClick={handleShowAnswer} size="lg" className="flex-1">
+                        <Eye className="mr-2 h-4 w-4" />
+                        Pokaż odpowiedź
+                      </Button>
+                    </div>
                   </div>
                 )}
 
@@ -385,9 +504,32 @@ const LanguageStudyPage = () => {
                     animate={{ opacity: 1, height: 'auto' }}
                     className="space-y-4"
                   >
+                    {userAnswer.trim() && (
+                      <div className="rounded-xl border border-border bg-secondary/40 p-4">
+                        <p className="mb-1 text-xs font-medium text-muted-foreground">
+                          Twoja odpowiedź:
+                        </p>
+                        <p className="text-base text-foreground">{userAnswer}</p>
+                      </div>
+                    )}
+
                     <div className="rounded-xl border border-success/30 bg-success/10 p-5">
-                      <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <p className="text-2xl font-bold text-foreground">{card.targetWord}</p>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <p className="text-2xl font-bold text-foreground">{card.targetWord}</p>
+                          {ttsSupported && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => speak(card.targetWord, normalizedCode)}
+                              title="Odsłuchaj słówko (R)"
+                            >
+                              <Volume2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                         {card.ipa && (
                           <span className="font-mono text-sm text-muted-foreground">
                             {card.ipa}
@@ -396,9 +538,25 @@ const LanguageStudyPage = () => {
                       </div>
 
                       {card.sentence?.sentenceTarget && (
-                        <p className="mt-3 text-base text-foreground">
-                          {card.sentence.sentenceTarget}
-                        </p>
+                        <div className="mt-3 flex items-start justify-between gap-2">
+                          <p className="text-base text-foreground">
+                            {card.sentence.sentenceTarget}
+                          </p>
+                          {ttsSupported && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 shrink-0"
+                              onClick={() =>
+                                speak(card.sentence!.sentenceTarget, normalizedCode)
+                              }
+                              title="Odsłuchaj zdanie (S)"
+                            >
+                              <Volume2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </div>
 
@@ -406,10 +564,7 @@ const LanguageStudyPage = () => {
                       <div className="flex items-start gap-3 rounded-xl border border-warning/20 bg-warning/10 p-4">
                         <Lightbulb className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
                         <div className="min-w-0 flex-1 text-sm text-foreground">
-                          <TiptapRenderer
-                            key={card.flashcardId}
-                            content={card.trapNote}
-                          />
+                          <TiptapRenderer key={card.flashcardId} content={card.trapNote} />
                         </div>
                       </div>
                     )}

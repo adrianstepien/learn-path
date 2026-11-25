@@ -23,6 +23,7 @@ import {
   SessionType,
   StudyMode,
 } from '@/lib/api/types';
+import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { cn } from '@/lib/utils';
 import { QuestionWithReview, ReviewRating } from '@/types/learning';
 
@@ -65,7 +66,6 @@ const StudyPage = () => {
 
   const [userAnswer, setUserAnswer] = useState('');
   const [showAnswer, setShowAnswer] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
   const [llmFeedback, setLlmFeedback] = useState<string | null>(null);
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,6 +76,24 @@ const StudyPage = () => {
   const answerShownTimeRef = useRef<string | undefined>(undefined);
   const sessionIdRef = useRef<number | null>(null);
   const sessionEndedRef = useRef(false);
+
+  const {
+    isListening: isRecording,
+    interimTranscript,
+    toggle: toggleRecording,
+    stop: stopRecording,
+    cancel: cancelRecording,
+    supported: sttSupported,
+  } = useSpeechRecognition({
+    lang: 'pl-PL',
+    onFinalResult: (text) => {
+      setUserAnswer((prev) => {
+        const separator = prev.length > 0 && !/\s$/.test(prev) ? ' ' : '';
+        return `${prev}${separator}${text}`;
+      });
+    },
+    onError: (msg) => toast.error(msg),
+  });
 
   const formatTime = (totalSeconds: number) => {
     const minutes = Math.floor(totalSeconds / 60);
@@ -179,9 +197,10 @@ const StudyPage = () => {
 
     return () => {
       cancelled = true;
+      cancelRecording();
       void stopSessionIfActive();
     };
-  }, [topicId, categoryId, roadmapId, questionId, studyModeParam, stopSessionIfActive]);
+  }, [topicId, categoryId, roadmapId, questionId, studyModeParam, cancelRecording, stopSessionIfActive]);
 
   useEffect(() => {
     if (hasFetched && questions.length === 0 && initialCount > 0) {
@@ -207,12 +226,14 @@ const StudyPage = () => {
   }, [hasFetched, questions.length]);
 
   const resetQuestionState = () => {
+    cancelRecording();
     setUserAnswer('');
     setShowAnswer(false);
     setLlmFeedback(null);
   };
 
   const handleGoBack = async () => {
+    cancelRecording();
     await stopSessionIfActive();
     navigate(-1);
   };
@@ -244,6 +265,7 @@ const StudyPage = () => {
   };
 
   const handleShowAnswer = () => {
+    stopRecording();
     if (!answerShownTimeRef.current) {
       answerShownTimeRef.current = new Date().toISOString();
     }
@@ -354,22 +376,13 @@ const StudyPage = () => {
   const progress = initialCount > 0 ? ((initialCount - questions.length) / initialCount) * 100 : 0;
 
   const handleVerifyWithLLM = async () => {
+    stopRecording();
     setIsLoadingFeedback(true);
     await new Promise((resolve) => setTimeout(resolve, 1500));
     setLlmFeedback(
       `**Analiza odpowiedzi:**\n\nTwoja odpowiedź jest weryfikowana przez AI. (To jest mockup).\n\n**Sugestia:** Sprawdź poprawność w oparciu o wzorcową odpowiedź.`
     );
     setIsLoadingFeedback(false);
-  };
-
-  const toggleRecording = () => {
-    setIsRecording(!isRecording);
-    if (!isRecording) {
-      setTimeout(() => {
-        setUserAnswer((prev) => prev + ' [Transkrypcja mowy...]');
-        setIsRecording(false);
-      }, 2000);
-    }
   };
 
   return (
@@ -465,24 +478,33 @@ const StudyPage = () => {
                   <div className="space-y-4">
                     <div className="relative">
                       <Textarea
-                        placeholder="Wpisz swoją odpowiedź..."
+                        placeholder="Wpisz lub podyktuj swoją odpowiedź..."
                         value={userAnswer}
                         onChange={(e) => setUserAnswer(e.target.value)}
                         className="min-h-[120px] resize-none pr-12"
                       />
-                      <button
-                        type="button"
-                        onClick={toggleRecording}
-                        className={cn(
-                          'absolute right-3 top-3 rounded-full p-2 transition-all',
-                          isRecording
-                            ? 'animate-pulse bg-destructive text-destructive-foreground shadow-lg'
-                            : 'bg-secondary text-muted-foreground hover:bg-secondary/80 hover:text-foreground'
-                        )}
-                      >
-                        <Mic className="h-4 w-4" />
-                      </button>
+                      {sttSupported && (
+                        <button
+                          type="button"
+                          onClick={toggleRecording}
+                          title={isRecording ? 'Zatrzymaj dyktowanie' : 'Dyktuj odpowiedź (PL)'}
+                          className={cn(
+                            'absolute right-3 top-3 rounded-full p-2 transition-all',
+                            isRecording
+                              ? 'animate-pulse bg-destructive text-destructive-foreground shadow-lg'
+                              : 'bg-secondary text-muted-foreground hover:bg-secondary/80 hover:text-foreground'
+                          )}
+                        >
+                          <Mic className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
+
+                    {interimTranscript && (
+                      <p className="text-xs italic text-muted-foreground">
+                        {interimTranscript}...
+                      </p>
+                    )}
 
                     <div className="flex flex-col gap-3 sm:flex-row">
                       <Button
@@ -507,6 +529,16 @@ const StudyPage = () => {
                         Pokaż odpowiedź
                       </Button>
                     </div>
+                  </div>
+                )}
+
+                {/* User Answer preview after reveal */}
+                {(showAnswer || llmFeedback) && userAnswer.trim() && (
+                  <div className="mt-4 rounded-xl border border-border bg-secondary/40 p-4">
+                    <p className="mb-1 text-xs font-medium text-muted-foreground">
+                      Twoja odpowiedź:
+                    </p>
+                    <p className="whitespace-pre-line text-sm text-foreground">{userAnswer}</p>
                   </div>
                 )}
 
